@@ -1,0 +1,238 @@
+{
+  "elections": [
+    {
+      "name": "Bầu cử Hội đồng thành phố",
+      "organizer": "Trần Thị",
+      "description": "Bầu cử thành viên hội đồng thành phố nhằm chọn ra những người đại diện cho cư dân trong việc quản lý và phát triển thành phố.",
+      "startDate": "2024-03-12T14:31",
+      "endDate": "2024-03-12T00:12",
+      "status": "ongoing",
+      "imageUrl": "",
+      "id": "2",
+      "voters": [
+        {
+          "id": "1",
+          "name": "Nguyễn Văn A",
+          "phone": "0123456789",
+          "email": "nguyenvana@example.com"
+        },
+        {
+          "id": "2",
+          "name": "Trần Thị B",
+          "phone": "0987654321",
+          "email": "tranthib@example.com"
+        },
+        {
+          "id": "1731739600815",
+          "name": "",
+          "phone": "",
+          "email": "",
+          "isRestricted": false,
+          "roleId": 0
+        }
+      ],
+      "candidates": [
+        {
+          "id": "2",
+          "name": "Trần Thị D",
+          "description": "Ứng viên cho vị trí thành viên hội đồng thành phố.",
+          "pledge": "Tôi sẽ làm việc chăm chỉ để cải thiện cuộc sống của cư dân.",
+          "imageUrl": "https://example.com/image2.jpg"
+        },
+        {
+          "name": "2",
+          "description": "3",
+          "pledge": "4",
+          "imageUrl": ""
+        },
+        {
+          "name": "ba",
+          "description": "ba",
+          "pledge": "ba",
+          "imageUrl": ""
+        }
+      ]
+    },
+    {
+      "name": "Nguyễn Mạnh HÙngdsdf",
+      "organizer": "Trần Thị hehe",
+      "description": "e",
+      "startDate": "2024-11-30T21:31",
+      "endDate": "2024-11-14T21:31",
+      "status": "ongoing",
+      "imageUrl": "",
+      "id": "cbcd"
+    },
+    {
+      "id": "da4b",
+      "name": "1",
+      "organizer": "1",
+      "description": "1",
+      "startDate": "2024-11-12T15:20",
+      "endDate": "2024-11-09T15:20",
+      "status": "upcoming"
+    },
+    {
+      "id": "aacc",
+      "name": "3",
+      "organizer": "3",
+      "description": "3",
+      "startDate": "2024-11-29T15:22",
+      "endDate": "2024-11-13T15:22",
+      "status": "results_published"
+    },
+    {
+      "id": "05e8",
+      "name": "3",
+      "organizer": "3",
+      "description": "3",
+      "startDate": "2024-11-08T15:23",
+      "endDate": "2024-11-29T15:23",
+      "status": "completed"
+    },
+    {
+      "id": "5c2f",
+      "name": "3",
+      "organizer": "3",
+      "description": "3",
+      "startDate": "2024-11-27T15:24",
+      "endDate": "2024-11-07T15:24",
+      "status": "upcoming"
+    },
+    {
+      "id": "7a94",
+      "name": "34",
+      "organizer": "3",
+      "description": "3",
+      "startDate": "2024-11-08T15:26",
+      "endDate": "2024-11-20T15:26",
+      "status": "upcoming",
+      "imageUrl": ""
+    }
+  ],
+  "users": [
+    {
+      "id": "0",
+      "name": "Bob",
+      "account": {
+        "username": "admin",
+        "password": "1234",
+        "phone": "1234567890",
+        "email": "bob@example.com",
+        "tenDangNhap": "admin",
+        "hoTen": "Bob",
+        "soCCCD": "123456789",
+        "matKhau": "1234"
+      },
+      "roles": [
+        {
+          "id": 1,
+          "name": "Admin",
+          "permissions": [
+            "view",
+            "vote",
+            "count",
+            "manage",
+            "admin"
+          ]
+        }
+      ],
+      "avatar": ""
+    }
+  ],
+  "roles": [
+    {
+      "id": "1",
+      "name": "Admin",
+      "permissions": [
+        "view",
+        "vote",
+        "count",
+        "manage",
+        "admin"
+      ]
+    },
+    {
+      "id": "2",
+      "name": "Editor",
+      "permissions": [
+        "view",
+        "vote",
+        "count"
+      ]
+    },
+    {
+      "id": "3",
+      "name": "Viewer",
+      "permissions": [
+        "view"
+      ]
+    },
+    {
+      "id": "0cb2",
+      "electionId": "2",
+      "voterPhone": "",
+      "roleId": 2
+    },
+    {
+      "id": "0bab",
+      "electionId": "2",
+      "voterPhone": "0987654321",
+      "roleId": 3
+    },
+    {
+      "id": "8ed5",
+      "electionId": "2",
+      "voterPhone": "0987654321",
+      "roleId": 2
+    },
+    {
+      "id": "78b4",
+      "electionId": "2",
+      "voterPhone": "0123456789",
+      "roleId": 2
+    },
+    {
+      "id": "fe4f",
+      "electionId": "2",
+      "voterPhone": "0987654321",
+      "roleId": 3
+    },
+    {
+      "id": "7048",
+      "electionId": "2",
+      "voterPhone": "0987654321",
+      "roleId": 2
+    },
+    {
+      "id": "313a",
+      "name": "Bầu cử Hội đồng thành phố",
+      "permissions": [],
+      "color": "#2563EB"
+    },
+    {
+      "id": "4755",
+      "electionId": "2",
+      "voterPhone": "0123456789",
+      "roleId": null
+    },
+    {
+      "id": "0d03",
+      "electionId": "2",
+      "voterPhone": "",
+      "roleId": 2
+    },
+    {
+      "id": "527e",
+      "electionId": "2",
+      "voterPhone": "0987654321",
+      "roleId": null
+    },
+    {
+      "id": "bc58",
+      "electionId": "2",
+      "voterPhone": "0987654321",
+      "roleId": 3
+    }
+  ]
+}
