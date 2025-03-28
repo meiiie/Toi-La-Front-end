@@ -1,0 +1,192 @@
+{
+  "elections": [
+    {
+      "id": 1,
+      "tenCuocBauCu": "Bầu cử Hội đồng thành phố",
+      "moTa": "Bầu cử thành viên hội đồng thành phố nhằm chọn ra những người đại diện cho cư dân trong việc quản lý và phát triển thành phố.",
+      "ngayBatDau": "2024-03-12T14:31:00",
+      "ngayKetThuc": "2024-03-12T00:12:00",
+      "trangThai": "Đang diễn ra",
+      "voters": [
+        {
+          "id": 1,
+          "sdt": "0123456789",
+          "email": "nguyenvana@example.com",
+          "xacMinh": false,
+          "boPhieu": false,
+          "soLanGuiOTP": 0,
+          "ho": "Nguyễn",
+          "ten": "Văn A"
+        },
+        {
+          "id": 2,
+          "sdt": "0987654321",
+          "email": "tranthib@example.com",
+          "xacMinh": false,
+          "boPhieu": false,
+          "soLanGuiOTP": 0,
+          "ho": "Trần",
+          "ten": "Thị B"
+        }
+      ],
+      "candidates": [
+        {
+          "id": 1,
+          "hoTen": "Nguyễn Văn C",
+          "moTa": "Ứng cử viên cho Hội đồng thành phố",
+          "anh": "",
+          "viTriUngCuId": 1
+        },
+        {
+          "id": 2,
+          "hoTen": "Trần Thị D",
+          "moTa": "Ứng cử viên cho Hội đồng thành phố",
+          "anh": "",
+          "viTriUngCuId": 2
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "tenCuocBauCu": "Bầu cử Quốc hội",
+      "moTa": "Bầu cử thành viên Quốc hội nhằm chọn ra những người đại diện cho quốc gia.",
+      "ngayBatDau": "2024-05-01T08:00:00",
+      "ngayKetThuc": "2024-05-01T18:00:00",
+      "trangThai": "Sắp diễn ra",
+      "voters": [
+        {
+          "id": 3,
+          "sdt": "0123456780",
+          "email": "levanf@example.com",
+          "xacMinh": false,
+          "boPhieu": false,
+          "soLanGuiOTP": 0,
+          "ho": "Lê",
+          "ten": "Văn F"
+        },
+        {
+          "id": 4,
+          "sdt": "0987654320",
+          "email": "phamthig@example.com",
+          "xacMinh": false,
+          "boPhieu": false,
+          "soLanGuiOTP": 0,
+          "ho": "Phạm",
+          "ten": "Thị G"
+        }
+      ],
+      "candidates": [
+        {
+          "id": 3,
+          "hoTen": "Nguyễn Văn H",
+          "moTa": "Ứng cử viên cho Quốc hội",
+          "anh": "",
+          "viTriUngCuId": 3
+        },
+        {
+          "id": 4,
+          "hoTen": "Trần Thị I",
+          "moTa": "Ứng cử viên cho Quốc hội",
+          "anh": "",
+          "viTriUngCuId": 4
+        }
+      ]
+    }
+  ],
+
+  "users": [
+    {
+      "id": 1,
+      "tenDangNhap": "admin",
+      "matKhau": "123456",
+      "email": "nguyenvana@example.com",
+      "sdt": "0123456789",
+      "trangThai": true,
+      "lanDangNhapCuoi": "2024-01-01T00:00:00",
+      "ngayThamGia": "2023-01-01T00:00:00",
+      "vaiTro": {
+        "id": 1,
+        "tenVaiTro": "Admin",
+        "quyen": ["view", "vote", "count", "manage", "admin"]
+      }
+    },
+    {
+      "id": 2,
+      "tenDangNhap": "bob",
+      "matKhau": "123",
+      "email": "bob@example.com",
+      "sdt": "0987654321",
+      "trangThai": true,
+      "lanDangNhapCuoi": "2024-01-01T00:00:00",
+      "ngayThamGia": "2023-01-01T00:00:00",
+      "vaiTro": {
+        "id": 1,
+        "tenVaiTro": "Admin",
+        "quyen": ["view", "vote", "count", "manage", "admin"]
+      }
+    },
+    {
+      "id": 3,
+      "tenDangNhap": "alice",
+      "matKhau": "alicepassword",
+      "email": "alice@example.com",
+      "sdt": "0123456780",
+      "trangThai": true,
+      "lanDangNhapCuoi": "2024-01-01T00:00:00",
+      "ngayThamGia": "2023-01-01T00:00:00",
+      "vaiTro": {
+        "id": 2,
+        "tenVaiTro": "Editor",
+        "quyen": ["view", "vote", "count"]
+      }
+    },
+    {
+      "id": 4,
+      "tenDangNhap": "charlie",
+      "matKhau": "charliepassword",
+      "email": "charlie@example.com",
+      "sdt": "0987654320",
+      "trangThai": true,
+      "lanDangNhapCuoi": "2024-01-01T00:00:00",
+      "ngayThamGia": "2023-01-01T00:00:00",
+      "vaiTro": {
+        "id": 3,
+        "tenVaiTro": "Viewer",
+        "quyen": ["view"]
+      }
+    }
+  ],
+
+  "roles": [
+    {
+      "id": 1,
+      "tenVaiTro": "Admin",
+      "quyen": ["view", "vote", "count", "manage", "admin"]
+    },
+    {
+      "id": 2,
+      "tenVaiTro": "Editor",
+      "quyen": ["view", "vote", "count"]
+    },
+    {
+      "id": 3,
+      "tenVaiTro": "Viewer",
+      "quyen": ["view"]
+    }
+  ],
+
+  "sessions": [
+    {
+      "id": 1,
+      "userId": 1,
+      "token": "abc123",
+      "expiresAt": "2024-01-01T00:00:00"
+    },
+    {
+      "id": 2,
+      "userId": 2,
+      "token": "def456",
+      "expiresAt": "2024-01-01T00:00:00"
+    }
+  ]
+}

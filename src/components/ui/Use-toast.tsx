@@ -1,19 +1,29 @@
+'use client';
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const toastVariants = cva(
-  'fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:top-4 md:w-full md:max-w-sm p-4 rounded-lg shadow-lg transition-all duration-300 ease-in-out',
+  'fixed z-50 shadow-lg rounded-lg p-4 transition-all duration-300 ease-in-out',
   {
     variants: {
       variant: {
-        default: 'bg-background text-foreground',
-        destructive: 'bg-destructive text-destructive-foreground',
-        success: 'bg-green-500 text-white',
+        default:
+          'bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700',
+        destructive: 'bg-red-600 text-white border border-red-700',
+        success: 'bg-green-600 text-white border border-green-700',
+      },
+      position: {
+        topRight: 'top-4 right-4',
+        bottomRight: 'bottom-4 right-4',
+        bottomLeft: 'bottom-4 left-4',
+        topLeft: 'top-4 left-4',
       },
     },
     defaultVariants: {
       variant: 'default',
+      position: 'topRight',
     },
   },
 );
@@ -23,6 +33,7 @@ export interface Toast extends VariantProps<typeof toastVariants> {
   title: string;
   description?: string;
   duration?: number;
+  position?: 'topRight' | 'bottomRight' | 'bottomLeft' | 'topLeft';
 }
 
 interface ToastContextType {
@@ -64,12 +75,37 @@ export const useToast = () => {
 const ToastContainer: React.FC = () => {
   const { toasts, removeToast } = useToast();
 
+  // Group toasts by position
+  const groupedToasts = toasts.reduce<Record<string, Toast[]>>((acc, toast) => {
+    const position = toast.position || 'topRight';
+    if (!acc[position]) {
+      acc[position] = [];
+    }
+    acc[position].push(toast);
+    return acc;
+  }, {});
+
   return (
-    <div className="fixed bottom-0 right-0 z-50 p-4 space-y-4 md:top-0 md:bottom-auto">
-      {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
+    <>
+      {Object.entries(groupedToasts).map(([position, positionToasts]) => (
+        <div
+          key={position}
+          className={`fixed z-50 flex flex-col gap-2 max-w-sm w-full ${
+            position === 'topRight'
+              ? 'top-4 right-4 items-end'
+              : position === 'bottomRight'
+              ? 'bottom-4 right-4 items-end'
+              : position === 'bottomLeft'
+              ? 'bottom-4 left-4 items-start'
+              : 'top-4 left-4 items-start'
+          }`}
+        >
+          {positionToasts.map((toast) => (
+            <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
+          ))}
+        </div>
       ))}
-    </div>
+    </>
   );
 };
 
@@ -84,13 +120,20 @@ const ToastItem: React.FC<{ toast: Toast; onClose: () => void }> = ({ toast, onC
   }, [toast.duration, onClose]);
 
   return (
-    <div className={toastVariants({ variant: toast.variant })}>
+    <div
+      className={toastVariants({ variant: toast.variant })}
+      style={{ width: '100%', maxWidth: '380px' }}
+    >
       <div className="flex justify-between items-start">
-        <div>
-          <h3 className="font-semibold">{toast.title}</h3>
-          {toast.description && <p className="text-sm mt-1">{toast.description}</p>}
+        <div className="flex-1 mr-2">
+          <h3 className="font-semibold text-sm">{toast.title}</h3>
+          {toast.description && <p className="text-sm mt-1 opacity-90">{toast.description}</p>}
         </div>
-        <button onClick={onClose} className="text-foreground/50 hover:text-foreground">
+        <button
+          onClick={onClose}
+          className="text-current opacity-70 hover:opacity-100 transition-opacity"
+          aria-label="Close toast"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -98,58 +141,18 @@ const ToastItem: React.FC<{ toast: Toast; onClose: () => void }> = ({ toast, onC
   );
 };
 
-// Example usage
-export const ToastExample: React.FC = () => {
-  const { addToast } = useToast();
-
-  return (
-    <div className="space-y-2">
-      <button
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        onClick={() =>
-          addToast({ title: 'Default Toast', description: 'This is a default toast message' })
-        }
-      >
-        Show Default Toast
-      </button>
-      <button
-        className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-        onClick={() =>
-          addToast({
-            title: 'Error Toast',
-            description: 'This is an error message',
-            variant: 'destructive',
-          })
-        }
-      >
-        Show Error Toast
-      </button>
-      <button
-        className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-        onClick={() =>
-          addToast({
-            title: 'Success Toast',
-            description: 'This is a success message',
-            variant: 'success',
-          })
-        }
-      >
-        Show Success Toast
-      </button>
-    </div>
-  );
+// Utility function for easier toast creation
+export const toast = {
+  default: (props: Omit<Toast, 'id' | 'variant'>) => {
+    const { addToast } = useToast();
+    addToast({ ...props, variant: 'default' });
+  },
+  success: (props: Omit<Toast, 'id' | 'variant'>) => {
+    const { addToast } = useToast();
+    addToast({ ...props, variant: 'success' });
+  },
+  error: (props: Omit<Toast, 'id' | 'variant'>) => {
+    const { addToast } = useToast();
+    addToast({ ...props, variant: 'destructive' });
+  },
 };
-
-// Wrap your app with ToastProvider
-export const toast: React.FC = () => {
-  return (
-    <ToastProvider>
-      <div className="p-4">
-        <h1 className="text-2xl font-bold mb-4">Toast Example</h1>
-        <ToastExample />
-      </div>
-    </ToastProvider>
-  );
-};
-
-export default toast;

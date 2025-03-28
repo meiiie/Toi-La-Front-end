@@ -1,10 +1,9 @@
-// src/components/Pagination.tsx
 import React, { useMemo, useState } from 'react';
-import ElectionCard from '../features/ElectionCard';
-import { Election } from '../store/types';
+import ElectionCard from '../features/CardCuocBauCu';
+import { CuocBauCu } from '../store/types';
 
 interface PaginationProps {
-  filteredElections: Election[];
+  filteredElections: CuocBauCu[];
   itemsPerPage: number;
 }
 
@@ -47,19 +46,7 @@ const Pagination: React.FC<PaginationProps> = ({ filteredElections, itemsPerPage
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {paginatedElections.map((election) => (
-          <ElectionCard
-            key={election.id}
-            id={election.id}
-            name={election.name}
-            description={election.description}
-            date={election.date}
-            organizer={election.organizer}
-            status={election.status}
-            voters={election.voters}
-            candidates={election.candidates}
-            startDate={election.startDate}
-            endDate={election.endDate}
-          />
+          <ElectionCard key={election.id} election={election} />
         ))}
       </div>
       <div className="flex items-center justify-center mt-4">

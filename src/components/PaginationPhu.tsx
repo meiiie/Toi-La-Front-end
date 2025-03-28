@@ -1,5 +1,4 @@
-// src/components/PaginationPhu.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface PaginationProps {
   currentPage: number;
@@ -9,6 +8,10 @@ interface PaginationProps {
 
 const PaginationPhu: React.FC<PaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
   const [inputPage, setInputPage] = useState<number>(currentPage);
+
+  useEffect(() => {
+    setInputPage(currentPage);
+  }, [currentPage]);
 
   const handlePrevious = () => {
     if (currentPage > 1) {
@@ -40,12 +43,16 @@ const PaginationPhu: React.FC<PaginationProps> = ({ currentPage, totalPages, onP
     }
   };
 
+  if (totalPages === 0) {
+    return null;
+  }
+
   return (
-    <div className="flex items-center justify-center mt-4">
+    <div className="flex flex-wrap items-center justify-center mt-4 space-x-2">
       <button
         onClick={handlePrevious}
         disabled={currentPage === 1}
-        className={`px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300`}
+        className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
       >
         &lt;
       </button>
@@ -54,15 +61,15 @@ const PaginationPhu: React.FC<PaginationProps> = ({ currentPage, totalPages, onP
         value={inputPage}
         onChange={handlePageInputChange}
         onKeyDown={handlePageInputKeyDown}
-        className="w-12 text-center border rounded mx-2"
+        className="w-12 text-center border rounded mx-2 text-black bg-white dark:bg-white"
         min="1"
         max={totalPages}
       />
-      <span className="mx-2">/ {totalPages}</span>
+      <span className="mx-2 text-black dark:text-white">/ {totalPages}</span>
       <button
         onClick={handleNext}
         disabled={currentPage === totalPages}
-        className={`px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300`}
+        className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
       >
         &gt;
       </button>

@@ -1,9 +1,7 @@
 // src/components/NotificationModal.tsx
 
-import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { RootState } from '../store/store';
-import { useSelector } from 'react-redux';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 type NotificationModalProps = {
   title: string;
@@ -21,13 +19,6 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
   confirmLabel = 'Đăng nhập',
 }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const user = useSelector((state: RootState) => state.users.user);
-  useEffect(() => {
-    if (location.pathname.startsWith('/app') && !user) {
-      navigate('/');
-    }
-  }, [location, navigate, user]);
 
   const handleConfirm = () => {
     if (onConfirm) {

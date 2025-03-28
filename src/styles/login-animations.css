@@ -1,0 +1,94 @@
+/* Thêm vào file CSS của bạn */
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.floating {
+  animation: float 3s ease-in-out infinite;
+}
+
+.pulsing {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.rotating {
+  animation: rotate 10s linear infinite;
+}
+
+.hexagon {
+  position: absolute;
+  background: transparent;
+  border: 1px solid #0288d1;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}
+
+.cyber-grid {
+  background-image: linear-gradient(to right, rgba(2, 136, 209, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(2, 136, 209, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.cyber-border {
+  position: relative;
+}
+
+.cyber-border::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #0288d1, #6a1b9a, #0288d1);
+  z-index: -1;
+  animation: border-animation 3s linear infinite;
+}
+
+@keyframes border-animation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.neo-glow {
+  box-shadow: 0 0 10px rgba(2, 136, 209, 0.5), 0 0 20px rgba(2, 136, 209, 0.3);
+}
+
+.neo-card {
+  backdrop-filter: blur(10px);
+  background: rgba(38, 50, 56, 0.7);
+  border: 1px solid rgba(69, 90, 100, 0.5);
+  box-shadow: 0 8px 32px rgba(2, 136, 209, 0.1);
+}

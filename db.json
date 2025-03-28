@@ -1,150 +1,179 @@
 {
   "elections": [
     {
-      "name": "Bầu cử Hội đồng thành phố",
-      "organizer": "Trần Thị",
-      "description": "Bầu cử thành viên hội đồng thành phố nhằm chọn ra những người đại diện cho cư dân trong việc quản lý và phát triển thành phố.",
-      "startDate": "2024-03-12T14:31",
-      "endDate": "2024-03-12T00:12",
-      "status": "ongoing",
-      "imageUrl": "",
-      "id": "2",
-      "voters": [
+      "id": "1",
+      "tenCuocBauCu": "Bầu cử Hội đồng thành phố",
+      "moTa": "Bầu cử thành viên hội đồng thành phố nhằm chọn ra những người đại diện cho cư dân trong việc quản lý và phát triển thành phố.",
+      "ngayBatDau": "2024-03-12T14:31:00",
+      "ngayKetThuc": "2024-03-12T00:12:00",
+      "trangThai": "Đang diễn ra",
+      "cacCuTri": [
         {
-          "id": "1",
-          "name": "Nguyễn Văn A",
-          "phone": "0123456789",
-          "email": "nguyenvana@example.com"
+          "id": 1,
+          "sdt": "0123456789",
+          "email": "nguyenvana@example.com",
+          "xacMinh": false,
+          "boPhieu": false,
+          "soLanGuiOTP": 0,
+          "ho": "Nguyễn",
+          "ten": "Văn A"
         },
         {
-          "id": "2",
-          "name": "Trần Thị B",
-          "phone": "0987654321",
-          "email": "tranthib@example.com"
-        },
-        {
-          "id": "1731739600815",
-          "name": "",
-          "phone": "",
-          "email": "",
-          "isRestricted": false,
-          "roleId": 0
+          "id": 2,
+          "sdt": "0987654321",
+          "email": "tranthib@example.com",
+          "xacMinh": false,
+          "boPhieu": false,
+          "soLanGuiOTP": 0,
+          "ho": "Trần",
+          "ten": "Thị B"
         }
       ],
-      "candidates": [
+      "cacUngCuVien": [
         {
-          "id": "2",
-          "name": "Trần Thị D",
-          "description": "Ứng viên cho vị trí thành viên hội đồng thành phố.",
-          "pledge": "Tôi sẽ làm việc chăm chỉ để cải thiện cuộc sống của cư dân.",
-          "imageUrl": "https://example.com/image2.jpg"
+          "id": 1,
+          "hoTen": "Nguyễn Văn C",
+          "moTa": "Ứng cử viên cho Hội đồng thành phố",
+          "anh": "",
+          "viTriUngCuId": 1
         },
         {
-          "name": "2",
-          "description": "3",
-          "pledge": "4",
-          "imageUrl": ""
-        },
-        {
-          "name": "ba",
-          "description": "ba",
-          "pledge": "ba",
-          "imageUrl": ""
+          "id": 2,
+          "hoTen": "Trần Thị D",
+          "moTa": "Ứng cử viên cho Hội đồng thành phố",
+          "anh": "",
+          "viTriUngCuId": 2
         }
       ]
     },
     {
-      "name": "Nguyễn Mạnh HÙngdsdf",
-      "organizer": "Trần Thị hehe",
-      "description": "e",
-      "startDate": "2024-11-30T21:31",
-      "endDate": "2024-11-14T21:31",
-      "status": "ongoing",
-      "imageUrl": "",
-      "id": "cbcd"
+      "id": "2",
+      "tenCuocBauCu": "Bầu cử Quốc hội",
+      "moTa": "Bầu cử thành viên Quốc hội nhằm chọn ra những người đại diện cho quốc gia.",
+      "ngayBatDau": "2024-05-01T08:00:00",
+      "ngayKetThuc": "2024-05-01T18:00:00",
+      "trangThai": "Sắp diễn ra",
+      "voters": [
+        {
+          "id": 3,
+          "sdt": "0123456780",
+          "email": "levanf@example.com",
+          "xacMinh": false,
+          "boPhieu": false,
+          "soLanGuiOTP": 0,
+          "ho": "Lê",
+          "ten": "Văn F"
+        },
+        {
+          "id": 4,
+          "sdt": "0987654320",
+          "email": "phamthig@example.com",
+          "xacMinh": false,
+          "boPhieu": false,
+          "soLanGuiOTP": 0,
+          "ho": "Phạm",
+          "ten": "Thị G"
+        }
+      ],
+      "candidates": [
+        {
+          "id": 3,
+          "hoTen": "Nguyễn Văn H",
+          "moTa": "Ứng cử viên cho Quốc hội",
+          "anh": "",
+          "viTriUngCuId": 3
+        },
+        {
+          "id": 4,
+          "hoTen": "Trần Thị I",
+          "moTa": "Ứng cử viên cho Quốc hội",
+          "anh": "",
+          "viTriUngCuId": 4
+        }
+      ]
     },
     {
-      "id": "da4b",
-      "name": "1",
-      "organizer": "1",
-      "description": "1",
-      "startDate": "2024-11-12T15:20",
-      "endDate": "2024-11-09T15:20",
-      "status": "upcoming"
+      "id": "cf27",
+      "tenCuocBauCu": "ê",
+      "moTa": "e",
+      "ngayBatDau": "213123-03-12T02:13",
+      "ngayKetThuc": "214214-04-12T12:41",
+      "trangThai": "ongoing"
     },
     {
-      "id": "aacc",
-      "name": "3",
-      "organizer": "3",
-      "description": "3",
-      "startDate": "2024-11-29T15:22",
-      "endDate": "2024-11-13T15:22",
-      "status": "results_published"
-    },
-    {
-      "id": "05e8",
-      "name": "3",
-      "organizer": "3",
-      "description": "3",
-      "startDate": "2024-11-08T15:23",
-      "endDate": "2024-11-29T15:23",
-      "status": "completed"
-    },
-    {
-      "id": "5c2f",
-      "name": "3",
-      "organizer": "3",
-      "description": "3",
-      "startDate": "2024-11-27T15:24",
-      "endDate": "2024-11-07T15:24",
-      "status": "upcoming"
-    },
-    {
-      "id": "7a94",
-      "name": "34",
-      "organizer": "3",
-      "description": "3",
-      "startDate": "2024-11-08T15:26",
-      "endDate": "2024-11-20T15:26",
-      "status": "upcoming",
-      "imageUrl": ""
+      "id": "160e",
+      "tenCuocBauCu": "e",
+      "moTa": "e",
+      "ngayBatDau": "231321-03-12T15:12",
+      "ngayKetThuc": "123211-12-13T15:12",
+      "trangThai": "upcoming"
     }
   ],
   "users": [
     {
-      "id": "0",
-      "name": "Bob",
-      "account": {
-        "username": "admin",
-        "password": "1234",
-        "phone": "1234567890",
-        "email": "bob@example.com",
-        "tenDangNhap": "admin",
-        "hoTen": "Bob",
-        "soCCCD": "123456789",
-        "matKhau": "1234"
-      },
-      "roles": [
-        {
-          "id": 1,
-          "name": "Admin",
-          "permissions": [
-            "view",
-            "vote",
-            "count",
-            "manage",
-            "admin"
-          ]
-        }
-      ],
-      "avatar": ""
+      "id": "1",
+      "tenDangNhap": "admin",
+      "matKhau": "123456",
+      "email": "nguyenvana@example.com",
+      "sdt": "0123456789",
+      "trangThai": true,
+      "lanDangNhapCuoi": "2024-01-01T00:00:00",
+      "ngayThamGia": "2023-01-01T00:00:00",
+      "vaiTro": {
+        "id": 1,
+        "tenVaiTro": "Admin",
+        "chucNang": [
+          {
+            "id": 1,
+            "tenChucNang": "Quản Trị Viên"
+          }
+        ],
+        "quyen": [
+          "view",
+          "vote",
+          "count",
+          "manage",
+          "admin"
+        ]
+      }
+    },
+    {
+      "id": "2",
+      "tenDangNhap": "bob",
+      "matKhau": "123",
+      "email": "bob@example.com",
+      "sdt": "0987654321",
+      "trangThai": true,
+      "lanDangNhapCuoi": "2024-01-01T00:00:00",
+      "ngayThamGia": "2023-01-01T00:00:00",
+      "vaiTro": {
+        "id": 1,
+        "tenVaiTro": "Admin",
+        "quyen": [
+          "view",
+          "vote",
+          "count",
+          "manage",
+          "admin"
+        ]
+      }
+    },
+    {
+      "id": "4",
+      "tenDangNhap": "charlie",
+      "matKhau": "charliepassword",
+      "email": "charlie@example.com",
+      "sdt": "0987654320",
+      "trangThai": true,
+      "lanDangNhapCuoi": "2024-01-01T00:00:00",
+      "ngayThamGia": "2023-01-01T00:00:00"
     }
   ],
   "roles": [
     {
       "id": "1",
-      "name": "Admin",
-      "permissions": [
+      "tenVaiTro": "Admin",
+      "quyen": [
         "view",
         "vote",
         "count",
@@ -154,8 +183,8 @@
     },
     {
       "id": "2",
-      "name": "Editor",
-      "permissions": [
+      "tenVaiTro": "Editor",
+      "quyen": [
         "view",
         "vote",
         "count"
@@ -163,76 +192,104 @@
     },
     {
       "id": "3",
-      "name": "Viewer",
-      "permissions": [
+      "tenVaiTro": "Viewer",
+      "quyen": [
         "view"
       ]
+    }
+  ],
+  "sessions": [
+    {
+      "id": "1",
+      "userId": 1,
+      "token": "abc123",
+      "expiresAt": "2024-01-01T00:00:00"
     },
     {
-      "id": "0cb2",
-      "electionId": "2",
-      "voterPhone": "",
-      "roleId": 2
+      "id": "2",
+      "userId": 2,
+      "token": "def456",
+      "expiresAt": "2024-01-01T00:00:00"
     },
     {
-      "id": "0bab",
-      "electionId": "2",
-      "voterPhone": "0987654321",
-      "roleId": 3
+      "id": "10ab",
+      "taiKhoanId": "1",
+      "duLieuPhien": "sessionData",
+      "ngayHetHan": "2025-01-23T10:33:28.860Z",
+      "accessToken": "generatedAccessToken",
+      "refreshToken": "generatedRefreshToken"
     },
     {
-      "id": "8ed5",
-      "electionId": "2",
-      "voterPhone": "0987654321",
-      "roleId": 2
+      "id": "c627",
+      "taiKhoanId": "1",
+      "duLieuPhien": "sessionData",
+      "ngayHetHan": "2025-01-23T10:37:28.201Z",
+      "accessToken": "generatedAccessToken",
+      "refreshToken": "generatedRefreshToken"
     },
     {
-      "id": "78b4",
-      "electionId": "2",
-      "voterPhone": "0123456789",
-      "roleId": 2
+      "id": "27da",
+      "taiKhoanId": "1",
+      "duLieuPhien": "sessionData",
+      "ngayHetHan": "2025-01-23T10:51:41.640Z",
+      "accessToken": "generatedAccessToken",
+      "refreshToken": "generatedRefreshToken"
     },
     {
-      "id": "fe4f",
-      "electionId": "2",
-      "voterPhone": "0987654321",
-      "roleId": 3
+      "id": "a226",
+      "taiKhoanId": "1",
+      "duLieuPhien": "sessionData",
+      "ngayHetHan": "2025-01-23T10:51:49.663Z",
+      "accessToken": "generatedAccessToken",
+      "refreshToken": "generatedRefreshToken"
     },
     {
-      "id": "7048",
-      "electionId": "2",
-      "voterPhone": "0987654321",
-      "roleId": 2
+      "id": "d07e",
+      "taiKhoanId": "1",
+      "duLieuPhien": "sessionData",
+      "ngayHetHan": "2025-01-23T10:53:25.692Z",
+      "accessToken": "generatedAccessToken",
+      "refreshToken": "generatedRefreshToken"
     },
     {
-      "id": "313a",
-      "name": "Bầu cử Hội đồng thành phố",
-      "permissions": [],
-      "color": "#2563EB"
+      "id": "8881",
+      "taiKhoanId": "1",
+      "duLieuPhien": "sessionData",
+      "ngayHetHan": "2025-01-23T11:28:55.303Z",
+      "accessToken": "generatedAccessToken",
+      "refreshToken": "generatedRefreshToken"
     },
     {
-      "id": "4755",
-      "electionId": "2",
-      "voterPhone": "0123456789",
-      "roleId": null
+      "id": "fa80",
+      "taiKhoanId": "1",
+      "duLieuPhien": "sessionData",
+      "ngayHetHan": "2025-01-23T11:29:25.194Z",
+      "accessToken": "generatedAccessToken",
+      "refreshToken": "generatedRefreshToken"
     },
     {
-      "id": "0d03",
-      "electionId": "2",
-      "voterPhone": "",
-      "roleId": 2
+      "id": "7f25",
+      "taiKhoanId": "1",
+      "duLieuPhien": "sessionData",
+      "ngayHetHan": "2025-01-23T11:29:55.595Z",
+      "accessToken": "generatedAccessToken",
+      "refreshToken": "generatedRefreshToken"
     },
     {
-      "id": "527e",
-      "electionId": "2",
-      "voterPhone": "0987654321",
-      "roleId": null
+      "id": "b1ed",
+      "taiKhoanId": "1",
+      "duLieuPhien": "sessionData",
+      "ngayHetHan": "2025-01-23T12:38:04.080Z",
+      "accessToken": "generatedAccessToken",
+      "refreshToken": "generatedRefreshToken"
     },
     {
-      "id": "bc58",
-      "electionId": "2",
-      "voterPhone": "0987654321",
-      "roleId": 3
+      "id": "829d",
+      "taiKhoanId": "1",
+      "duLieuPhien": "sessionData",
+      "ngayHetHan": "2025-01-23T12:38:53.887Z",
+      "accessToken": "generatedAccessToken",
+      "refreshToken": "generatedRefreshToken"
     }
   ]
 }

@@ -2,51 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 100% 50%;
-    --destructive-foreground: 210 40% 98%;
-    --ring: 215 20.2% 65.1%;
-    --radius: 0.5rem;
-  }
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 47.4% 11.2%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 47.4% 11.2%;
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 100% 50%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 215 20.2% 65.1%;
+  --radius: 0.5rem;
 
-  .dark {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 40% 98%;
-    --popover: 224 71% 4%;
-    --popover-foreground: 215 20.2% 65.1%;
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 1.2%;
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --ring: 216 34% 17%;
-  }
+  /* Blockchain Colors - Light Mode */
+  --cosmic-abyss-light: 210 30% 95%;
+  --nebula-blue-light: 210 50% 95%;
+  --deep-space-light: 210 30% 90%;
+  --blockchain-blue-light: 200 98% 41%;
+  --cosmic-purple-light: 282 72% 36%;
+  --text-primary-light: 210 50% 20%;
+  --text-secondary-light: 210 20% 40%;
+
+  /* Chart Colors */
+  --chart-1: 200 98% 41%;
+  --chart-2: 282 72% 36%;
+  --chart-3: 130 60% 39%;
+  --chart-4: 48 96% 53%;
+  --chart-5: 0 84% 60%;
+}
+
+.dark {
+  --background: 224 71% 4%;
+  --foreground: 213 31% 91%;
+  --muted: 223 47% 11%;
+  --muted-foreground: 215.4 16.3% 56.9%;
+  --accent: 216 34% 17%;
+  --accent-foreground: 210 40% 98%;
+  --popover: 224 71% 4%;
+  --popover-foreground: 215 20.2% 65.1%;
+  --border: 216 34% 17%;
+  --input: 216 34% 17%;
+  --card: 224 71% 4%;
+  --card-foreground: 213 31% 91%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 47.4% 1.2%;
+  --secondary: 222.2 47.4% 11.2%;
+  --secondary-foreground: 210 40% 98%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 216 34% 17%;
+
+  /* Blockchain Colors - Dark Mode */
+  --cosmic-abyss: 222 30% 7%;
+  --nebula-blue: 215 50% 18%;
+  --deep-space: 215 30% 18%;
+  --blockchain-blue: 200 98% 41%;
+  --cosmic-purple: 282 72% 36%;
+  --text-primary: 210 40% 98%;
+  --text-secondary: 210 20% 70%;
 }
 
 @layer base {
@@ -55,5 +78,377 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Roboto', sans-serif;
+    line-height: 1.6;
   }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 700;
+  }
+  .container {
+    max-width: 800px;
+  }
+}
+
+@media (max-width: 640px) {
+  h1 {
+    font-size: 2rem;
+  }
+  h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Custom Datepicker Styling - Dark Mode */
+.dark .react-datepicker {
+  background-color: #162a45 !important;
+  border: 1px solid #2a3a5a !important;
+  border-radius: 1.5rem !important; /* Tăng bo tròn */
+  font-family: inherit !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2) !important;
+  z-index: 9999 !important;
+}
+
+.dark .react-datepicker__header {
+  background-color: #1a2942 !important;
+  border-bottom: 1px solid #2a3a5a !important;
+  border-top-left-radius: 1.5rem !important; /* Tăng bo tròn */
+  border-top-right-radius: 1.5rem !important; /* Tăng bo tròn */
+}
+
+.dark .react-datepicker__current-month,
+.dark .react-datepicker__day-name,
+.dark .react-datepicker-time__header {
+  color: #e1f5fe !important;
+}
+
+.dark .react-datepicker__day {
+  color: #b0bec5 !important;
+}
+
+.dark .react-datepicker__day:hover {
+  background-color: #0288d1 !important;
+  color: white !important;
+  border-radius: 0.3rem !important;
+}
+
+.dark .react-datepicker__day--selected,
+.dark .react-datepicker__day--keyboard-selected {
+  background-color: #0288d1 !important;
+  color: white !important;
+}
+
+.dark .react-datepicker__time-container {
+  border-left: 1px solid #2a3a5a !important;
+}
+
+.dark .react-datepicker__time-container .react-datepicker__time {
+  background-color: #162a45 !important;
+}
+
+.dark
+  .react-datepicker__time-container
+  .react-datepicker__time
+  .react-datepicker__time-box
+  ul.react-datepicker__time-list
+  li.react-datepicker__time-list-item {
+  color: #b0bec5 !important;
+}
+
+.dark
+  .react-datepicker__time-container
+  .react-datepicker__time
+  .react-datepicker__time-box
+  ul.react-datepicker__time-list
+  li.react-datepicker__time-list-item:hover {
+  background-color: #0288d1 !important;
+  color: white !important;
+}
+
+.dark
+  .react-datepicker__time-container
+  .react-datepicker__time
+  .react-datepicker__time-box
+  ul.react-datepicker__time-list
+  li.react-datepicker__time-list-item--selected {
+  background-color: #0288d1 !important;
+  color: white !important;
+}
+
+/* Custom Datepicker Styling - Light Mode */
+.react-datepicker {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 1.5rem !important; /* Tăng bo tròn */
+  font-family: inherit !important;
+  box-shadow: 0 0 20px rgba(2, 136, 209, 0.1) !important;
+  z-index: 9999 !important;
+}
+
+.react-datepicker__header {
+  background-color: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-top-left-radius: 1.5rem !important; /* Tăng bo tròn */
+  border-top-right-radius: 1.5rem !important; /* Tăng bo tròn */
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name,
+.react-datepicker-time__header {
+  color: #334155 !important;
+}
+
+.react-datepicker__day {
+  color: #64748b !important;
+}
+
+.react-datepicker__day:hover {
+  background-color: #0288d1 !important;
+  color: white !important;
+  border-radius: 0.3rem !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: #0288d1 !important;
+  color: white !important;
+}
+
+.react-datepicker__time-container {
+  border-left: 1px solid #e2e8f0 !important;
+}
+
+.react-datepicker__time-container .react-datepicker__time {
+  background-color: #ffffff !important;
+}
+
+.react-datepicker__time-container
+  .react-datepicker__time
+  .react-datepicker__time-box
+  ul.react-datepicker__time-list
+  li.react-datepicker__time-list-item {
+  color: #64748b !important;
+}
+
+.react-datepicker__time-container
+  .react-datepicker__time
+  .react-datepicker__time-box
+  ul.react-datepicker__time-list
+  li.react-datepicker__time-list-item:hover {
+  background-color: #0288d1 !important;
+  color: white !important;
+}
+
+.react-datepicker__time-container
+  .react-datepicker__time
+  .react-datepicker__time-box
+  ul.react-datepicker__time-list
+  li.react-datepicker__time-list-item--selected {
+  background-color: #0288d1 !important;
+  color: white !important;
+}
+
+/* Scrollbar styling - Dark Mode */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #162a45;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #2a3a5a;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #0288d1;
+}
+
+/* Scrollbar styling - Light Mode */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0288d1;
+}
+
+/* Prevent text selection for better UX */
+.no-select {
+  user-select: none;
+}
+
+/* Glass morphism effect - Dark Mode */
+.dark .glass-morphism {
+  backdrop-filter: blur(8px);
+  background-color: rgba(22, 42, 69, 0.4);
+  border: 1px solid rgba(42, 58, 90, 0.6);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Glass morphism effect - Light Mode */
+.glass-morphism {
+  backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  box-shadow: 0 0 20px rgba(2, 136, 209, 0.1);
+}
+
+/* Thêm CSS để đảm bảo DatePicker hiển thị đúng */
+.date-picker-popper {
+  z-index: 9999 !important;
+  position: absolute !important;
+}
+
+/* Đảm bảo DatePicker không bị che khuất */
+.react-datepicker-wrapper {
+  display: block;
+  width: 100%;
+}
+
+.react-datepicker__input-container {
+  display: block;
+  width: 100%;
+}
+
+/* Điều chỉnh vị trí của DatePicker */
+.react-datepicker-popper[data-placement^='bottom'] {
+  margin-top: 10px;
+}
+
+.react-datepicker-popper[data-placement^='top'] {
+  margin-bottom: 10px;
+}
+
+/* Đảm bảo DatePicker có đủ không gian */
+.react-datepicker {
+  font-size: 0.9rem !important;
+  width: auto !important;
+}
+
+/* Đảm bảo các ngày trong tháng hiển thị đúng */
+.react-datepicker__month-container {
+  float: left;
+  min-width: 280px;
+}
+
+/* Đảm bảo DatePicker hiển thị đúng trong dark mode */
+.dark .react-datepicker-popper[data-placement^='bottom'] .react-datepicker__triangle::before,
+.dark .react-datepicker-popper[data-placement^='bottom'] .react-datepicker__triangle::after {
+  border-bottom-color: #1a2942 !important;
+}
+
+.dark .react-datepicker-popper[data-placement^='top'] .react-datepicker__triangle::before,
+.dark .react-datepicker-popper[data-placement^='top'] .react-datepicker__triangle::after {
+  border-top-color: #1a2942 !important;
+}
+
+/* Hiệu ứng chuyển đổi giữa các bước */
+.step-transition-enter {
+  opacity: 0;
+  transform: translateX(50px);
+}
+.step-transition-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 400ms,
+    transform 400ms ease-out;
+}
+.step-transition-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+.step-transition-exit-active {
+  opacity: 0;
+  transform: translateX(-50px);
+  transition:
+    opacity 400ms,
+    transform 400ms ease-in;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 640px) {
+  .react-datepicker {
+    font-size: 0.8rem !important;
+  }
+
+  .react-datepicker__month-container {
+    min-width: 250px;
+  }
+
+  .react-datepicker__day {
+    width: 1.7rem !important;
+    line-height: 1.7rem !important;
+    margin: 0.1rem !important;
+  }
+}
+
+/* Thêm hiệu ứng đổ bóng cho các thành phần */
+.shadow-azure {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.dark .shadow-azure {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Hiệu ứng hover cho các nút */
+.btn-hover-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-hover-effect:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.btn-hover-effect:hover:after {
+  opacity: 1;
+}
+
+/* Hiệu ứng pulse cho nút chính */
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(2, 136, 209, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(2, 136, 209, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(2, 136, 209, 0);
+  }
+}
+
+.pulse-button {
+  animation: pulse-border 2s infinite;
+}
+
+.dark .pulse-button {
+  animation: pulse-border 2s infinite;
 }

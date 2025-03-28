@@ -1,10 +1,9 @@
-// src/components/UserActions.tsx
 import React from 'react';
-import { Role } from '../store/types';
+import { VaiTro } from '../store/types';
 
 interface UserActionsProps {
   userId: number;
-  roles: Role[];
+  roles: VaiTro[];
   currentRoleId: number;
   handleRoleChange: (userId: number, roleId: number) => void;
   handleDeleteUser: (userId: number) => void;
@@ -31,7 +30,7 @@ const UserActions: React.FC<UserActionsProps> = ({
         <option value="">Chọn vai trò</option>
         {roles.map((role) => (
           <option key={role.id} value={role.id}>
-            {role.name}
+            {role.tenVaiTro}
           </option>
         ))}
       </select>

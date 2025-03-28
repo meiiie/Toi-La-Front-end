@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 interface PasswordInputProps {
+  id?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  className?: string;
+  placeholder?: string;
 }
 
 const PasswordInput: React.FC<PasswordInputProps> = ({ value, onChange }) => {

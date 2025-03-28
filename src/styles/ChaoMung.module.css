@@ -1,0 +1,30 @@
+.container {
+  min-height: 100vh;
+  background-color: #0a1416;
+  color: white;
+  overflow: hidden;
+}
+
+.heroSection {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 5rem;
+}
+
+.glowingText {
+  position: relative;
+  display: inline-block;
+}
+
+.glowingText::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, #3b82f6, #8b5cf6);
+  filter: blur(10px);
+  opacity: 0.5;
+  border-radius: 0.5rem;
+}

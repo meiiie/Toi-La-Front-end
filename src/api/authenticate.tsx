@@ -1,18 +1,20 @@
-import { searchUsers } from './userApi';
-import { User } from '../store/types';
+import { searchCacTaiKhoan } from './nguoiDungApi';
+import { TaiKhoan } from '../store/types';
 
-export async function authenticate(username: string, password: string): Promise<User | undefined> {
+export async function authenticate(
+  tenDangNhap: string,
+  matKhau: string,
+): Promise<TaiKhoan | undefined> {
   try {
-    const users = await searchUsers({ id: 0, name: username, avatar: '' });
-    if (users.length > 0) {
-      return users[0];
-    } else {
-      return undefined;
+    const taiKhoans = await searchCacTaiKhoan({ tenDangNhap });
+    if (taiKhoans.length > 0 && taiKhoans[0].matKhau === matKhau) {
+      return taiKhoans[0];
     }
-  } catch (error) {
-    console.error('Authentication failed:', error);
     return undefined;
+  } catch (error) {
+    console.error('Lỗi khi xác thực tài khoản:', error);
+    throw error;
   }
 }
 
-export type { User };
+export type { TaiKhoan };
