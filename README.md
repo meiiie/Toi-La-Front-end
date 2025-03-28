@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Bắt đầu với Create React App
 
 Dự án này được khởi tạo bằng [Create React App](https://github.com/facebook/create-react-app).
@@ -44,3 +45,6 @@ Bạn không cần phải sử dụng `eject`. Bộ tính năng được quản 
 Bạn có thể tìm hiểu thêm trong [tài liệu Create React App](https://facebook.github.io/create-react-app/docs/getting-started).
 
 Để tìm hiểu về React, hãy xem [tài liệu React](https://reactjs.org/).
+=======
+# Toi-La-Front-end
+>>>>>>> 82046253c6766bb4ec4d9bb6a9ec3c6ba101b0e8
