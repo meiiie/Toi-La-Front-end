@@ -94,10 +94,10 @@ const ToastContainer: React.FC = () => {
             position === 'topRight'
               ? 'top-4 right-4 items-end'
               : position === 'bottomRight'
-              ? 'bottom-4 right-4 items-end'
-              : position === 'bottomLeft'
-              ? 'bottom-4 left-4 items-start'
-              : 'top-4 left-4 items-start'
+                ? 'bottom-4 right-4 items-end'
+                : position === 'bottomLeft'
+                  ? 'bottom-4 left-4 items-start'
+                  : 'top-4 left-4 items-start'
           }`}
         >
           {positionToasts.map((toast) => (
