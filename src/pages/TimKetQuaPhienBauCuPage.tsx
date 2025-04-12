@@ -1748,7 +1748,7 @@ const TrangKetQua: React.FC = () => {
                     }}
                     className="bg-white"
                   >
-                    <RefreshCw className="mr-2 h-3 w-3" />
+                    <RefreshCw className="mr-2 h-3" />
                     Thử lại
                   </Button>
                 </div>
