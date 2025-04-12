@@ -1083,7 +1083,7 @@ const TrangKetQua: React.FC = () => {
     [contractInstance, phienIdParam, toast, fetchElectionSessionsFromAPI],
   );
 
-  // Fetch election results from blockchain
+  // Updated function to safely handle potential errors in blockchain data fetching
   const fetchElectionResultsFromBlockchain = useCallback(
     async (electionId: number, sessionId: number) => {
       if (!electionId || !sessionId || !contractInstance) return;
@@ -1098,29 +1098,37 @@ const TrangKetQua: React.FC = () => {
           sessionId,
         );
 
-        if (!candidateAddresses || candidateAddresses.length === 0) {
+        if (
+          !candidateAddresses ||
+          !Array.isArray(candidateAddresses) ||
+          candidateAddresses.length === 0
+        ) {
           setElectionResults(null);
           return;
         }
 
-        // Calculate total votes
-        const totalVotes = voteAmounts.reduce((sum, votes) => sum + Number(votes), 0);
+        // Calculate total votes from valid vote amounts
+        const totalVotes = Array.isArray(voteAmounts)
+          ? voteAmounts.reduce((sum, votes) => sum + Number(votes || 0), 0)
+          : 0;
 
         // Map blockchain data to our candidate model
         const candidatesWithVotes: Candidate[] = [];
 
         for (let i = 0; i < candidateAddresses.length; i++) {
           const address = candidateAddresses[i];
-          const votes = Number(voteAmounts[i]);
+          const votes = Number(voteAmounts?.[i] || 0);
 
           // Find matching candidate in our Redux state
-          const matchingCandidate = danhSachUngVien.find(
-            (c) => c.blockchainAddress?.toLowerCase() === address.toLowerCase(),
-          );
+          const matchingCandidate = Array.isArray(danhSachUngVien)
+            ? danhSachUngVien.find(
+                (c) => c.blockchainAddress?.toLowerCase() === address?.toLowerCase(),
+              )
+            : undefined;
 
           candidatesWithVotes.push({
             id: matchingCandidate?.id || i,
-            hoTen: matchingCandidate?.hoTen || `Ứng viên ${truncateAddress(address)}`,
+            hoTen: matchingCandidate?.hoTen || `Ứng viên ${truncateAddress(address || '')}`,
             avatar: matchingCandidate?.avatar,
             moTa: matchingCandidate?.moTa,
             viTriUngCu: matchingCandidate?.viTriUngCu,
@@ -1136,7 +1144,7 @@ const TrangKetQua: React.FC = () => {
 
         // Find winner ID (if any)
         let winnerId = undefined;
-        if (candidatesWithVotes.length > 0 && candidatesWithVotes[0].votes > 0) {
+        if (candidatesWithVotes.length > 0 && (candidatesWithVotes[0]?.votes || 0) > 0) {
           winnerId = candidatesWithVotes[0].id;
         }
 
@@ -1155,7 +1163,7 @@ const TrangKetQua: React.FC = () => {
         setBlockchainError('Không thể tải kết quả bầu cử từ blockchain. Vui lòng thử lại sau.');
 
         // Fall back to API data if available
-        if (danhSachUngVien.length > 0) {
+        if (Array.isArray(danhSachUngVien) && danhSachUngVien.length > 0) {
           // Generate simulated results based on available candidates
           const simulatedCandidates = danhSachUngVien.map((candidate, index) => {
             const simulatedVotes = Math.floor(Math.random() * 100) + 1;
@@ -1293,21 +1301,26 @@ const TrangKetQua: React.FC = () => {
 
   // Filtered elections based on search
   const filteredElections = useMemo(() => {
-    if (!searchTerm) return elections;
+    if (!searchTerm) return elections || [];
 
-    return elections.filter((election) =>
-      election.tenCuocBauCu.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
+    return Array.isArray(elections)
+      ? elections.filter((election) =>
+          election?.tenCuocBauCu?.toLowerCase().includes(searchTerm.toLowerCase()),
+        )
+      : [];
   }, [elections, searchTerm]);
 
-  // Get current session
+  // Get current session - add array check
   const currentSession = useMemo(() => {
-    return sessions.find((s) => s.id === selectedSessionId);
+    return Array.isArray(sessions) ? sessions.find((s) => s.id === selectedSessionId) : undefined;
   }, [sessions, selectedSessionId]);
 
-  // Get current election
+  // Get current election - add array check
   const currentElection = useMemo(() => {
-    return elections.find((e) => e.id === selectedElectionId) || cuocBauCu;
+    return (
+      (Array.isArray(elections) ? elections.find((e) => e.id === selectedElectionId) : undefined) ||
+      cuocBauCu
+    );
   }, [elections, selectedElectionId, cuocBauCu]);
 
   return (
@@ -1995,7 +2008,7 @@ const TrangKetQua: React.FC = () => {
               </Card>
 
               {/* Winner card - only show if there's a declared winner */}
-              {electionResults.winnerId && (
+              {electionResults.winnerId && electionResults.candidates && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -2313,7 +2326,7 @@ const TrangKetQua: React.FC = () => {
         {/* Candidate details dialog */}
         <Dialog open={showCandidateDetails} onOpenChange={setShowCandidateDetails}>
           <DialogContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200/50 dark:border-gray-700/50 rounded-xl shadow-xl max-w-2xl">
-            {selectedCandidate && (
+            {selectedCandidate && electionResults?.candidates && (
               <>
                 <DialogHeader>
                   <DialogTitle className="flex items-center">
