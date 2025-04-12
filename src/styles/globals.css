@@ -500,3 +500,34 @@
     background-position: 0% 50%;
   }
 }
+
+/* Add these utility classes to your global styles if not already present */
+
+@layer utilities {
+  /* Extra small screens (like iPhone SE) */
+  .xs\:inline {
+    display: inline;
+  }
+
+  .xs\:hidden {
+    display: none;
+  }
+
+  .xs\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 400px) {
+    .xs\:inline {
+      display: inline;
+    }
+
+    .xs\:hidden {
+      display: none;
+    }
+
+    .xs\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+}

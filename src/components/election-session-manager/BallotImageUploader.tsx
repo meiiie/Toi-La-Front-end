@@ -495,58 +495,58 @@ const BallotImageUploader: React.FC<BallotImageUploaderProps> = ({
 
   return (
     <Card className="border-t-2 border-blue-500 dark:border-blue-600 shadow-sm backdrop-blur-sm bg-white/70 dark:bg-gray-900/70">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2 md:pb-3 p-3 md:p-4">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30">
+          <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30">
             {is3DModel ? (
-              <Box className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Box className="h-4 w-4 md:h-5 md:w-5 text-blue-600 dark:text-blue-400" />
             ) : (
-              <Image className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Image className="h-4 w-4 md:h-5 md:w-5 text-blue-600 dark:text-blue-400" />
             )}
           </div>
-          <CardTitle className="text-base text-gray-800 dark:text-gray-100">
+          <CardTitle className="text-sm md:text-base text-gray-800 dark:text-gray-100">
             {is3DModel ? 'Mô hình 3D phiếu bầu' : 'Hình ảnh phiếu bầu'}
             {is3DModel && (
-              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">
-                <Sparkles className="w-3 h-3 mr-1" />
+              <span className="ml-1 md:ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] md:text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">
+                <Sparkles className="w-2 h-2 md:w-3 md:h-3 mr-0.5 md:mr-1" />
                 3D
               </span>
             )}
           </CardTitle>
         </div>
-        <CardDescription className="text-gray-600 dark:text-gray-400">
+        <CardDescription className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
           Tải lên hoặc nhập URL cho phiếu bầu NFT của bạn
         </CardDescription>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="p-3 md:p-4">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="grid grid-cols-3 mb-4 bg-gray-100 dark:bg-gray-800/60">
+          <TabsList className="grid grid-cols-3 mb-3 md:mb-4 bg-gray-100 dark:bg-gray-800/60 text-xs md:text-sm">
             <TabsTrigger
               value="upload"
-              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700"
+              className="flex items-center gap-1 md:gap-2 py-1.5 md:py-2 px-1 md:px-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700"
               disabled={false} // Always available for new uploads
             >
-              <UploadCloud className="h-4 w-4" />
-              <span>Tải lên</span>
+              <UploadCloud className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="truncate">Tải lên</span>
             </TabsTrigger>
             <TabsTrigger
               value="url"
-              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700"
+              className="flex items-center gap-1 md:gap-2 py-1.5 md:py-2 px-1 md:px-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700"
               disabled={false} // Always available for URL input
             >
-              <LinkIcon className="h-4 w-4" />
-              <span>Nhập URL</span>
+              <LinkIcon className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="truncate">Nhập URL</span>
             </TabsTrigger>
             <TabsTrigger
               value="3d"
-              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 relative"
+              className="flex items-center gap-1 md:gap-2 py-1.5 md:py-2 px-1 md:px-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 relative"
               disabled={lockedTab === 'image'} // Disabled if image is locked
             >
-              <Box className="h-4 w-4" />
-              <span>Mô hình 3D</span>
+              <Box className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="truncate">Mô hình 3D</span>
               {lockedTab === 'image' && (
-                <Lock className="h-3 w-3 absolute -top-1 -right-1 text-gray-500" />
+                <Lock className="h-2 w-2 md:h-3 md:w-3 absolute -top-1 -right-1 text-gray-500" />
               )}
             </TabsTrigger>
           </TabsList>
@@ -554,7 +554,7 @@ const BallotImageUploader: React.FC<BallotImageUploaderProps> = ({
           {/* Tab Upload */}
           <TabsContent value="upload">
             <div
-              className={`relative border-2 border-dashed rounded-lg p-6 transition-all ${
+              className={`relative border-2 border-dashed rounded-lg p-3 md:p-6 transition-all ${
                 dragOver
                   ? 'border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20'
                   : 'border-gray-300 dark:border-gray-700'
@@ -565,6 +565,9 @@ const BallotImageUploader: React.FC<BallotImageUploaderProps> = ({
               }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
+              // Add touch event for mobile to improve drop area interaction
+              onTouchStart={() => setDragOver(true)}
+              onTouchEnd={() => setDragOver(false)}
             >
               <input
                 type="file"
@@ -580,20 +583,20 @@ const BallotImageUploader: React.FC<BallotImageUploaderProps> = ({
                 }
               />
 
-              <div className="flex flex-col items-center justify-center gap-3">
-                <div className="p-3 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30">
-                  <UploadCloud className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <div className="flex flex-col items-center justify-center gap-2 md:gap-3">
+                <div className="p-2 md:p-3 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30">
+                  <UploadCloud className="h-5 w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="text-center">
-                  <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                  <h3 className="text-xs md:text-sm font-medium text-gray-800 dark:text-gray-200">
                     Kéo và thả file vào đây
                   </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mt-0.5 md:mt-1">
                     {lockedTab === '3d'
-                      ? 'Chỉ hỗ trợ mô hình 3D (GLB, GLTF)'
+                      ? 'Hỗ trợ mô hình 3D (GLB, GLTF)'
                       : lockedTab === 'image'
-                        ? 'Chỉ hỗ trợ hình ảnh (JPG, PNG, GIF)'
-                        : 'Hỗ trợ hình ảnh (JPG, PNG, GIF) và mô hình 3D (GLB, GLTF)'}
+                        ? 'Hỗ trợ hình ảnh (JPG, PNG, GIF)'
+                        : 'Hỗ trợ hình ảnh và mô hình 3D'}
                   </p>
                 </div>
                 <Button
@@ -601,35 +604,38 @@ const BallotImageUploader: React.FC<BallotImageUploaderProps> = ({
                   variant="outline"
                   onClick={handleSelectFile}
                   disabled={isLoading}
-                  className="mt-2 border-blue-200 dark:border-blue-800/60 bg-white dark:bg-gray-800"
+                  className="mt-1 md:mt-2 py-1 h-8 md:h-9 border-blue-200 dark:border-blue-800/60 bg-white dark:bg-gray-800"
                 >
                   {isLoading ? (
                     <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Đang tải lên... {progress}%
+                      <RefreshCw className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2 animate-spin" />
+                      <span className="text-xs md:text-sm">Đang tải... {progress}%</span>
                     </>
                   ) : (
                     <>
-                      <FileImage className="h-4 w-4 mr-2" />
-                      Chọn file
+                      <FileImage className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                      <span className="text-xs md:text-sm">Chọn file</span>
                     </>
                   )}
                 </Button>
               </div>
 
               {isLoading && (
-                <div className="mt-4">
-                  <Progress value={progress} className="h-2 bg-gray-200 dark:bg-gray-700" />
-                  <p className="text-xs text-center mt-1 text-gray-500">
+                <div className="mt-3 md:mt-4">
+                  <Progress
+                    value={progress}
+                    className="h-1.5 md:h-2 bg-gray-200 dark:bg-gray-700"
+                  />
+                  <p className="text-[10px] md:text-xs text-center mt-1 text-gray-500">
                     Đang tải lên IPFS... {progress}%
                   </p>
                 </div>
               )}
             </div>
 
-            <Alert className="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50">
-              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <AlertDescription>
+            <Alert className="mt-3 md:mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 py-2 px-3 md:p-4">
+              <Info className="h-3 w-3 md:h-4 md:w-4 text-blue-600 dark:text-blue-400" />
+              <AlertDescription className="text-[10px] md:text-xs">
                 File được tải lên sẽ được lưu trữ trên IPFS để đảm bảo tính phân tán và bền vững cho
                 phiếu bầu NFT của bạn.
               </AlertDescription>
@@ -791,35 +797,35 @@ const BallotImageUploader: React.FC<BallotImageUploaderProps> = ({
 
         {/* Preview */}
         {showPreview && isValidUrl && (
-          <div className="mt-6 border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900/30 backdrop-blur-sm">
-            <div className="flex items-center justify-between p-3 border-b bg-gray-100 dark:bg-gray-800">
-              <h3 className="text-sm font-medium flex items-center gap-2">
-                <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <div className="mt-4 md:mt-6 border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900/30 backdrop-blur-sm">
+            <div className="flex items-center justify-between p-2 md:p-3 border-b bg-gray-100 dark:bg-gray-800">
+              <h3 className="text-xs md:text-sm font-medium flex items-center gap-1 md:gap-2">
+                <Eye className="h-3 w-3 md:h-4 md:w-4 text-blue-600 dark:text-blue-400" />
                 <span>{is3DModel ? 'Mô hình 3D' : 'Hình ảnh'} - Xem trước</span>
               </h3>
-              <div className="flex gap-2">
+              <div className="flex gap-1 md:gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                  className="h-6 md:h-8 px-1.5 md:px-2 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                   onClick={handleCopyUrl}
                   title="Sao chép URL"
                 >
-                  <Copy className="h-3.5 w-3.5" />
+                  <Copy className="h-3 w-3 md:h-3.5 md:w-3.5" />
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                  className="h-6 md:h-8 px-1.5 md:px-2 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                   onClick={handleClearImage}
                   title="Xóa hình ảnh"
                 >
-                  <Trash className="h-3.5 w-3.5 text-red-500" />
+                  <Trash className="h-3 w-3 md:h-3.5 md:w-3.5 text-red-500" />
                 </Button>
               </div>
             </div>
 
-            <div className="p-4">
+            <div className="p-3 md:p-4">
               {is3DModel ? (
                 <Model3DViewer
                   modelUrl={previewUrl}
@@ -881,24 +887,24 @@ const BallotImageUploader: React.FC<BallotImageUploaderProps> = ({
         )}
       </CardContent>
 
-      <CardFooter className="flex justify-between border-t pt-4 bg-gray-50/50 dark:bg-gray-900/30">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+      <CardFooter className="flex justify-between border-t pt-3 md:pt-4 p-3 md:p-4 bg-gray-50/50 dark:bg-gray-900/30">
+        <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">
           {is3DModel ? 'Mô hình 3D' : 'Hình ảnh'} sẽ được hiển thị trên phiếu bầu NFT
         </p>
         <Button
           variant="default"
           size="sm"
           onClick={isValidUrl ? handleCopyUrl : handleSelectFile}
-          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+          className="h-7 md:h-8 text-xs md:text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
         >
           {isValidUrl ? (
             <>
-              <Copy className="h-4 w-4 mr-2" />
+              <Copy className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
               Sao chép URL
             </>
           ) : (
             <>
-              <UploadCloud className="h-4 w-4 mr-2" />
+              <UploadCloud className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
               Tải lên mới
             </>
           )}

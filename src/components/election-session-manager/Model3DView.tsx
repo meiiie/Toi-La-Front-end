@@ -312,15 +312,15 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
         className={`flex flex-col items-center justify-center bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md ${className}`}
         style={{ height }}
       >
-        <div className="text-center p-4 max-w-md">
-          <ShieldAlert className="h-10 w-10 mx-auto text-red-500 mb-2" />
-          <p className="text-sm text-red-600 dark:text-red-400 mb-2">{error}</p>
+        <div className="text-center p-3 md:p-4 max-w-md">
+          <ShieldAlert className="h-8 w-8 md:h-10 md:w-10 mx-auto text-red-500 mb-2" />
+          <p className="text-xs md:text-sm text-red-600 dark:text-red-400 mb-2">{error}</p>
 
           <div className="flex flex-col gap-2">
             {isIpfsModel && currentGatewayIndex < IPFS_GATEWAYS.length - 1 && (
               <button
                 onClick={tryNextGateway}
-                className="px-3 py-1 text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md dark:bg-blue-900/30 dark:hover:bg-blue-800/50 dark:text-blue-300 transition-colors"
+                className="px-2 md:px-3 py-1 text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md dark:bg-blue-900/30 dark:hover:bg-blue-800/50 dark:text-blue-300 transition-colors"
               >
                 <RefreshCw className="w-3 h-3 mr-1 inline" />
                 Thử gateway khác ({currentGatewayIndex + 1}/{IPFS_GATEWAYS.length})
@@ -329,7 +329,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
 
             <button
               onClick={retryFromStart}
-              className="px-3 py-1 text-xs font-medium bg-green-50 hover:bg-green-100 text-green-700 rounded-md dark:bg-green-900/30 dark:hover:bg-green-800/50 dark:text-green-300 transition-colors"
+              className="px-2 md:px-3 py-1 text-xs font-medium bg-green-50 hover:bg-green-100 text-green-700 rounded-md dark:bg-green-900/30 dark:hover:bg-green-800/50 dark:text-green-300 transition-colors"
             >
               <RefreshCw className="w-3 h-3 mr-1 inline" />
               Thử lại từ đầu
@@ -337,8 +337,8 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
 
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 bg-gray-50 dark:bg-gray-800/30 p-2 rounded">
               <span className="block mb-1 font-medium">Thông tin chi tiết:</span>
-              <span className="block">
-                URL: {modelUrl.length > 30 ? `${modelUrl.substring(0, 30)}...` : modelUrl}
+              <span className="block text-xs break-words">
+                URL: {modelUrl.length > 20 ? `${modelUrl.substring(0, 20)}...` : modelUrl}
               </span>
               {isIpfsModel && (
                 <span className="block">Gateway: {IPFS_GATEWAYS[currentGatewayIndex]}</span>
@@ -355,8 +355,8 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     <div className={`relative overflow-hidden ${className}`} style={{ height }}>
       {isLoading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-r from-gray-100/80 to-blue-50/80 dark:from-gray-800/80 dark:to-blue-900/80 rounded-md z-10 backdrop-blur-sm">
-          <Spinner size="large" className="text-blue-500 mb-3" />
-          <p className="text-sm text-blue-600 dark:text-blue-400 max-w-[80%] text-center">
+          <Spinner size="large" className="text-blue-500 mb-2 md:mb-3" />
+          <p className="text-xs md:text-sm text-blue-600 dark:text-blue-400 max-w-[80%] text-center">
             Đang tải mô hình 3D...
             {isIpfsModel && (
               <span className="block text-xs mt-1">
@@ -385,6 +385,11 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
           // Ẩn loading khi canvas được tạo
           setIsLoading(false);
         }}
+        // Add touch event handling for mobile
+        onTouchStart={(e) => {
+          // Prevent default to avoid page scrolling while interacting with 3D
+          if (e.touches.length === 1) e.preventDefault();
+        }}
       >
         <color attach="background" args={[backgroundColor]} />
 
@@ -398,6 +403,8 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             rotation={[0, 0, 0]}
             polar={[-Math.PI / 4, Math.PI / 4]}
             azimuth={[-Math.PI / 4, Math.PI / 4]}
+            // Improved touch sensitivity
+            config={{ mass: 1, tension: 170, friction: 26 }}
           >
             <ErrorBoundary fallback={<Loader />} onError={handleModelError}>
               <Model3D
@@ -411,11 +418,11 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
         </React.Suspense>
       </Canvas>
 
-      {/* Chỉ báo xoay */}
+      {/* Chỉ báo xoay - Optimized for mobile */}
       {autoRotate && !isLoading && !error && (
-        <div className="absolute bottom-2 right-2 text-xs text-gray-500 dark:text-gray-400 bg-white/40 dark:bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm">
+        <div className="absolute bottom-1 md:bottom-2 right-1 md:right-2 text-[10px] md:text-xs text-gray-500 dark:text-gray-400 bg-white/40 dark:bg-black/40 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full backdrop-blur-sm">
           <svg
-            className="w-3 h-3 inline-block animate-spin mr-1"
+            className="w-2 h-2 md:w-3 md:h-3 inline-block animate-spin mr-0.5 md:mr-1"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -438,34 +445,30 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
         </div>
       )}
 
-      {/* Thông tin IPFS */}
+      {/* Thông tin IPFS - Optimized for mobile */}
       {isIpfsModel && !isLoading && !error && (
-        <div className="absolute top-2 left-2 text-xs flex items-center text-gray-500 dark:text-gray-400 bg-white/40 dark:bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm">
-          <Database className="w-3 h-3 mr-1" />
+        <div className="absolute top-1 md:top-2 left-1 md:left-2 text-[10px] md:text-xs flex items-center text-gray-500 dark:text-gray-400 bg-white/40 dark:bg-black/40 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full backdrop-blur-sm">
+          <Database className="w-2 h-2 md:w-3 md:h-3 mr-0.5 md:mr-1" />
           <span>
             IPFS {currentGatewayIndex + 1}/{IPFS_GATEWAYS.length}
-            <span className="ml-1 text-blue-500 dark:text-blue-400">
-              {IPFS_GATEWAYS[currentGatewayIndex].includes('plum-characteristic')
-                ? '(Dedicated Gateway)'
-                : ''}
-            </span>
           </span>
         </div>
       )}
 
-      {/* Model Type Badge */}
+      {/* Model Type Badge - Optimized for mobile */}
       {!isLoading && !error && (
-        <div className="absolute top-2 right-2 text-xs flex items-center text-indigo-600 dark:text-indigo-400 bg-white/40 dark:bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm">
-          <Box className="w-3 h-3 mr-1" />
+        <div className="absolute top-1 md:top-2 right-1 md:right-2 text-[10px] md:text-xs flex items-center text-indigo-600 dark:text-indigo-400 bg-white/40 dark:bg-black/40 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full backdrop-blur-sm">
+          <Box className="w-2 h-2 md:w-3 md:h-3 mr-0.5 md:mr-1" />
           <span>3D Model</span>
         </div>
       )}
 
-      {/* Hướng dẫn sử dụng (tùy chọn) */}
+      {/* Hướng dẫn sử dụng (tùy chọn) - Optimized for mobile */}
       {showControls && !isLoading && !error && (
-        <div className="absolute bottom-2 left-2 text-xs flex items-center text-gray-500 dark:text-gray-400 bg-white/40 dark:bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm">
-          <Info className="w-3 h-3 mr-1" />
-          <span>Kéo để xoay, lăn để thu phóng</span>
+        <div className="absolute bottom-1 md:bottom-2 left-1 md:left-2 text-[10px] md:text-xs flex items-center text-gray-500 dark:text-gray-400 bg-white/40 dark:bg-black/40 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full backdrop-blur-sm">
+          <Info className="w-2 h-2 md:w-3 md:h-3 mr-0.5 md:mr-1" />
+          <span className="hidden xs:inline">Kéo để xoay, lăn để thu phóng</span>
+          <span className="xs:hidden">Kéo để xoay</span>
         </div>
       )}
     </div>

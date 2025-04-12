@@ -48,9 +48,9 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
 
     if (!metadata?.image || imageError) {
       return (
-        <div className="w-full aspect-square rounded-lg bg-gray-100 dark:bg-gray-800/50 flex flex-col items-center justify-center">
-          <ImageIcon className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-2" />
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
+        <div className="w-full aspect-square rounded-lg bg-gray-100 dark:bg-gray-800/50 flex flex-col items-center justify-center p-4">
+          <ImageIcon className="h-8 w-8 md:h-12 md:w-12 text-gray-400 dark:text-gray-600 mb-2" />
+          <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm text-center">
             {imageError ? 'Không thể tải hình ảnh' : 'Chưa có hình ảnh'}
           </p>
           {imageError && (
@@ -94,7 +94,7 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
     return (
       <div className="mt-4">
         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Thuộc tính</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2">
           {metadata.attributes.map((attr, index) => (
             <div
               key={index}
@@ -113,10 +113,10 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
 
   return (
     <Card className="overflow-hidden border border-gray-200 dark:border-gray-700">
-      <CardHeader className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-b border-gray-200 dark:border-gray-700 p-4">
+      <CardHeader className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-b border-gray-200 dark:border-gray-700 p-3 md:p-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center text-base text-gray-800 dark:text-gray-100">
-            <Ticket className="h-4 w-4 mr-2 text-indigo-600 dark:text-indigo-400" />
+          <CardTitle className="flex items-center text-sm md:text-base text-gray-800 dark:text-gray-100">
+            <Ticket className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2 text-indigo-600 dark:text-indigo-400" />
             Xem Trước Phiếu Bầu
           </CardTitle>
           <Badge
@@ -127,7 +127,7 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="p-4">
+      <CardContent className="p-3 md:p-4">
         <div className="w-full max-w-sm mx-auto">
           {/* NFT Image */}
           {renderImage()}
@@ -139,9 +139,9 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
                 Tên phiếu bầu
               </h3>
               {isLoading ? (
-                <Skeleton className="h-6 w-3/4 mt-1 bg-gray-200 dark:bg-gray-800/50" />
+                <Skeleton className="h-5 md:h-6 w-3/4 mt-1 bg-gray-200 dark:bg-gray-800/50" />
               ) : (
-                <p className="text-base font-medium text-gray-900 dark:text-gray-100 break-words">
+                <p className="text-sm md:text-base font-medium text-gray-900 dark:text-gray-100 break-words">
                   {metadata?.name || 'Chưa cấu hình tên phiếu'}
                 </p>
               )}
@@ -156,7 +156,7 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
                     <Skeleton className="h-4 w-2/3 mt-1 bg-gray-200 dark:bg-gray-800/50" />
                   </>
                 ) : (
-                  <p className="text-sm text-gray-700 dark:text-gray-300 break-words">
+                  <p className="text-xs md:text-sm text-gray-700 dark:text-gray-300 break-words">
                     {metadata.description}
                   </p>
                 )}
@@ -169,9 +169,12 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
                 <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                   Thuộc tính
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2">
                   {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-16 rounded-md bg-gray-200 dark:bg-gray-800/50" />
+                    <Skeleton
+                      key={i}
+                      className="h-14 md:h-16 rounded-md bg-gray-200 dark:bg-gray-800/50"
+                    />
                   ))}
                 </div>
               </div>

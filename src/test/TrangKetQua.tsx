@@ -36,6 +36,23 @@ const cuocBauCuAbi = [
   'function layDanhSachPhienBauCu(uint256 idCuocBauCu, uint256 chiSoBatDau, uint256 gioiHan) external view returns (uint256[] memory)',
 ];
 
+// Define interfaces for type safety
+interface VotingResult {
+  address: string;
+  displayAddress: string;
+  votes: number;
+  percentage: number;
+  isElected: boolean;
+}
+
+interface PhienBauCu {
+  id: number;
+  isActive?: boolean;
+  startTime?: Date;
+  endTime?: Date;
+  candidateCount?: number;
+  voterCount?: number;
+}
 const KetQuaBauCu = () => {
   // Thông tin cố định
   const cuocBauCuId = 1; // Fix cứng ID cuộc bầu cử
@@ -44,16 +61,16 @@ const KetQuaBauCu = () => {
   const [serverId, setServerId] = useState(null);
 
   // States cho phiên bầu cử
-  const [danhSachPhien, setDanhSachPhien] = useState([]);
-  const [selectedPhien, setSelectedPhien] = useState(null);
+  const [danhSachPhien, setDanhSachPhien] = useState<PhienBauCu[]>([]);
+  const [selectedPhien, setSelectedPhien] = useState<number | null>(null);
 
   // States cho dữ liệu
   const [isLoading, setIsLoading] = useState(true);
   const [isChangingSession, setIsChangingSession] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [electionInfo, setElectionInfo] = useState(null);
   const [sessionInfo, setSessionInfo] = useState(null);
-  const [votingResults, setVotingResults] = useState([]);
+  const [votingResults, setVotingResults] = useState<VotingResult[]>([]);
   const [progress, setProgress] = useState({
     total: 0,
     voted: 0,
@@ -803,13 +820,14 @@ const KetQuaBauCu = () => {
                       >
                         <XAxis dataKey="displayAddress" angle={-45} textAnchor="end" height={60} />
                         <YAxis />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar
-                          dataKey="votes"
-                          name="Số phiếu"
-                          fill={(data) => (data.isElected ? '#10b981' : '#3b82f6')}
-                          radius={[4, 4, 0, 0]}
-                        />
+                        <Bar dataKey="votes" name="Số phiếu" fill="#3b82f6" radius={[4, 4, 0, 0]}>
+                          {votingResults.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={entry.isElected ? '#10b981' : '#3b82f6'}
+                            />
+                          ))}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -853,7 +871,6 @@ const KetQuaBauCu = () => {
                           ))}
                         </Pie>
                         <Legend />
-                        <Tooltip content={<CustomTooltip />} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>

@@ -154,11 +154,11 @@ const ElectionCard: React.FC<ElectionCardProps> = ({ election }) => {
 
   return (
     <div
-      className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-3xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 border border-gray-100 dark:border-gray-700 w-full cursor-pointer"
+      className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 border border-gray-100 dark:border-gray-700 w-full cursor-pointer"
       onClick={handleViewDetails}
     >
       {/* Card Header - Image - Responsive height */}
-      <div className="relative h-36 sm:h-48 overflow-hidden">
+      <div className="relative h-32 sm:h-48 overflow-hidden">
         {imageUrl && !imageError ? (
           <img
             src={imageUrl || '/tai_xuong.jpg'}
@@ -168,33 +168,31 @@ const ElectionCard: React.FC<ElectionCardProps> = ({ election }) => {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
-            <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-base">
-              Không có ảnh
-            </span>
+            <span className="text-gray-400 dark:text-gray-500 text-sm">Không có ảnh</span>
           </div>
         )}
         {/* Status badges - Stacked on mobile, side by side on larger screens */}
-        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 flex flex-col gap-1 sm:gap-2">
+        <div className="absolute top-1 right-1 sm:top-4 sm:right-4 flex flex-col gap-1 sm:gap-2">
           <span
-            className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium ${statusColor} border flex items-center text-xs sm:text-sm`}
+            className={`px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${statusColor} border flex items-center whitespace-nowrap`}
           >
-            {statusIcon} <span className="ml-1">{status}</span>
+            {statusIcon} <span className="ml-0.5 sm:ml-1">{status}</span>
           </span>
           <span
-            className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium ${blockchainStatus.color} border flex items-center text-xs sm:text-sm`}
+            className={`px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${blockchainStatus.color} border flex items-center whitespace-nowrap`}
           >
-            {blockchainStatus.icon} <span className="ml-1">{blockchainStatus.text}</span>
+            {blockchainStatus.icon} <span className="ml-0.5 sm:ml-1">{blockchainStatus.text}</span>
           </span>
         </div>
       </div>
 
       {/* Card Content - Improved padding for mobile */}
-      <div className="p-4 sm:p-6">
-        <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-gray-800 dark:text-white line-clamp-2">
+      <div className="p-3 sm:p-6">
+        <h3 className="text-base sm:text-xl font-bold mb-1 sm:mb-3 text-gray-800 dark:text-white line-clamp-2 break-words">
           {election.tenCuocBauCu}
         </h3>
 
-        <p className="text-gray-600 dark:text-gray-300 mb-3 sm:mb-4 text-xs sm:text-sm min-h-[2.5rem] sm:min-h-[3rem]">
+        <p className="text-gray-600 dark:text-gray-300 mb-2 sm:mb-4 text-xs sm:text-sm min-h-[2.5rem] sm:min-h-[3rem] break-words">
           {showFullDescription ? election.moTa : truncatedDescription}
           {election.moTa.length > truncateLength && (
             <button
@@ -210,33 +208,33 @@ const ElectionCard: React.FC<ElectionCardProps> = ({ election }) => {
         </p>
 
         {/* Election Details - Responsive spacing */}
-        <div className="space-y-1.5 sm:space-y-2 mb-4 sm:mb-6">
-          <div className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+        <div className="space-y-1 sm:space-y-2 mb-3 sm:mb-6">
+          <div className="flex items-center text-[10px] sm:text-sm text-gray-500 dark:text-gray-400">
             <Calendar
-              size={14}
-              className="mr-1.5 sm:mr-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
+              size={12}
+              className="mr-1 sm:mr-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
             />
-            <span>Bắt đầu: {election.ngayBatDau}</span>
+            <span className="truncate">Bắt đầu: {election.ngayBatDau}</span>
           </div>
-          <div className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center text-[10px] sm:text-sm text-gray-500 dark:text-gray-400">
             <Clock
-              size={14}
-              className="mr-1.5 sm:mr-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
+              size={12}
+              className="mr-1 sm:mr-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
             />
-            <span>Kết thúc: {election.ngayKetThuc}</span>
+            <span className="truncate">Kết thúc: {election.ngayKetThuc}</span>
           </div>
 
           {/* Blockchain Address (if available) - Better text wrapping */}
           {election.blockchainAddress && (
-            <div className="flex items-start text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1.5 sm:mt-2">
+            <div className="flex items-start text-[10px] sm:text-sm text-gray-500 dark:text-gray-400 mt-1 sm:mt-2">
               <Shield
-                size={14}
-                className="mr-1.5 sm:mr-2 mt-0.5 flex-shrink-0 text-blue-500 dark:text-blue-400"
+                size={12}
+                className="mr-1 sm:mr-2 mt-0.5 flex-shrink-0 text-blue-500 dark:text-blue-400"
               />
               <div className="overflow-hidden">
                 <span>Blockchain: </span>
                 <span className="font-mono text-xs break-all">
-                  {election.blockchainAddress.substring(0, 6)}...
+                  {election.blockchainAddress.substring(0, 4)}...
                   {election.blockchainAddress.substring(election.blockchainAddress.length - 4)}
                 </span>
               </div>
@@ -251,9 +249,9 @@ const ElectionCard: React.FC<ElectionCardProps> = ({ election }) => {
               e.stopPropagation(); // Ngăn event bubbling
               handleViewDetails();
             }}
-            className="flex-1 py-2.5 sm:py-3 px-4 bg-white border border-gray-200 dark:bg-gray-700 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg sm:rounded-xl flex items-center justify-center font-medium transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800 text-sm sm:text-base"
+            className="flex-1 py-2 sm:py-3 px-3 sm:px-4 bg-white border border-gray-200 dark:bg-gray-700 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg flex items-center justify-center font-medium transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800 text-xs sm:text-base"
           >
-            <Eye size={16} className="mr-2" />
+            <Eye size={14} className="mr-1 sm:mr-2" />
             <span>Chi tiết</span>
           </button>
         </div>

@@ -172,26 +172,37 @@ const BallotConfigTab: React.FC<BallotConfigTabProps> = ({
 
         <CardContent className="p-0">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div className="px-6">
-              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-1">
-                <TabsTrigger value="basic" className="flex items-center gap-2">
-                  <Edit className="h-4 w-4" />
-                  <span>Thông tin cơ bản</span>
+            <div className="px-4 md:px-6">
+              {/* Improved tab layout for mobile */}
+              <TabsList className="grid w-full grid-cols-3 gap-1 overflow-x-auto max-w-full text-xs md:text-sm">
+                <TabsTrigger
+                  value="basic"
+                  className="flex items-center gap-1 md:gap-2 py-1.5 px-2 md:py-2 md:px-3"
+                >
+                  <Edit className="h-3 w-3 md:h-4 md:w-4" />
+                  <span className="truncate">Thông tin cơ bản</span>
                 </TabsTrigger>
-                <TabsTrigger value="advanced" className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  <span>Cấu hình nâng cao</span>
+                <TabsTrigger
+                  value="advanced"
+                  className="flex items-center gap-1 md:gap-2 py-1.5 px-2 md:py-2 md:px-3"
+                >
+                  <Settings className="h-3 w-3 md:h-4 md:w-4" />
+                  <span className="truncate">Cấu hình nâng cao</span>
                 </TabsTrigger>
-                <TabsTrigger value="preview" className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  <span>Xem trước</span>
+                <TabsTrigger
+                  value="preview"
+                  className="flex items-center gap-1 md:gap-2 py-1.5 px-2 md:py-2 md:px-3"
+                >
+                  <CreditCard className="h-3 w-3 md:h-4 md:w-4" />
+                  <span className="truncate">Xem trước</span>
                 </TabsTrigger>
               </TabsList>
             </div>
 
             {/* Basic Configuration */}
-            <TabsContent value="basic" className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <TabsContent value="basic" className="p-4 md:p-6 space-y-6">
+              {/* Improved grid layout for mobile */}
+              <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="ballot-name">Tên phiếu bầu</Label>
@@ -210,7 +221,7 @@ const BallotConfigTab: React.FC<BallotConfigTabProps> = ({
                       value={ballotDescription}
                       onChange={(e) => setBallotDescription(e.target.value)}
                       placeholder="Nhập mô tả phiếu bầu"
-                      className="h-32"
+                      className="h-24 md:h-32"
                     />
                   </div>
 
@@ -239,7 +250,7 @@ const BallotConfigTab: React.FC<BallotConfigTabProps> = ({
                       </Button>
                     </div>
 
-                    <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                    <div className="space-y-3 max-h-60 md:max-h-72 overflow-y-auto pr-1">
                       {ballotAttributes.map((attr, index) => (
                         <div key={index} className="flex gap-2 items-start">
                           <div className="grid grid-cols-2 gap-2 flex-1">
@@ -293,12 +304,12 @@ const BallotConfigTab: React.FC<BallotConfigTabProps> = ({
 
               <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
                 <Button
-                  className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white"
+                  className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white w-full md:w-auto"
                   onClick={handleSaveConfig}
                   disabled={isLoading || !ballotName || !ballotImage}
                 >
                   {isLoading ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 justify-center w-full">
                       <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
                       <span>Lưu...</span>
                     </div>
@@ -313,8 +324,8 @@ const BallotConfigTab: React.FC<BallotConfigTabProps> = ({
             </TabsContent>
 
             {/* Advanced Configuration */}
-            <TabsContent value="advanced" className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <TabsContent value="advanced" className="p-4 md:p-6 space-y-6">
+              <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="background-color">Màu nền</Label>
@@ -361,7 +372,7 @@ const BallotConfigTab: React.FC<BallotConfigTabProps> = ({
 
                   {animationUrl && (
                     <div className="mt-4 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                      <div className="p-4 bg-gray-50 dark:bg-gray-800/50">
+                      <div className="p-3 md:p-4 bg-gray-50 dark:bg-gray-800/50">
                         <h3 className="text-sm font-medium">Xem trước mô hình 3D</h3>
                       </div>
                       <div className="h-48 bg-gray-100 dark:bg-gray-800/30">
@@ -375,12 +386,12 @@ const BallotConfigTab: React.FC<BallotConfigTabProps> = ({
               {/* Advanced configuration actions */}
               <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
                 <Button
-                  className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white"
+                  className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white w-full md:w-auto"
                   onClick={handleSaveConfig}
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 justify-center w-full">
                       <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
                       <span>Lưu...</span>
                     </div>
@@ -395,21 +406,22 @@ const BallotConfigTab: React.FC<BallotConfigTabProps> = ({
             </TabsContent>
 
             {/* Preview */}
-            <TabsContent value="preview" className="p-6">
-              <div className="flex flex-col lg:flex-row gap-6">
-                <div className="w-full lg:w-1/2">
+            <TabsContent value="preview" className="p-4 md:p-6">
+              {/* More responsive preview layout */}
+              <div className="flex flex-col gap-6">
+                <div className="w-full">
                   <NFTBallotPreview metadata={previewMetadata} />
                 </div>
-                <div className="w-full lg:w-1/2 space-y-4">
+                <div className="w-full space-y-4">
                   <Card>
-                    <CardHeader>
+                    <CardHeader className="py-3 px-4">
                       <CardTitle className="text-base flex items-center">
                         <Info className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400" />
                         Thông tin JSON metadata
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <pre className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-md overflow-auto text-xs max-h-96">
+                      <pre className="bg-gray-50 dark:bg-gray-800/50 p-3 md:p-4 rounded-md overflow-auto text-xs max-h-64 md:max-h-96">
                         {JSON.stringify(previewMetadata, null, 2)}
                       </pre>
                     </CardContent>
