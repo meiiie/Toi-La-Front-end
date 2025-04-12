@@ -321,7 +321,7 @@ const QuanLyCuTriPage: React.FC<QuanLyCuTriPageProps> = ({ phienBauCuId, darkMod
 
       setAlertMessage({
         type: 'success',
-        title: 'Xóa hàng loạt thành c��ng',
+        title: 'Xóa hàng loạt thành công',
         message: `Đã xóa ${idsToRemove.length} cử tri khỏi danh sách.`,
       });
 
@@ -917,7 +917,7 @@ const QuanLyCuTriPage: React.FC<QuanLyCuTriPageProps> = ({ phienBauCuId, darkMod
                           <span className="sm:hidden">Thêm</span>
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gradient-to-br dark:from-[#162A45] dark:to-[#1A2942]">
+                      <DialogContent className="max-w-4xl w-[calc(100vw-32px)] max-h-[90vh] overflow-y-auto bg-white dark:bg-gradient-to-br dark:from-[#162A45] dark:to-[#1A2942]">
                         <DialogHeader>
                           <DialogTitle>Thêm cử tri mới</DialogTitle>
                           <DialogDescription>
@@ -965,11 +965,11 @@ const QuanLyCuTriPage: React.FC<QuanLyCuTriPageProps> = ({ phienBauCuId, darkMod
                   >
                     {viewMode === 'list' ? (
                       <div className="bg-white dark:bg-[#162A45]/80 rounded-lg border border-gray-200 dark:border-[#2A3A5A] overflow-hidden">
-                        <div className="overflow-x-auto">
+                        <div className="overflow-auto">
                           <Table>
-                            <TableHeader className="bg-gray-50 dark:bg-[#1A2942]">
+                            <TableHeader className="bg-gray-50 dark:bg-[#1A2942] sticky top-0 z-10">
                               <TableRow>
-                                <TableHead className="w-12">
+                                <TableHead className="w-10">
                                   <Checkbox
                                     checked={
                                       selectedVoters.size === paginatedVoters.length &&
@@ -979,12 +979,12 @@ const QuanLyCuTriPage: React.FC<QuanLyCuTriPageProps> = ({ phienBauCuId, darkMod
                                     className="border-gray-300 dark:border-gray-600"
                                   />
                                 </TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Số điện thoại</TableHead>
+                                <TableHead className="min-w-[140px]">Email</TableHead>
+                                <TableHead className="min-w-[120px]">Số điện thoại</TableHead>
                                 <TableHead className="hidden md:table-cell">Vai trò</TableHead>
                                 <TableHead className="hidden md:table-cell">Trạng thái</TableHead>
                                 <TableHead className="hidden md:table-cell">Bỏ phiếu</TableHead>
-                                <TableHead className="text-right">Thao tác</TableHead>
+                                <TableHead className="text-right w-16">Thao tác</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -1006,6 +1006,44 @@ const QuanLyCuTriPage: React.FC<QuanLyCuTriPageProps> = ({ phienBauCuId, darkMod
                                       <span className="truncate max-w-[120px] sm:max-w-none">
                                         {voter.email || 'Chưa có email'}
                                       </span>
+                                    </div>
+                                    <div className="md:hidden mt-1 space-y-1">
+                                      <div className="text-xs text-gray-500">
+                                        Vai trò:{' '}
+                                        <Badge
+                                          variant="outline"
+                                          className="ml-1 text-xs py-0 bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300"
+                                        >
+                                          {getRoleName(voter.vaiTroId)}
+                                        </Badge>
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        Trạng thái:{' '}
+                                        {voter.xacMinh ? (
+                                          <Badge
+                                            variant="default"
+                                            className="ml-1 text-xs py-0 bg-green-100 text-green-800"
+                                          >
+                                            Đã xác thực
+                                          </Badge>
+                                        ) : (
+                                          <Badge
+                                            variant="outline"
+                                            className="ml-1 text-xs py-0 bg-gray-100 text-gray-800"
+                                          >
+                                            Chưa xác thực
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        Bỏ phiếu:{' '}
+                                        <Badge
+                                          variant={voter.boPhieu ? 'default' : 'secondary'}
+                                          className="ml-1 text-xs py-0"
+                                        >
+                                          {voter.boPhieu ? 'Đã bỏ phiếu' : 'Chưa bỏ phiếu'}
+                                        </Badge>
+                                      </div>
                                     </div>
                                   </TableCell>
                                   <TableCell>
@@ -1172,16 +1210,14 @@ const QuanLyCuTriPage: React.FC<QuanLyCuTriPageProps> = ({ phienBauCuId, darkMod
                             className="bg-white dark:bg-[#162A45]/80 border border-gray-200 dark:border-[#2A3A5A] overflow-hidden"
                           >
                             <CardHeader className="pb-2 flex flex-row items-start justify-between">
-                              <div>
+                              <div className="max-w-[calc(100%-40px)]">
                                 <CardTitle className="text-base font-medium flex items-center">
-                                  <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
-                                  <span className="truncate max-w-[150px]">
-                                    {voter.email || 'Chưa có email'}
-                                  </span>
+                                  <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2 flex-shrink-0" />
+                                  <span className="truncate">{voter.email || 'Chưa có email'}</span>
                                 </CardTitle>
                                 <CardDescription className="flex items-center mt-1">
-                                  <Phone className="h-4 w-4 mr-1" />
-                                  {voter.sdt || 'Chưa có SĐT'}
+                                  <Phone className="h-4 w-4 mr-1 flex-shrink-0" />
+                                  <span className="truncate">{voter.sdt || 'Chưa có SĐT'}</span>
                                 </CardDescription>
                               </div>
                               <Checkbox
@@ -1407,14 +1443,14 @@ const QuanLyCuTriPage: React.FC<QuanLyCuTriPageProps> = ({ phienBauCuId, darkMod
 
       {/* Dialog xem chi tiết cử tri */}
       <Dialog open={isShowDetailsOpen} onOpenChange={setIsShowDetailsOpen}>
-        <DialogContent className="bg-white dark:bg-gradient-to-br dark:from-[#162A45] dark:to-[#1A2942]">
+        <DialogContent className="w-[calc(100vw-32px)] sm:max-w-lg md:max-w-2xl bg-white dark:bg-gradient-to-br dark:from-[#162A45] dark:to-[#1A2942]">
           <DialogHeader>
             <DialogTitle>Chi tiết cử tri</DialogTitle>
           </DialogHeader>
 
           {selectedVoterDetails && (
             <div className="py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">ID</p>
                   <p className="font-medium">{selectedVoterDetails.id}</p>

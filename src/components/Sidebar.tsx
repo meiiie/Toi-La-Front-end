@@ -117,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
                 <Layers className="h-6 w-6 text-white" />
               </div>
               <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                BlockVote
+                HoLiHu BlockVote
               </h1>
             </NavLink>
             <button
@@ -254,7 +254,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
                   <Layers className="h-6 w-6 text-white" />
                 </div>
                 <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                  BlockVote
+                  HoLiHu BlockVote
                 </h1>
               </NavLink>
             ) : (

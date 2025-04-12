@@ -217,7 +217,7 @@ const ThemCuTriDonGian: React.FC = () => {
         factoryAddress: '0x3E02348B337Bd95ba1d8d489E06Bf96f3Ad25c95',
         paymasterAddress: '0x32bF813297F9C9cB0dB8C1c87CDeeE2D78c065b5',
         hluTokenAddress: '0xa7dAd9DD7C086dffAe8ADBe3302A3567E85dc6D6',
-        chainId: 11155111,
+        chainId: 210,
       };
 
       setContractAddresses(fallbackAddresses as ContractAddresses);

@@ -617,14 +617,14 @@ const VoterManager: React.FC<VoterManagerProps> = ({
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>ID phiên bầu cử trên blockchain:</span>
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                <span className="text-sm font-medium">ID phiên bầu cử trên blockchain:</span>
                 <span className="font-medium">
                   {blockchainSessionId !== null ? blockchainSessionId : 'Chưa xác định'}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span>Trạng thái:</span>
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                <span className="text-sm font-medium">Trạng thái:</span>
                 <span
                   className={`font-medium ${blockchainSessionStatus.isActive ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}
                 >
@@ -633,15 +633,15 @@ const VoterManager: React.FC<VoterManagerProps> = ({
               </div>
               {blockchainSessionStatus.isActive && (
                 <>
-                  <div className="flex justify-between">
-                    <span>Thời gian bắt đầu:</span>
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                    <span className="text-sm font-medium">Thời gian bắt đầu:</span>
                     <span className="font-medium flex items-center">
                       <Clock className="h-3.5 w-3.5 mr-1.5 text-blue-600 dark:text-blue-400" />
                       {new Date(blockchainSessionStatus.startTime * 1000).toLocaleString()}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Thời gian kết thúc:</span>
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                    <span className="text-sm font-medium">Thời gian kết thúc:</span>
                     <span className="font-medium flex items-center">
                       <Clock className="h-3.5 w-3.5 mr-1.5 text-blue-600 dark:text-blue-400" />
                       {new Date(blockchainSessionStatus.endTime * 1000).toLocaleString()}
@@ -649,27 +649,29 @@ const VoterManager: React.FC<VoterManagerProps> = ({
                   </div>
                 </>
               )}
-              <div className="flex justify-between">
-                <span>Số cử tri tối đa:</span>
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                <span className="text-sm font-medium">Số cử tri tối đa:</span>
                 <span className="font-medium">{blockchainSessionStatus.totalVoters}</span>
               </div>
 
               {selectedSession?.blockchainAddress && (
-                <div className="flex items-center pt-2">
+                <div className="flex flex-col md:flex-row md:items-center pt-2">
                   <span className="text-sm text-gray-600 dark:text-gray-400">
                     Địa chỉ contract:
                   </span>
-                  <span className="text-sm font-mono ml-2 text-gray-600 dark:text-gray-400 truncate max-w-[150px]">
-                    {selectedSession.blockchainAddress}
-                  </span>
-                  <a
-                    href={`https://explorer.holihu.online/address/${selectedSession.blockchainAddress}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-1 text-blue-600 dark:text-blue-400"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
+                  <div className="flex items-center ml-0 md:ml-2">
+                    <span className="text-sm font-mono text-gray-600 dark:text-gray-400 truncate max-w-[150px] md:max-w-[200px]">
+                      {selectedSession.blockchainAddress}
+                    </span>
+                    <a
+                      href={`https://explorer.holihu.online/address/${selectedSession.blockchainAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-1 text-blue-600 dark:text-blue-400"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
                 </div>
               )}
 
@@ -704,16 +706,16 @@ const VoterManager: React.FC<VoterManagerProps> = ({
               Giao dịch đã được xác nhận
             </span>
           </div>
-          <div className="flex items-center mt-2">
+          <div className="flex flex-wrap items-center gap-2 mt-2">
             <span className="text-sm text-gray-600 dark:text-gray-400">Hash:</span>
-            <span className="text-sm font-mono ml-2 text-gray-600 dark:text-gray-400 truncate max-w-[150px]">
+            <span className="text-sm font-mono text-gray-600 dark:text-gray-400 truncate max-w-[150px] md:max-w-[200px]">
               {txHash}
             </span>
             <a
               href={`https://explorer.holihu.online/tx/${txHash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-1 text-blue-600 dark:text-blue-400"
+              className="text-blue-600 dark:text-blue-400"
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
@@ -792,7 +794,7 @@ const VoterManager: React.FC<VoterManagerProps> = ({
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="mb-6 w-full grid grid-cols-3 gap-4">
+            <TabsList className="mb-6 w-full grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-4">
               <TabsTrigger value="session-start" className="flex items-center gap-2">
                 <Play className="h-4 w-4" />
                 <span>Bắt Đầu Phiên</span>
@@ -893,9 +895,9 @@ const VoterManager: React.FC<VoterManagerProps> = ({
       {/* Session key notice */}
       {!sessionKey && selectedSession && (
         <Card className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50">
-          <CardContent className="p-6">
-            <div className="flex items-start">
-              <Key className="h-10 w-10 text-indigo-600 dark:text-indigo-400 mr-4 mt-1" />
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:items-start">
+              <Key className="h-8 w-8 md:h-10 md:w-10 text-indigo-600 dark:text-indigo-400 mr-0 md:mr-4 mb-3 md:mb-0 md:mt-1" />
               <div>
                 <h3 className="text-lg font-medium text-indigo-800 dark:text-indigo-300 mb-2">
                   Cần khóa phiên

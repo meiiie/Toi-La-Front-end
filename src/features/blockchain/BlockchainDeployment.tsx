@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Database,
@@ -11,6 +11,7 @@ import {
   Award,
   ArrowRight,
   Loader2,
+  ChevronLeft,
 } from 'lucide-react';
 
 // Components
@@ -47,6 +48,25 @@ const BlockchainDeployment: React.FC<BlockchainDeploymentProps> = ({
     completed: false,
     error: false,
   });
+
+  // State để theo dõi kích thước màn hình
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  // Theo dõi kích thước màn hình
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobileView(window.innerWidth < 640);
+    };
+
+    // Kiểm tra lần đầu
+    checkIfMobile();
+
+    // Thêm event listener
+    window.addEventListener('resize', checkIfMobile);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
 
   // Mock data for demonstration
   const statsData = {
@@ -112,7 +132,7 @@ const BlockchainDeployment: React.FC<BlockchainDeploymentProps> = ({
     <div className="space-y-4">
       <motion.div initial="initial" animate="animate" variants={fadeInUp}>
         <Card className="bg-white dark:bg-[#162A45]/90 border border-gray-200 dark:border-[#2A3A5A]">
-          <CardHeader className="flex flex-row items-center gap-4">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center gap-4">
             <img
               src={blockchainLogo}
               alt="Blockchain Logo"
@@ -135,8 +155,10 @@ const BlockchainDeployment: React.FC<BlockchainDeploymentProps> = ({
 
           <CardContent className="space-y-6">
             {/* Readiness Check */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700/50">
-              <h3 className="text-lg font-medium mb-4">Mức độ sẵn sàng triển khai</h3>
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700/50">
+              <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
+                Mức độ sẵn sàng triển khai
+              </h3>
 
               <div className="space-y-1">
                 <div className="flex justify-between text-sm">
@@ -148,90 +170,104 @@ const BlockchainDeployment: React.FC<BlockchainDeploymentProps> = ({
 
               {statsData.readiness < 100 && (
                 <Alert className="mt-4 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800/50">
-                  <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                  <AlertTitle className="text-yellow-800 dark:text-yellow-400">
-                    Chuẩn bị gần hoàn tất
-                  </AlertTitle>
-                  <AlertDescription className="text-yellow-700 dark:text-yellow-300">
-                    Có một số cử tri chưa được xác thực. Bạn vẫn có thể tiếp tục triển khai, nhưng
-                    các cử tri chưa xác thực sẽ không được thêm vào blockchain.
-                  </AlertDescription>
+                  <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                  <div>
+                    <AlertTitle className="text-yellow-800 dark:text-yellow-400">
+                      Chuẩn bị gần hoàn tất
+                    </AlertTitle>
+                    <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+                      Có một số cử tri chưa được xác thực. Bạn vẫn có thể tiếp tục triển khai, nhưng
+                      các cử tri chưa xác thực sẽ không được thêm vào blockchain.
+                    </AlertDescription>
+                  </div>
                 </Alert>
               )}
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <Card className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30">
-                <CardContent className="p-4 flex items-center justify-between">
+                <CardContent className="p-3 sm:p-4 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-blue-700 dark:text-blue-400">Tổng cử tri</p>
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-300">
+                    <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-400">
+                      Tổng cử tri
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-300">
                       {statsData.voters}
                     </p>
                   </div>
-                  <Users className="h-10 w-10 text-blue-500 dark:text-blue-400 opacity-70" />
+                  <Users className="h-8 w-8 sm:h-10 sm:w-10 text-blue-500 dark:text-blue-400 opacity-70" />
                 </CardContent>
               </Card>
 
               <Card className="bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30">
-                <CardContent className="p-4 flex items-center justify-between">
+                <CardContent className="p-3 sm:p-4 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-green-700 dark:text-green-400">Cử tri đã xác thực</p>
-                    <p className="text-2xl font-bold text-green-900 dark:text-green-300">
+                    <p className="text-xs sm:text-sm text-green-700 dark:text-green-400">
+                      Cử tri đã xác thực
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-green-900 dark:text-green-300">
                       {statsData.verifiedVoters}
                     </p>
                   </div>
-                  <Shield className="h-10 w-10 text-green-500 dark:text-green-400 opacity-70" />
+                  <Shield className="h-8 w-8 sm:h-10 sm:w-10 text-green-500 dark:text-green-400 opacity-70" />
                 </CardContent>
               </Card>
 
               <Card className="bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800/30">
-                <CardContent className="p-4 flex items-center justify-between">
+                <CardContent className="p-3 sm:p-4 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-purple-700 dark:text-purple-400">Ứng viên</p>
-                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-300">
+                    <p className="text-xs sm:text-sm text-purple-700 dark:text-purple-400">
+                      Ứng viên
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-purple-900 dark:text-purple-300">
                       {statsData.candidates}
                     </p>
                   </div>
-                  <User className="h-10 w-10 text-purple-500 dark:text-purple-400 opacity-70" />
+                  <User className="h-8 w-8 sm:h-10 sm:w-10 text-purple-500 dark:text-purple-400 opacity-70" />
                 </CardContent>
               </Card>
 
               <Card className="bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30">
-                <CardContent className="p-4 flex items-center justify-between">
+                <CardContent className="p-3 sm:p-4 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-amber-700 dark:text-amber-400">Vị trí ứng cử</p>
-                    <p className="text-2xl font-bold text-amber-900 dark:text-amber-300">
+                    <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-400">
+                      Vị trí ứng cử
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-amber-900 dark:text-amber-300">
                       {statsData.positions}
                     </p>
                   </div>
-                  <Award className="h-10 w-10 text-amber-500 dark:text-amber-400 opacity-70" />
+                  <Award className="h-8 w-8 sm:h-10 sm:w-10 text-amber-500 dark:text-amber-400 opacity-70" />
                 </CardContent>
               </Card>
             </div>
 
             {/* Deployment Process */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700/50">
-              <h3 className="text-lg font-medium mb-4">Quá trình triển khai</h3>
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700/50">
+              <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
+                Quá trình triển khai
+              </h3>
 
               {deploymentStatus.completed ? (
                 <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/50 mb-4">
-                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  <AlertTitle className="text-green-800 dark:text-green-300">
-                    Triển khai thành công
-                  </AlertTitle>
-                  <AlertDescription className="text-green-700 dark:text-green-300">
-                    Phiên bầu cử đã được triển khai thành công lên blockchain. Bạn có thể bắt đầu
-                    phiên bầu cử ngay bây giờ.
-                  </AlertDescription>
+                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                  <div>
+                    <AlertTitle className="text-green-800 dark:text-green-300">
+                      Triển khai thành công
+                    </AlertTitle>
+                    <AlertDescription className="text-green-700 dark:text-green-300">
+                      Phiên bầu cử đã được triển khai thành công lên blockchain. Bạn có thể bắt đầu
+                      phiên bầu cử ngay bây giờ.
+                    </AlertDescription>
+                  </div>
                 </Alert>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {deploymentSteps.map((step) => (
                     <div
                       key={step.id}
-                      className={`flex items-start p-3 rounded-lg border ${
+                      className={`flex items-start p-2.5 sm:p-3 rounded-lg border ${
                         deploymentStatus.currentStep === step.id
                           ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50'
                           : deploymentStatus.currentStep > step.id
@@ -240,7 +276,7 @@ const BlockchainDeployment: React.FC<BlockchainDeploymentProps> = ({
                       }`}
                     >
                       <div
-                        className={`flex items-center justify-center h-8 w-8 rounded-full mr-3 ${
+                        className={`flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-full mr-2.5 sm:mr-3 flex-shrink-0 ${
                           deploymentStatus.currentStep === step.id
                             ? 'bg-blue-500 text-white'
                             : deploymentStatus.currentStep > step.id
@@ -249,15 +285,15 @@ const BlockchainDeployment: React.FC<BlockchainDeploymentProps> = ({
                         }`}
                       >
                         {deploymentStatus.currentStep > step.id ? (
-                          <CheckCircle className="h-5 w-5" />
+                          <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                         ) : (
                           <span>{step.id}</span>
                         )}
                       </div>
 
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <h4
-                          className={`font-medium ${
+                          className={`font-medium text-sm sm:text-base ${
                             deploymentStatus.currentStep === step.id
                               ? 'text-blue-800 dark:text-blue-300'
                               : deploymentStatus.currentStep > step.id
@@ -268,7 +304,7 @@ const BlockchainDeployment: React.FC<BlockchainDeploymentProps> = ({
                           {step.name}
                         </h4>
                         <p
-                          className={`text-sm ${
+                          className={`text-xs sm:text-sm ${
                             deploymentStatus.currentStep === step.id
                               ? 'text-blue-700 dark:text-blue-400'
                               : deploymentStatus.currentStep > step.id
@@ -281,7 +317,7 @@ const BlockchainDeployment: React.FC<BlockchainDeploymentProps> = ({
                       </div>
 
                       {deploymentStatus.currentStep === step.id && (
-                        <div className="ml-2 h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                        <div className="ml-1 sm:ml-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent flex-shrink-0" />
                       )}
                     </div>
                   ))}
@@ -292,10 +328,10 @@ const BlockchainDeployment: React.FC<BlockchainDeploymentProps> = ({
             {/* Details Accordion */}
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="details">
-                <AccordionTrigger className="text-sm font-medium">
+                <AccordionTrigger className="text-sm font-medium py-3">
                   Chi tiết kỹ thuật và lưu ý quan trọng
                 </AccordionTrigger>
-                <AccordionContent className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
+                <AccordionContent className="text-xs sm:text-sm space-y-2 text-gray-700 dark:text-gray-300">
                   <p>
                     <strong>1. Tính bất biến của dữ liệu:</strong> Sau khi triển khai lên
                     blockchain, dữ liệu phiên bầu cử không thể thay đổi. Hãy đảm bảo rằng mọi thông
@@ -318,42 +354,47 @@ const BlockchainDeployment: React.FC<BlockchainDeploymentProps> = ({
             </Accordion>
           </CardContent>
 
-          <CardFooter className="flex justify-between border-t border-gray-200 dark:border-gray-700/50 p-6">
-            <Button variant="outline">Quay lại</Button>
-
-            {deploymentStatus.completed ? (
-              <Button className="bg-green-600 hover:bg-green-700 dark:bg-gradient-to-r dark:from-green-600 dark:to-teal-600 text-white">
-                <Clock className="mr-2 h-4 w-4" />
-                Bắt đầu phiên bầu cử
-              </Button>
-            ) : (
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r dark:from-blue-600 dark:to-indigo-600 text-white"
-                onClick={startDeployment}
-                disabled={deploymentStatus.inProgress}
-              >
-                {deploymentStatus.inProgress ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Đang triển khai...
-                  </>
-                ) : (
-                  <>
-                    <Database className="mr-2 h-4 w-4" />
-                    Triển khai lên Blockchain
-                  </>
-                )}
-              </Button>
-            )}
-
-            <Button
-              variant="outline"
-              className="ml-2 bg-white hover:bg-gray-100 dark:bg-[#1A2942]/50 dark:hover:bg-[#243656] border-gray-200 dark:border-[#2A3A5A] text-gray-700 dark:text-white"
-              onClick={onNavigateToBlockchain}
-            >
-              <ArrowRight className="mr-2 h-4 w-4" />
-              Xem chi tiết triển khai
+          <CardFooter className="flex flex-col sm:flex-row items-center sm:justify-between border-t border-gray-200 dark:border-gray-700/50 p-4 sm:p-6 gap-3">
+            <Button variant="outline" className="w-full sm:w-auto flex items-center justify-center">
+              <ChevronLeft className="mr-1.5 h-4 w-4" />
+              Quay lại
             </Button>
+
+            <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
+              {deploymentStatus.completed ? (
+                <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700 dark:bg-gradient-to-r dark:from-green-600 dark:to-teal-600 text-white">
+                  <Clock className="mr-2 h-4 w-4" />
+                  Bắt đầu phiên bầu cử
+                </Button>
+              ) : (
+                <Button
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r dark:from-blue-600 dark:to-indigo-600 text-white"
+                  onClick={startDeployment}
+                  disabled={deploymentStatus.inProgress}
+                >
+                  {deploymentStatus.inProgress ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Đang triển khai...
+                    </>
+                  ) : (
+                    <>
+                      <Database className="mr-2 h-4 w-4" />
+                      Triển khai lên Blockchain
+                    </>
+                  )}
+                </Button>
+              )}
+
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto bg-white hover:bg-gray-100 dark:bg-[#1A2942]/50 dark:hover:bg-[#243656] border-gray-200 dark:border-[#2A3A5A] text-gray-700 dark:text-white"
+                onClick={onNavigateToBlockchain}
+              >
+                <ArrowRight className="mr-2 h-4 w-4" />
+                Chi tiết triển khai
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       </motion.div>

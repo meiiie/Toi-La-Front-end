@@ -25,6 +25,7 @@ import {
   Database,
   RefreshCw,
   Shield,
+  ExternalLink,
 } from 'lucide-react';
 import type { PhienBauCu } from '../../store/types';
 import apiClient from '../../api/apiClient';
@@ -664,8 +665,8 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
 
           <div className="space-y-4">
             {sessionStatus.isActive ? (
-              <div className="flex items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800/50">
-                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mr-3" />
+              <div className="flex flex-col sm:flex-row items-start sm:items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800/50">
+                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mr-3 mt-0.5 sm:mt-0" />
                 <div>
                   <p className="font-medium text-green-800 dark:text-green-300">
                     Phiên bầu cử đã bắt đầu
@@ -676,8 +677,8 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800/50">
-                <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 mr-3" />
+              <div className="flex flex-col sm:flex-row items-start sm:items-center p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800/50">
+                <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 mr-3 mt-0.5 sm:mt-0" />
                 <div>
                   <p className="font-medium text-amber-800 dark:text-amber-300">
                     Phiên bầu cử chưa bắt đầu
@@ -692,73 +693,76 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
 
             {/* Thông tin địa chỉ blockchain */}
             {localQuanLyCuocBauCuAddress ? (
-              <div className="flex items-center p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800/50">
-                <Database className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mr-3" />
-                <div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800/50">
+                <Database className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mr-3 mt-0.5 sm:mt-0" />
+                <div className="w-full overflow-hidden">
                   <p className="font-medium text-indigo-800 dark:text-indigo-300">
                     Thông tin blockchain
                   </p>
-                  <p className="text-sm text-indigo-700 dark:text-indigo-400 flex items-center">
+                  <p className="text-sm text-indigo-700 dark:text-indigo-400">
                     Địa chỉ contract:
-                    <span className="ml-1 font-mono text-xs truncate">
-                      {localQuanLyCuocBauCuAddress.substring(0, 8)}...
-                      {localQuanLyCuocBauCuAddress.substring(
-                        localQuanLyCuocBauCuAddress.length - 6,
-                      )}
+                    <span className="ml-1 font-mono text-xs break-all">
+                      {localQuanLyCuocBauCuAddress}
                     </span>
                   </p>
+                  <div className="mt-1">
+                    <a
+                      href={`https://explorer.holihu.online/address/${localQuanLyCuocBauCuAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs flex items-center text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Xem trên blockchain explorer
+                    </a>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="flex items-center p-3 bg-rose-50 dark:bg-rose-900/20 rounded-lg border border-rose-200 dark:border-rose-800/50">
-                <Database className="h-5 w-5 text-rose-600 dark:text-rose-400 mr-3" />
+              <div className="flex flex-col sm:flex-row items-start sm:items-center p-3 bg-rose-50 dark:bg-rose-900/20 rounded-lg border border-rose-200 dark:border-rose-800/50">
+                <Database className="h-5 w-5 text-rose-600 dark:text-rose-400 mr-3 mt-0.5 sm:mt-0" />
                 <div>
                   <p className="font-medium text-rose-800 dark:text-rose-300">
                     Thiếu thông tin địa chỉ blockchain
                   </p>
                   <p className="text-sm text-rose-700 dark:text-rose-400">
-                    Không thể kết nối đến QuanLyCuocBauCu contract. Vui lòng lấy thông tin địa chỉ
+                    Phiên bầu cử chưa được triển khai lên blockchain hoặc chưa liên kết với
                     contract.
                   </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={tryFetchContractAddresses}
-                    disabled={isLoadingContractAddresses}
-                  >
-                    {isLoadingContractAddresses ? (
-                      <Loader className="h-3.5 w-3.5 mr-1 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                    )}
-                    Lấy địa chỉ contract
-                  </Button>
                 </div>
               </div>
             )}
 
             {/* Thông tin khóa phiên */}
             {!sessionKey && (
-              <div className="flex items-center p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800/50">
-                <Key className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mr-3" />
+              <div className="flex flex-col sm:flex-row items-start sm:items-center p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800/50">
+                <Key className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mr-3 mt-0.5 sm:mt-0" />
                 <div>
-                  <p className="font-medium text-indigo-800 dark:text-indigo-300">Cần khóa phiên</p>
-                  <p className="text-sm text-indigo-700 dark:text-indigo-400">
-                    Bạn cần lấy khóa phiên trước khi có thể bắt đầu phiên bầu cử.
+                  <p className="font-medium text-indigo-800 dark:text-indigo-300">
+                    Cần khóa phiên để bắt đầu
                   </p>
+                  <p className="text-sm text-indigo-700 dark:text-indigo-400">
+                    Bạn cần lấy khóa phiên trước khi có thể bắt đầu phiên bầu cử trên blockchain.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={getSessionKey}
+                    className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-700"
+                  >
+                    <Key className="mr-1 h-3 w-3" />
+                    Lấy khóa phiên
+                  </Button>
                 </div>
               </div>
             )}
 
             {/* Thông báo lỗi */}
             {errorMessage && (
-              <div className="flex items-center p-3 bg-rose-50 dark:bg-rose-900/20 rounded-lg border border-rose-200 dark:border-rose-800/50">
-                <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400 mr-3" />
+              <div className="flex flex-col sm:flex-row items-start sm:items-center p-3 bg-rose-50 dark:bg-rose-900/20 rounded-lg border border-rose-200 dark:border-rose-800/50">
+                <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400 mr-3 mt-0.5 sm:mt-0" />
                 <div>
-                  <p className="font-medium text-rose-800 dark:text-rose-300">
-                    Lỗi khi bắt đầu phiên bầu cử
-                  </p>
+                  <p className="font-medium text-rose-800 dark:text-rose-300">Lỗi</p>
                   <p className="text-sm text-rose-700 dark:text-rose-400">{errorMessage}</p>
                 </div>
               </div>
@@ -800,7 +804,7 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
           <Button
             onClick={startElectionSession}
             disabled={!canStartSession}
-            className={`px-6 py-5 text-base font-medium ${
+            className={`w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-5 text-sm sm:text-base font-medium ${
               canStartSession
                 ? 'bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 hover:shadow-lg'
                 : 'bg-gray-400 dark:bg-gray-700'
@@ -823,7 +827,7 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
 
         {/* Hiển thị lý do tại sao không thể bắt đầu phiên */}
         {!canStartSession && !sessionStatus.isActive && !isStartingSession && (
-          <div className="text-center text-sm text-amber-600 dark:text-amber-400">
+          <div className="text-center text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md border border-amber-200 dark:border-amber-800/30">
             {!sessionKey
               ? 'Bạn cần lấy khóa phiên trước khi bắt đầu phiên bầu cử.'
               : !localQuanLyCuocBauCuAddress
@@ -838,7 +842,7 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
         <Alert className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50">
           <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           <AlertTitle>Hướng dẫn</AlertTitle>
-          <AlertDescription>
+          <AlertDescription className="text-sm">
             <p>
               Bắt đầu phiên bầu cử sẽ kích hoạt phiên bầu cử trên blockchain, cho phép cử tri tham
               gia bỏ phiếu. Sau khi bắt đầu phiên bầu cử, bạn có thể cấp phiếu bầu cho cử tri trong

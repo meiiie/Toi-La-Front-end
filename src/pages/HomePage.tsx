@@ -22,6 +22,9 @@ const HomePage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(localStorage.getItem('theme') === 'dark');
 
+  // Thêm state để theo dõi kích thước màn hình
+  const [isMobileView, setIsMobileView] = useState<boolean>(window.innerWidth < 640);
+
   // Theo dõi thay đổi theme từ localStorage
   useEffect(() => {
     const checkTheme = () => {
@@ -50,6 +53,22 @@ const HomePage = () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('themeChange', handleThemeChange);
     };
+  }, []);
+
+  // Thêm effect để theo dõi kích thước màn hình
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 640);
+    };
+
+    // Kiểm tra ban đầu
+    handleResize();
+
+    // Thiết lập event listener
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -112,19 +131,21 @@ const HomePage = () => {
           <ParticleBackground isDarkMode={isDarkMode} />
         </div>
 
-        <div className="container mx-auto px-4 py-8 relative z-10">
-          {/* Header Section */}
-          <div className="mb-10">
+        <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 relative z-10">
+          {/* Header Section - Tối ưu cho mobile */}
+          <div className="mb-6 sm:mb-10">
             <div
-              className={`rounded-3xl shadow-xl overflow-hidden ${
+              className={`rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl overflow-hidden ${
                 isDarkMode
                   ? 'bg-gradient-to-r from-[#162A45] to-[#1A365D] border border-[#2A3A5A]'
                   : 'bg-gradient-to-r from-blue-500 to-indigo-600'
               }`}
             >
-              <div className="px-8 py-10 text-white">
-                <h1 className="text-4xl font-bold mb-4">Chào Mừng Tới Bầu Cử Blockchain!</h1>
-                <p className="text-lg opacity-90 mb-6">
+              <div className="px-5 sm:px-8 py-6 sm:py-10 text-white">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
+                  Chào Mừng Tới Bầu Cử Blockchain!
+                </h1>
+                <p className="text-base sm:text-lg opacity-90">
                   Khám phá các cuộc bầu cử đang diễn ra và tham gia vào quá trình bầu cử an toàn,
                   minh bạch trên nền tảng blockchain.
                 </p>
@@ -132,19 +153,19 @@ const HomePage = () => {
             </div>
           </div>
 
-          {/* Elections Grid */}
+          {/* Elections Grid - Cải thiện grid cho mobile */}
           {sortedElections.length === 0 ? (
             <ThongBaoKhongCoCuocBauCu />
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                 {currentElections.map((election) => (
                   <ElectionCard key={election.id} election={election} />
                 ))}
               </div>
 
               {/* Pagination */}
-              <div className="mt-12 flex justify-center">
+              <div className="mt-8 sm:mt-12 flex justify-center">
                 <PaginationPhu
                   currentPage={currentPage}
                   totalPages={totalPages}
@@ -153,6 +174,12 @@ const HomePage = () => {
               </div>
             </>
           )}
+
+          {/* Footer - Hiển thị trên mobile */}
+          <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-800/30 text-center text-xs text-gray-500 dark:text-gray-400">
+            <p>© {new Date().getFullYear()} HoLiHu Blockchain</p>
+            <p className="mt-1">Nền tảng bầu cử phi tập trung, bảo mật và minh bạch</p>
+          </div>
         </div>
       </div>
     </>

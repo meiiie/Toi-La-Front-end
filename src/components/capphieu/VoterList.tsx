@@ -1736,6 +1736,27 @@ const VoterList: React.FC<VoterListProps> = ({
     selectedSession,
   ]);
 
+  // Thêm state để theo dõi chế độ hiển thị mobile
+  const [isMobileView, setIsMobileView] = useState<boolean>(false);
+
+  // Theo dõi kích thước màn hình
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    // Kiểm tra lần đầu
+    checkIfMobile();
+
+    // Theo dõi thay đổi kích thước màn hình
+    window.addEventListener('resize', checkIfMobile);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
+
   // Định nghĩa component VoterStatistics
   const VoterStatistics: React.FC<{ voters: CuTri[] }> = ({ voters }) => {
     // Tính toán các thống kê
@@ -1753,7 +1774,7 @@ const VoterList: React.FC<VoterListProps> = ({
           Thống kê cử tri
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm">
             <div className="flex justify-between items-center">
               <h4 className="text-sm text-gray-500 dark:text-gray-400">Tổng cử tri</h4>
@@ -1806,8 +1827,8 @@ const VoterList: React.FC<VoterListProps> = ({
     if (!ballotMetadata || !ballotMetadata.image) {
       return (
         <div className="rounded-lg p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 mb-4">
-          <div className="flex items-start">
-            <AlertTriangle className="h-5 w-5 mr-3 mt-0.5 text-amber-600 dark:text-amber-400" />
+          <div className="flex flex-col sm:flex-row items-start">
+            <AlertTriangle className="h-5 w-5 mr-0 sm:mr-3 mb-3 sm:mb-0 sm:mt-0.5 text-amber-600 dark:text-amber-400" />
             <div className="flex-1">
               <h3 className="font-medium text-amber-800 dark:text-amber-300 mb-1">
                 Cấu hình phiếu bầu không đầy đủ
@@ -1819,7 +1840,7 @@ const VoterList: React.FC<VoterListProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={onConfigureClick}
-                className="bg-white dark:bg-amber-900/30 border-amber-200 dark:border-amber-800"
+                className="w-full sm:w-auto bg-white dark:bg-amber-900/30 border-amber-200 dark:border-amber-800"
               >
                 <FileImage className="h-3.5 w-3.5 mr-1" />
                 Cấu hình phiếu bầu
@@ -1835,7 +1856,7 @@ const VoterList: React.FC<VoterListProps> = ({
       <div className="rounded-lg p-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/10 dark:to-teal-900/10 border border-emerald-100 dark:border-emerald-800/30 mb-4">
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Hình ảnh/mẫu phiếu bầu */}
-          <div className="sm:w-1/5 min-w-[120px]">
+          <div className="sm:w-1/5 w-full max-w-[180px] mx-auto sm:mx-0 min-w-[120px]">
             <div className="aspect-square rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm border border-emerald-200 dark:border-emerald-800/50 relative">
               {ballotMetadata.image.endsWith('.glb') || ballotMetadata.image.endsWith('.gltf') ? (
                 <div className="h-full w-full">
@@ -1862,7 +1883,7 @@ const VoterList: React.FC<VoterListProps> = ({
           </div>
 
           {/* Thông tin phiếu bầu */}
-          <div className="flex-1">
+          <div className="flex-1 mt-4 sm:mt-0">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
@@ -1886,7 +1907,7 @@ const VoterList: React.FC<VoterListProps> = ({
 
             {/* Các thuộc tính phiếu */}
             {ballotMetadata.attributes && ballotMetadata.attributes.length > 0 && (
-              <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="mt-2 grid grid-cols-1 xs:grid-cols-2 gap-2">
                 {ballotMetadata.attributes.slice(0, 4).map((attr, idx) => (
                   <div
                     key={idx}
@@ -1901,7 +1922,7 @@ const VoterList: React.FC<VoterListProps> = ({
               </div>
             )}
 
-            <div className="flex items-center mt-3 pt-2 border-t border-emerald-100 dark:border-emerald-800/30">
+            <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-4 mt-3 pt-2 border-t border-emerald-100 dark:border-emerald-800/30">
               <div className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center">
                 <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-emerald-500" />
                 <span>
@@ -1910,7 +1931,7 @@ const VoterList: React.FC<VoterListProps> = ({
               </div>
 
               {ballotMetadata.image.startsWith('ipfs://') && (
-                <div className="ml-4 text-xs text-blue-600 dark:text-blue-400 flex items-center">
+                <div className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
                   <Database className="h-3.5 w-3.5 mr-1" />
                   <span>Lưu trữ trên IPFS</span>
                 </div>
@@ -1924,8 +1945,8 @@ const VoterList: React.FC<VoterListProps> = ({
 
   // Định nghĩa component PaginationControls
   const PaginationControls: React.FC = () => (
-    <div className="flex items-center justify-between mt-4 bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
-      <div className="flex items-center space-x-4">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <span className="text-sm text-gray-600 dark:text-gray-400">
           Hiển thị {voters.length} trên {totalVoters} cử tri
         </span>
@@ -1952,7 +1973,7 @@ const VoterList: React.FC<VoterListProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-1 sm:gap-2">
         <Button
           variant="outline"
           size="sm"
@@ -1960,6 +1981,7 @@ const VoterList: React.FC<VoterListProps> = ({
           disabled={currentPage === 1}
           className="h-8 w-8 p-0"
         >
+          <span className="sr-only">Trang đầu</span>
           <ChevronsLeft className="h-4 w-4" />
         </Button>
         <Button
@@ -1969,11 +1991,13 @@ const VoterList: React.FC<VoterListProps> = ({
           disabled={currentPage === 1}
           className="h-8 w-8 p-0"
         >
+          <span className="sr-only">Trang trước</span>
           <ChevronLeft className="h-4 w-4" />
         </Button>
 
-        <span className="text-sm text-gray-600 dark:text-gray-400">
-          Trang {currentPage} / {totalPages}
+        <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+          <span className="hidden sm:inline">Trang </span>
+          {currentPage} / {totalPages}
         </span>
 
         <Button
@@ -1983,6 +2007,7 @@ const VoterList: React.FC<VoterListProps> = ({
           disabled={currentPage === totalPages}
           className="h-8 w-8 p-0"
         >
+          <span className="sr-only">Trang sau</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
         <Button
@@ -1992,10 +2017,154 @@ const VoterList: React.FC<VoterListProps> = ({
           disabled={currentPage === totalPages}
           className="h-8 w-8 p-0"
         >
+          <span className="sr-only">Trang cuối</span>
           <ChevronsRight className="h-4 w-4" />
         </Button>
       </div>
     </div>
+  );
+
+  // Component Card View cho mobile
+  const VoterCardView: React.FC<{
+    voters: CuTri[];
+    selectedVoters: number[];
+    toggleVoterSelection: (id: number) => void;
+    handleSendBallot: (voter: CuTri) => void;
+  }> = ({ voters, selectedVoters, toggleVoterSelection, handleSendBallot }) => {
+    return (
+      <div className="space-y-3">
+        {voters.length > 0 ? (
+          voters.map((voter) => (
+            <div
+              key={voter.id}
+              className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/40 p-3"
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    checked={selectedVoters.includes(voter.id)}
+                    onCheckedChange={() => toggleVoterSelection(voter.id)}
+                    aria-label={`Chọn cử tri ${voter.id}`}
+                    disabled={voter.hasBlockchainWallet}
+                    className="mt-1"
+                  />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">ID: {voter.id}</span>
+                      {voter.xacMinh ? (
+                        <Badge className="h-5 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Đã xác minh
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="h-5 border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400"
+                        >
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Chưa xác minh
+                        </Badge>
+                      )}
+                    </div>
+                    {voter.email && (
+                      <div className="text-sm flex items-center mt-1.5">
+                        <Mail className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                        <span className="text-gray-600 dark:text-gray-300 break-all">
+                          {voter.email}
+                        </span>
+                      </div>
+                    )}
+                    {voter.sdt && (
+                      <div className="text-sm flex items-center mt-1">
+                        <Phone className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                        <span className="text-gray-600 dark:text-gray-300">{voter.sdt}</span>
+                      </div>
+                    )}
+
+                    {/* Address info */}
+                    <div className="mt-3 flex items-center">
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 mr-2">
+                        Địa chỉ ví:
+                      </span>
+                      {voter.blockchainAddress ? (
+                        <div className="flex items-center">
+                          <span className="font-mono text-xs bg-gray-50 dark:bg-gray-800 rounded px-1.5 py-0.5 border border-gray-200 dark:border-gray-700">
+                            {voter.blockchainAddress.substring(0, 6)}...
+                            {voter.blockchainAddress.substring(voter.blockchainAddress.length - 4)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 ml-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(voter.blockchainAddress || '');
+                              toast({
+                                description: 'Đã sao chép địa chỉ ví',
+                              });
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">Chưa có</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  {voter.hasBlockchainWallet ? (
+                    <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                      <Ticket className="h-3.5 w-3.5 mr-1" />
+                      Đã cấp phiếu
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-gray-200 dark:border-gray-700">
+                      <XCircle className="h-3.5 w-3.5 mr-1" />
+                      Chưa cấp phiếu
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              {!voter.hasBlockchainWallet && voter.blockchainAddress && (
+                <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700/50 flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => handleSendBallot(voter)}
+                    disabled={isSendingBulkTickets || !sessionStatus.isActive || !sessionKey}
+                  >
+                    <Ticket className="h-4 w-4 mr-1.5" />
+                    Cấp phiếu
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="py-8 text-center">
+            <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+              <Filter className="h-10 w-10 mb-2 opacity-40" />
+              <p>Không có cử tri nào phù hợp với bộ lọc</p>
+              <p className="text-sm">Vui lòng thử các bộ lọc khác</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Xử lý cấp phiếu cho một cử tri
+  const handleSendBallot = useCallback(
+    (voter: CuTri) => {
+      setSelectedVoters([voter.id]);
+      sendBallotTickets();
+    },
+    [sendBallotTickets],
   );
 
   return (
@@ -2019,14 +2188,15 @@ const VoterList: React.FC<VoterListProps> = ({
           ) : (
             <Ticket className="mr-2 h-4 w-4" />
           )}
-          <span>Kiểm tra phiếu bầu</span>
+          <span className="hidden xs:inline">Kiểm tra phiếu bầu</span>
+          <span className="xs:hidden">Kiểm tra</span>
         </Button>
       </div>
 
       {/* Progress bar for bulk sending */}
       {isSendingBulkTickets && (
         <div className="p-4 bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-800/30 rounded-lg">
-          <div className="flex justify-between items-center mb-2">
+          <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center mb-2 gap-2">
             <div className="flex items-center">
               <span className="text-sm font-medium text-teal-700 dark:text-teal-300 mr-2">
                 {ticketSendProgress.message ||
@@ -2038,7 +2208,7 @@ const VoterList: React.FC<VoterListProps> = ({
                 </Badge>
               ) : (
                 <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                  Đang xử lý batch {ticketSendProgress.currentBatchSize} cử tri
+                  Đang xử lý
                 </Badge>
               )}
             </div>
@@ -2056,8 +2226,8 @@ const VoterList: React.FC<VoterListProps> = ({
             ></div>
           </div>
 
-          <div className="flex items-center justify-between mt-2 text-xs">
-            <div className="space-x-4">
+          <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between mt-2 text-xs gap-2">
+            <div className="flex flex-col xs:flex-row xs:space-x-4 space-y-2 xs:space-y-0">
               <span className="text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="inline-block h-3 w-3 mr-1" />
                 Thành công: {ticketSendProgress.success}
@@ -2091,228 +2261,236 @@ const VoterList: React.FC<VoterListProps> = ({
         </div>
       )}
 
-      {/* Hiển thị bảng danh sách cử tri */}
-      <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[56px]">
-                <Checkbox
-                  checked={areAllVotersSelectedOnPage}
-                  onCheckedChange={toggleSelectAllOnPage}
-                  aria-label="Chọn tất cả"
-                />
-              </TableHead>
-              <TableHead className="w-[56px]">#</TableHead>
-              <TableHead className="w-[180px]">Thông tin liên hệ</TableHead>
-              <TableHead className="w-[140px]">Địa chỉ ví</TableHead>
-              <TableHead className="w-[120px] text-center">Phiếu bầu</TableHead>
-              <TableHead className="w-[120px] text-center">Trạng thái</TableHead>
-              <TableHead className="w-[120px]">Hành động</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isInitialLoading ? (
+      {/* Dùng Card View cho mobile và Table cho desktop */}
+      {isMobileView ? (
+        <VoterCardView
+          voters={voters}
+          selectedVoters={selectedVoters}
+          toggleVoterSelection={toggleVoterSelection}
+          handleSendBallot={handleSendBallot}
+        />
+      ) : (
+        <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="h-60 text-center">
-                  <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                    <Loader className="h-12 w-12 mb-4 opacity-40 animate-spin text-emerald-500 dark:text-emerald-400" />
-                    <p className="text-base">
-                      Đang tải danh sách cử tri và kiểm tra trạng thái blockchain...
-                    </p>
-                    <p className="text-sm mt-2">Quá trình này có thể mất vài giây</p>
-                  </div>
-                </TableCell>
+                <TableHead className="w-[56px]">
+                  <Checkbox
+                    checked={areAllVotersSelectedOnPage}
+                    onCheckedChange={toggleSelectAllOnPage}
+                    aria-label="Chọn tất cả"
+                  />
+                </TableHead>
+                <TableHead className="w-[56px]">#</TableHead>
+                <TableHead className="w-[180px]">Thông tin liên hệ</TableHead>
+                <TableHead className="w-[140px]">Địa chỉ ví</TableHead>
+                <TableHead className="w-[120px] text-center">Phiếu bầu</TableHead>
+                <TableHead className="w-[120px] text-center">Trạng thái</TableHead>
+                <TableHead className="w-[120px]">Hành động</TableHead>
               </TableRow>
-            ) : isLoadingVoters ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                    <Loader className="h-8 w-8 mb-2 opacity-40 animate-spin text-emerald-500 dark:text-emerald-400" />
-                    <p>Đang tải danh sách cử tri...</p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : voters.length > 0 ? (
-              voters.map((voter) => (
-                <TableRow key={voter.id}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedVoters.includes(voter.id)}
-                      onCheckedChange={() => toggleVoterSelection(voter.id)}
-                      aria-label={`Chọn cử tri ${voter.id}`}
-                      disabled={voter.hasBlockchainWallet}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{voter.id}</TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      {voter.email && (
-                        <div
-                          className="font-medium truncate max-w-[180px] flex items-center"
-                          title={voter.email}
-                        >
-                          <Mail className="h-3.5 w-3.5 mr-1 text-gray-400" />
-                          {voter.email}
-                        </div>
-                      )}
-                      {voter.sdt && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          <Phone className="h-3.5 w-3.5 mr-1 inline-block" />
-                          {voter.sdt}
-                        </div>
-                      )}
-                      {voter.voterName && (
-                        <div className="text-sm font-medium">
-                          <User className="h-3.5 w-3.5 mr-1 inline-block text-gray-400" />
-                          {voter.voterName}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {voter.blockchainAddress ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger className="inline-flex">
-                            <span className="font-mono text-xs truncate max-w-[140px]">
-                              {voter.blockchainAddress.substring(0, 6)}...
-                              {voter.blockchainAddress.substring(
-                                voter.blockchainAddress.length - 4,
-                              )}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent className="p-0">
-                            <div className="max-w-xs p-2">
-                              <p className="font-mono text-xs break-all p-1">
-                                {voter.blockchainAddress}
-                              </p>
-                              <div className="flex gap-1 mt-2 border-t pt-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 text-xs"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigator.clipboard.writeText(voter.blockchainAddress || '');
-                                    toast({
-                                      description: 'Đã sao chép địa chỉ ví',
-                                    });
-                                  }}
-                                >
-                                  <Copy className="h-3 w-3 mr-1" />
-                                  <span>Sao chép</span>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 text-xs"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(
-                                      `https://explorer.holihu.online/address/${voter.blockchainAddress}`,
-                                      '_blank',
-                                    );
-                                  }}
-                                >
-                                  <ExternalLink className="h-3 w-3 mr-1" />
-                                  <span>Xem</span>
-                                </Button>
-                              </div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : (
-                      <span className="text-gray-400 dark:text-gray-500">Chưa có</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {voter.hasBlockchainWallet ? (
-                      <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                        <Ticket className="h-3.5 w-3.5 mr-1" />
-                        Đã cấp
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-gray-200 dark:border-gray-700">
-                        <XCircle className="h-3.5 w-3.5 mr-1" />
-                        Chưa cấp
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {voter.xacMinh ? (
-                      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                        Đã xác minh
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400"
-                      >
-                        <AlertCircle className="h-3.5 w-3.5 mr-1" />
-                        Chưa xác minh
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-1">
-                      {voter.email && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(`mailto:${voter.email}`, '_blank');
-                          }}
-                          title="Gửi email"
-                        >
-                          <Mail className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {!voter.hasBlockchainWallet && voter.blockchainAddress && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setSelectedVoters([voter.id]);
-                            sendBallotTickets();
-                          }}
-                          disabled={isSendingBulkTickets || !sessionStatus.isActive || !sessionKey}
-                          title="Cấp phiếu"
-                        >
-                          <Ticket className="h-4 w-4" />
-                        </Button>
-                      )}
+            </TableHeader>
+            <TableBody>
+              {isInitialLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-60 text-center">
+                    <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                      <Loader className="h-12 w-12 mb-4 opacity-40 animate-spin text-emerald-500 dark:text-emerald-400" />
+                      <p className="text-base">
+                        Đang tải danh sách cử tri và kiểm tra trạng thái blockchain...
+                      </p>
+                      <p className="text-sm mt-2">Quá trình này có thể mất vài giây</p>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  {totalVoters === 0 ? (
+              ) : isLoadingVoters ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
                     <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                      <Users className="h-10 w-10 mb-2 opacity-40" />
-                      <p>Không có cử tri nào trong phiên bầu cử này</p>
-                      <p className="text-sm">Vui lòng thêm cử tri trước khi tiến hành bầu cử</p>
+                      <Loader className="h-8 w-8 mb-2 opacity-40 animate-spin text-emerald-500 dark:text-emerald-400" />
+                      <p>Đang tải danh sách cử tri...</p>
                     </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                      <Filter className="h-10 w-10 mb-2 opacity-40" />
-                      <p>Không có cử tri nào phù hợp với bộ lọc</p>
-                      <p className="text-sm">Vui lòng thử các bộ lọc khác</p>
-                    </div>
-                  )}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                  </TableCell>
+                </TableRow>
+              ) : voters.length > 0 ? (
+                voters.map((voter) => (
+                  <TableRow key={voter.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedVoters.includes(voter.id)}
+                        onCheckedChange={() => toggleVoterSelection(voter.id)}
+                        aria-label={`Chọn cử tri ${voter.id}`}
+                        disabled={voter.hasBlockchainWallet}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">{voter.id}</TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {voter.email && (
+                          <div
+                            className="font-medium truncate max-w-[180px] flex items-center"
+                            title={voter.email}
+                          >
+                            <Mail className="h-3.5 w-3.5 mr-1 text-gray-400" />
+                            {voter.email}
+                          </div>
+                        )}
+                        {voter.sdt && (
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            <Phone className="h-3.5 w-3.5 mr-1 inline-block" />
+                            {voter.sdt}
+                          </div>
+                        )}
+                        {voter.voterName && (
+                          <div className="text-sm font-medium">
+                            <User className="h-3.5 w-3.5 mr-1 inline-block text-gray-400" />
+                            {voter.voterName}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {voter.blockchainAddress ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger className="inline-flex">
+                              <span className="font-mono text-xs truncate max-w-[140px]">
+                                {voter.blockchainAddress.substring(0, 6)}...
+                                {voter.blockchainAddress.substring(
+                                  voter.blockchainAddress.length - 4,
+                                )}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="p-0">
+                              <div className="max-w-xs p-2">
+                                <p className="font-mono text-xs break-all p-1">
+                                  {voter.blockchainAddress}
+                                </p>
+                                <div className="flex gap-1 mt-2 border-t pt-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(voter.blockchainAddress || '');
+                                      toast({
+                                        description: 'Đã sao chép địa chỉ ví',
+                                      });
+                                    }}
+                                  >
+                                    <Copy className="h-3 w-3 mr-1" />
+                                    <span>Sao chép</span>
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(
+                                        `https://explorer.holihu.online/address/${voter.blockchainAddress}`,
+                                        '_blank',
+                                      );
+                                    }}
+                                  >
+                                    <ExternalLink className="h-3 w-3 mr-1" />
+                                    <span>Xem</span>
+                                  </Button>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500">Chưa có</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {voter.hasBlockchainWallet ? (
+                        <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                          <Ticket className="h-3.5 w-3.5 mr-1" />
+                          Đã cấp
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-gray-200 dark:border-gray-700">
+                          <XCircle className="h-3.5 w-3.5 mr-1" />
+                          Chưa cấp
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {voter.xacMinh ? (
+                        <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                          Đã xác minh
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400"
+                        >
+                          <AlertCircle className="h-3.5 w-3.5 mr-1" />
+                          Chưa xác minh
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-1">
+                        {voter.email && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`mailto:${voter.email}`, '_blank');
+                            }}
+                            title="Gửi email"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {!voter.hasBlockchainWallet && voter.blockchainAddress && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleSendBallot(voter)}
+                            disabled={
+                              isSendingBulkTickets || !sessionStatus.isActive || !sessionKey
+                            }
+                            title="Cấp phiếu"
+                          >
+                            <Ticket className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    {totalVoters === 0 ? (
+                      <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                        <Users className="h-10 w-10 mb-2 opacity-40" />
+                        <p>Không có cử tri nào trong phiên bầu cử này</p>
+                        <p className="text-sm">Vui lòng thêm cử tri trước khi tiến hành bầu cử</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                        <Filter className="h-10 w-10 mb-2 opacity-40" />
+                        <p>Không có cử tri nào phù hợp với bộ lọc</p>
+                        <p className="text-sm">Vui lòng thử các bộ lọc khác</p>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Pagination controls */}
       {totalVoters > 0 && <PaginationControls />}
@@ -2320,16 +2498,16 @@ const VoterList: React.FC<VoterListProps> = ({
       {/* Bulk actions */}
       {selectedVoters.length > 0 && (
         <div className="mt-4 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900/20">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3">
             <span className="text-sm text-gray-700 dark:text-gray-300">
               Đã chọn {selectedVoters.length} cử tri
             </span>
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full xs:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedVoters([])}
-                className="h-8"
+                className="h-8 flex-1 xs:flex-initial"
               >
                 <span>Bỏ chọn</span>
               </Button>
@@ -2337,7 +2515,7 @@ const VoterList: React.FC<VoterListProps> = ({
                 size="sm"
                 disabled={isSendingBulkTickets || !sessionStatus.isActive || !sessionKey}
                 onClick={sendBallotTickets}
-                className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="h-8 flex-1 xs:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 <Ticket className="h-3.5 w-3.5 mr-1" />
                 <span>Cấp phiếu</span>
