@@ -1,18 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ['class'],
-  content: [
-    './src/**/*.{js,jsx,ts,tsx}', // Cấu hình nội dung từ file thứ hai
-    'app/**/*.{ts,tsx}', // Cấu hình nội dung từ file đầu tiên
-    'components/**/*.{ts,tsx}', // Cấu hình nội dung từ file đầu tiên
-  ],
+  content: ['./src/**/*.{js,jsx,ts,tsx}', 'app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
   theme: {
     extend: {
-      // Font Family từ file thứ hai
       fontFamily: {
         sans: ['Poppins', 'Montserrat', 'sans-serif'],
       },
-      // Màu sắc từ cả hai file
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -21,7 +15,7 @@ module.exports = {
         foreground: 'hsl(var(--foreground))',
         primary: {
           light: '#6EE7B7',
-          DEFAULT: '#34D399', // Tích hợp màu từ file thứ hai
+          DEFAULT: '#34D399',
           dark: '#059669',
           foreground: 'hsl(var(--primary-foreground))',
         },
@@ -54,13 +48,11 @@ module.exports = {
           foreground: 'hsl(var(--card-foreground))',
         },
       },
-      // Border Radius từ file đầu tiên
       borderRadius: {
         lg: `var(--radius)`,
         md: `calc(var(--radius) - 2px)`,
         sm: 'calc(var(--radius) - 4px)',
       },
-      // Keyframes từ file thứ hai
       keyframes: {
         'accordion-down': {
           from: { height: '0' },
@@ -83,7 +75,6 @@ module.exports = {
           '20%,50%': { opacity: '0' },
         },
       },
-      // Animation từ file thứ hai
       animation: {
         'fade-in': 'fade-in 2s ease-in-out',
         'slide-up': 'slide-up 1s ease-in-out',
@@ -91,15 +82,15 @@ module.exports = {
         'accordion-up': 'accordion-up 0.2s ease-out',
         'caret-blink': 'caret-blink 1.25s ease-out infinite',
       },
-      // Text Shadow từ file thứ hai
       textShadow: {
         blue: '0 0 10px rgba(0, 0, 255, 0.5)',
       },
     },
   },
-  // Plugins từ cả hai file
   plugins: [
-    require('tailwindcss-animate'), // Plugin từ cả hai file
-    require('tailwindcss-textshadow'), // Plugin từ file thứ hai
+    require('tailwindcss-animate'),
+    require('tailwindcss-textshadow'),
+    require('@tailwindcss/forms'),
+    require('@tailwindcss/typography'),
   ],
 };
