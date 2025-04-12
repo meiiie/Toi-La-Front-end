@@ -1,8 +1,7 @@
 // src/services/api.js
 import axios from 'axios';
 
-const API_BASE_URL = 'https://holihubackend-bhb3ejaceebpgaam.canadacentral-01.azurewebsites.net/'; // Hoặc URL thực tế
-
+const API_BASE_URL = 'https://backendholihu.azure-api.net/';
 // Cấu hình interceptor để thêm token vào headers
 const authApi = axios.create({
   baseURL: API_BASE_URL,

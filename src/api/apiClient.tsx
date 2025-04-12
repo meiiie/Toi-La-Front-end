@@ -4,7 +4,7 @@ import { refreshJwtToken, logout } from '../store/slice/dangNhapTaiKhoanSlice';
 
 const apiClient = axios.create({
   //baseURL: 'https://localhost:7250',
-  baseURL: 'https://holihubackend-bhb3ejaceebpgaam.canadacentral-01.azurewebsites.net/',
+  baseURL: 'https://backendholihu.azure-api.net/',
   withCredentials: true, // QUAN TRỌNG: Giúp trình duyệt gửi cookie khi request
   headers: {
     'Content-Type': 'application/json',
