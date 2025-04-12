@@ -275,6 +275,9 @@ const ElectionResultChart: React.FC<{
 }> = ({ data, totalVotes, chartType }) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
+  // Make sure data is an array before using it
+  const safeData = Array.isArray(data) ? data : [];
+
   // For pie chart active sector
   const onPieEnter = useCallback(
     (_, index) => {
@@ -396,9 +399,11 @@ const ElectionResultChart: React.FC<{
 
   // For radar chart - format data
   const radarData = useMemo(() => {
+    if (!Array.isArray(data) || data.length === 0) return [];
+
     return data.map((candidate) => ({
-      subject: candidate.hoTen.split(' ').pop() || candidate.hoTen, // Use last name for brevity
-      A: candidate.votes,
+      subject: candidate.hoTen?.split(' ')?.pop() || candidate.hoTen || 'Unknown',
+      A: candidate.votes || 0,
       fullMark: totalVotes,
     }));
   }, [data, totalVotes]);
@@ -411,7 +416,7 @@ const ElectionResultChart: React.FC<{
           <ResponsiveContainer width="100%" height="100%">
             <RechartsPieChart>
               <defs>
-                {data.map((entry, index) => (
+                {safeData.map((entry, index) => (
                   <linearGradient
                     key={index}
                     id={generateGradientId(index)}
@@ -436,7 +441,7 @@ const ElectionResultChart: React.FC<{
               <Pie
                 activeIndex={activeIndex !== null ? activeIndex : undefined}
                 activeShape={renderActiveShape}
-                data={data}
+                data={safeData}
                 cx="50%"
                 cy="50%"
                 innerRadius={80}
@@ -449,7 +454,7 @@ const ElectionResultChart: React.FC<{
                 animationDuration={1000}
                 animationBegin={200}
               >
-                {data.map((entry, index) => (
+                {safeData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={`url(#${generateGradientId(index)})`}
@@ -477,7 +482,7 @@ const ElectionResultChart: React.FC<{
                 verticalAlign="bottom"
                 align="center"
                 formatter={(value, entry, index) => {
-                  const candidate = data[index];
+                  const candidate = safeData[index];
                   return candidate.hoTen;
                 }}
                 wrapperStyle={{ paddingTop: 20 }}
@@ -526,7 +531,7 @@ const ElectionResultChart: React.FC<{
               innerRadius="20%"
               outerRadius="80%"
               barSize={20}
-              data={data.map((item, index) => ({
+              data={safeData.map((item, index) => ({
                 ...item,
                 fill: `url(#${generateGradientId(index)})`,
               }))}
@@ -534,7 +539,7 @@ const ElectionResultChart: React.FC<{
               endAngle={-270}
             >
               <defs>
-                {data.map((entry, index) => (
+                {safeData.map((entry, index) => (
                   <linearGradient
                     key={index}
                     id={generateGradientId(index)}
@@ -574,7 +579,7 @@ const ElectionResultChart: React.FC<{
                 verticalAlign="middle"
                 align="right"
                 formatter={(value, entry, index) => {
-                  const candidate = data[index];
+                  const candidate = safeData[index];
                   return `${candidate.hoTen} (${candidate.votes} phiếu)`;
                 }}
               />
@@ -591,7 +596,7 @@ const ElectionResultChart: React.FC<{
               />
               <PolarAngleAxis
                 type="number"
-                domain={[0, Math.max(...data.map((d) => d.votes || 0)) + 2]}
+                domain={[0, Math.max(...safeData.map((d) => d.votes || 0)) + 2]}
                 tick={false}
               />
               <Label
@@ -634,7 +639,7 @@ const ElectionResultChart: React.FC<{
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
               <defs>
-                {data.map((entry, index) => (
+                {safeData.map((entry, index) => (
                   <linearGradient
                     key={index}
                     id={generateGradientId(index)}
@@ -660,10 +665,10 @@ const ElectionResultChart: React.FC<{
               <PolarAngleAxis dataKey="subject" tick={{ fill: 'currentColor', fontSize: 12 }} />
               <PolarRadiusAxis
                 angle={30}
-                domain={[0, Math.max(...data.map((d) => d.votes || 0)) + 5]}
+                domain={[0, Math.max(...safeData.map((d) => d.votes || 0)) + 5]}
                 tick={{ fill: 'currentColor', fontSize: 10 }}
               />
-              {data.map((entry, index) => (
+              {safeData.map((entry, index) => (
                 <Radar
                   key={`radar-${index}`}
                   name={entry.hoTen}
@@ -694,7 +699,7 @@ const ElectionResultChart: React.FC<{
               />
               <Legend
                 formatter={(value, entry, index) => {
-                  const candidate = data[index];
+                  const candidate = safeData[index];
                   return `${candidate.hoTen} (${candidate.votes} phiếu)`;
                 }}
               />
@@ -709,7 +714,7 @@ const ElectionResultChart: React.FC<{
         <div className="w-full h-[380px] md:h-[450px] pb-4">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={data}
+              data={safeData}
               margin={{
                 top: 20,
                 right: 30,
@@ -719,7 +724,7 @@ const ElectionResultChart: React.FC<{
               barSize={36}
             >
               <defs>
-                {data.map((entry, index) => (
+                {safeData.map((entry, index) => (
                   <linearGradient
                     key={index}
                     id={generateGradientId(index)}
@@ -780,7 +785,7 @@ const ElectionResultChart: React.FC<{
                 animationBegin={300}
                 radius={[4, 4, 0, 0]}
               >
-                {data.map((entry, index) => (
+                {safeData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={`url(#${generateGradientId(index)})`}
@@ -1093,33 +1098,45 @@ const TrangKetQua: React.FC = () => {
 
       try {
         // Get detailed results from blockchain
-        const [candidateAddresses, voteAmounts] = await contractInstance.layKetQuaPhienBauCu(
-          electionId,
-          sessionId,
-        );
+        const result = await contractInstance
+          .layKetQuaPhienBauCu(electionId, sessionId)
+          .catch((err: any) => {
+            console.error('Error calling blockchain contract:', err);
+            throw new Error(`Contract call failed: ${err.message}`);
+          });
 
-        if (
-          !candidateAddresses ||
-          !Array.isArray(candidateAddresses) ||
-          candidateAddresses.length === 0
-        ) {
+        // Ensure we got back proper data
+        if (!result || !Array.isArray(result) || result.length < 2) {
+          console.error('Invalid result format from blockchain:', result);
+          throw new Error('Invalid data format from blockchain');
+        }
+
+        const [candidateAddresses, voteAmounts] = result;
+
+        // Validate candidateAddresses is an array
+        if (!Array.isArray(candidateAddresses) || candidateAddresses.length === 0) {
+          console.error('No candidate addresses returned');
           setElectionResults(null);
           return;
         }
 
+        // Validate voteAmounts is an array
+        if (!Array.isArray(voteAmounts)) {
+          console.error('Vote amounts is not an array');
+          throw new Error('Invalid vote amounts data from blockchain');
+        }
+
         // Calculate total votes from valid vote amounts
-        const totalVotes = Array.isArray(voteAmounts)
-          ? voteAmounts.reduce((sum, votes) => sum + Number(votes || 0), 0)
-          : 0;
+        const totalVotes = voteAmounts.reduce((sum, votes) => sum + Number(votes || 0), 0);
 
         // Map blockchain data to our candidate model
         const candidatesWithVotes: Candidate[] = [];
 
         for (let i = 0; i < candidateAddresses.length; i++) {
           const address = candidateAddresses[i];
-          const votes = Number(voteAmounts?.[i] || 0);
+          const votes = Number(voteAmounts[i] || 0);
 
-          // Find matching candidate in our Redux state
+          // Find matching candidate in our Redux state - ensure danhSachUngVien is an array
           const matchingCandidate = Array.isArray(danhSachUngVien)
             ? danhSachUngVien.find(
                 (c) => c.blockchainAddress?.toLowerCase() === address?.toLowerCase(),
@@ -1160,7 +1177,9 @@ const TrangKetQua: React.FC = () => {
         fetchBlockchainSessionDetails(electionId, sessionId);
       } catch (error) {
         console.error('Error fetching election results from blockchain:', error);
-        setBlockchainError('Không thể tải kết quả bầu cử từ blockchain. Vui lòng thử lại sau.');
+        setBlockchainError(
+          `Không thể tải kết quả bầu cử từ blockchain: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
 
         // Fall back to API data if available
         if (Array.isArray(danhSachUngVien) && danhSachUngVien.length > 0) {
@@ -1303,24 +1322,31 @@ const TrangKetQua: React.FC = () => {
   const filteredElections = useMemo(() => {
     if (!searchTerm) return elections || [];
 
-    return Array.isArray(elections)
-      ? elections.filter((election) =>
-          election?.tenCuocBauCu?.toLowerCase().includes(searchTerm.toLowerCase()),
-        )
-      : [];
+    if (!Array.isArray(elections)) {
+      console.warn('Elections is not an array:', elections);
+      return [];
+    }
+
+    return elections.filter((election) =>
+      election?.tenCuocBauCu?.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
   }, [elections, searchTerm]);
 
   // Get current session - add array check
   const currentSession = useMemo(() => {
-    return Array.isArray(sessions) ? sessions.find((s) => s.id === selectedSessionId) : undefined;
+    if (!Array.isArray(sessions)) {
+      return undefined;
+    }
+    return sessions.find((s) => s.id === selectedSessionId);
   }, [sessions, selectedSessionId]);
 
   // Get current election - add array check
   const currentElection = useMemo(() => {
-    return (
-      (Array.isArray(elections) ? elections.find((e) => e.id === selectedElectionId) : undefined) ||
-      cuocBauCu
-    );
+    const foundElection = Array.isArray(elections)
+      ? elections.find((e) => e.id === selectedElectionId)
+      : undefined;
+
+    return foundElection || cuocBauCu;
   }, [elections, selectedElectionId, cuocBauCu]);
 
   return (
@@ -1761,7 +1787,9 @@ const TrangKetQua: React.FC = () => {
                 </CardContent>
               </Card>
             </div>
-          ) : electionResults && electionResults.candidates.length > 0 ? (
+          ) : electionResults &&
+            Array.isArray(electionResults.candidates) &&
+            electionResults.candidates.length > 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1858,7 +1886,7 @@ const TrangKetQua: React.FC = () => {
                   </div>
 
                   <ElectionResultChart
-                    data={electionResults.candidates}
+                    data={electionResults.candidates || []}
                     totalVotes={electionResults.totalVotes}
                     chartType={chartType}
                   />
@@ -1911,62 +1939,63 @@ const TrangKetQua: React.FC = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {electionResults.candidates.map((candidate, index) => (
-                          <TableRow
-                            key={candidate.id || index}
-                            className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                            onClick={() => handleCandidateClick(candidate)}
-                          >
-                            <TableCell className="font-medium text-center">{index + 1}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden mr-2">
-                                  {candidate.avatar ? (
-                                    <img
-                                      src={candidate.avatar}
-                                      alt={candidate.hoTen}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  ) : (
-                                    <User className="h-4 w-4 text-gray-500" />
-                                  )}
+                        {Array.isArray(electionResults.candidates) &&
+                          electionResults.candidates.map((candidate, index) => (
+                            <TableRow
+                              key={candidate.id || index}
+                              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                              onClick={() => handleCandidateClick(candidate)}
+                            >
+                              <TableCell className="font-medium text-center">{index + 1}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center">
+                                  <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden mr-2">
+                                    {candidate.avatar ? (
+                                      <img
+                                        src={candidate.avatar}
+                                        alt={candidate.hoTen}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <User className="h-4 w-4 text-gray-500" />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <div className="font-medium">{candidate.hoTen}</div>
+                                    {candidate.viTriUngCu && (
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        {candidate.viTriUngCu.tenViTriUngCu}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                                <div>
-                                  <div className="font-medium">{candidate.hoTen}</div>
-                                  {candidate.viTriUngCu && (
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                                      {candidate.viTriUngCu.tenViTriUngCu}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">{candidate.votes}</TableCell>
-                            <TableCell className="text-right">
-                              {(candidate.votePercentage || 0).toFixed(2)}%
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {electionResults.winnerId === candidate.id ? (
-                                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                  <Trophy className="h-3 w-3 mr-1" />
-                                  Đắc cử
-                                </Badge>
-                              ) : index === 0 && !electionResults.winnerId ? (
-                                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                  <Star className="h-3 w-3 mr-1" />
-                                  Dẫn đầu
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
-                                >
-                                  Ứng viên
-                                </Badge>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                              </TableCell>
+                              <TableCell className="text-right">{candidate.votes}</TableCell>
+                              <TableCell className="text-right">
+                                {(candidate.votePercentage || 0).toFixed(2)}%
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {electionResults.winnerId === candidate.id ? (
+                                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                    <Trophy className="h-3 w-3 mr-1" />
+                                    Đắc cử
+                                  </Badge>
+                                ) : index === 0 && !electionResults.winnerId ? (
+                                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                    <Star className="h-3 w-3 mr-1" />
+                                    Dẫn đầu
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
+                                  >
+                                    Ứng viên
+                                  </Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
                       </TableBody>
                     </Table>
                   </div>
@@ -2008,7 +2037,7 @@ const TrangKetQua: React.FC = () => {
               </Card>
 
               {/* Winner card - only show if there's a declared winner */}
-              {electionResults.winnerId && electionResults.candidates && (
+              {electionResults.winnerId && Array.isArray(electionResults.candidates) && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -2326,189 +2355,193 @@ const TrangKetQua: React.FC = () => {
         {/* Candidate details dialog */}
         <Dialog open={showCandidateDetails} onOpenChange={setShowCandidateDetails}>
           <DialogContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200/50 dark:border-gray-700/50 rounded-xl shadow-xl max-w-2xl">
-            {selectedCandidate && electionResults?.candidates && (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center">
-                    <User className="h-5 w-5 text-blue-500 mr-2" />
-                    Thông tin chi tiết ứng viên
-                  </DialogTitle>
-                  <DialogDescription>Chi tiết về ứng viên và kết quả bầu cử</DialogDescription>
-                </DialogHeader>
+            {selectedCandidate &&
+              electionResults?.candidates &&
+              Array.isArray(electionResults.candidates) && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center">
+                      <User className="h-5 w-5 text-blue-500 mr-2" />
+                      Thông tin chi tiết ứng viên
+                    </DialogTitle>
+                    <DialogDescription>Chi tiết về ứng viên và kết quả bầu cử</DialogDescription>
+                  </DialogHeader>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-2">
-                  <div className="md:col-span-1 flex flex-col items-center">
-                    <div className="h-40 w-40 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg">
-                      {selectedCandidate.avatar ? (
-                        <img
-                          src={selectedCandidate.avatar}
-                          alt={selectedCandidate.hoTen}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <User className="h-20 w-20 text-blue-500" />
-                      )}
-                    </div>
-
-                    {selectedCandidate.id === electionResults?.winnerId && (
-                      <div className="mt-4">
-                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 px-4 py-1.5">
-                          <Trophy className="h-4 w-4 mr-1.5" />
-                          Đắc cử
-                        </Badge>
-                      </div>
-                    )}
-
-                    <div className="mt-4 text-center">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text:white">
-                        {selectedCandidate.hoTen}
-                      </h3>
-                      <p className="text-gray-500 dark:text-gray-400">
-                        {selectedCandidate.viTriUngCu?.tenViTriUngCu || 'Ứng viên'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <div className="space-y-4">
-                      <div className="bg-gray-50/70 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
-                          <TrendingUp className="h-4 w-4 text-blue-500 mr-1.5" />
-                          Kết quả bầu cử
-                        </h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <span className="text-gray-500 dark:text-gray-400 text-sm">
-                              Số phiếu:
-                            </span>
-                            <div className="font-semibold text-lg text-gray-900 dark:text-white">
-                              {selectedCandidate.votes || 0}
-                            </div>
-                          </div>
-
-                          <div>
-                            <span className="text-gray-500 dark:text-gray-400 text-sm">Tỉ lệ:</span>
-                            <div className="font-semibold text-lg text-gray-900 dark:text:white">
-                              {(selectedCandidate.votePercentage || 0).toFixed(2)}%
-                            </div>
-                          </div>
-
-                          <div className="col-span-2">
-                            <span className="text-gray-500 dark:text-gray-400 text-sm">
-                              Thứ hạng:
-                            </span>
-                            <div className="font-semibold text-lg text-gray-900 dark:text:white">
-                              {electionResults?.candidates.findIndex(
-                                (c) => c.id === selectedCandidate.id,
-                              ) !== undefined
-                                ? `${electionResults?.candidates.findIndex((c) => c.id === selectedCandidate.id) + 1}/${electionResults?.candidates.length}`
-                                : '-'}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4">
-                          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                            <span>Tỉ lệ phiếu bầu</span>
-                            <span>{(selectedCandidate.votePercentage || 0).toFixed(2)}%</span>
-                          </div>
-                          <Progress
-                            value={selectedCandidate.votePercentage || 0}
-                            className="h-2.5 bg-gray-100 dark:bg-gray-700"
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-2">
+                    <div className="md:col-span-1 flex flex-col items-center">
+                      <div className="h-40 w-40 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg">
+                        {selectedCandidate.avatar ? (
+                          <img
+                            src={selectedCandidate.avatar}
+                            alt={selectedCandidate.hoTen}
+                            className="h-full w-full object-cover"
                           />
-                        </div>
-                      </div>
-
-                      <div className="bg-gray-50/70 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
-                        <h4 className="font-medium text-gray-900 dark:text:white mb-2 flex items-center">
-                          <Info className="h-4 w-4 text-blue-500 mr-1.5" />
-                          Thông tin cá nhân
-                        </h4>
-                        {selectedCandidate.moTa ? (
-                          <p className="text-gray-700 dark:text-gray-300 text-sm">
-                            {selectedCandidate.moTa}
-                          </p>
                         ) : (
-                          <p className="text-gray-500 dark:text-gray-400 text-sm italic">
-                            Không có thông tin chi tiết.
-                          </p>
+                          <User className="h-20 w-20 text-blue-500" />
                         )}
                       </div>
 
-                      <div className="bg-blue-50/50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100/50 dark:border-blue-800/30">
-                        <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2 flex items-center">
-                          <Database className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-1.5" />
-                          Thông tin blockchain
-                        </h4>
-                        {selectedCandidate.blockchainAddress ? (
-                          <div className="space-y-1">
-                            <div className="flex flex-wrap items-center">
-                              <span className="text-blue-700 dark:text-blue-400 text-sm mr-2">
-                                Địa chỉ:
+                      {selectedCandidate.id === electionResults?.winnerId && (
+                        <div className="mt-4">
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 px-4 py-1.5">
+                            <Trophy className="h-4 w-4 mr-1.5" />
+                            Đắc cử
+                          </Badge>
+                        </div>
+                      )}
+
+                      <div className="mt-4 text-center">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text:white">
+                          {selectedCandidate.hoTen}
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400">
+                          {selectedCandidate.viTriUngCu?.tenViTriUngCu || 'Ứng viên'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <div className="space-y-4">
+                        <div className="bg-gray-50/70 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                            <TrendingUp className="h-4 w-4 text-blue-500 mr-1.5" />
+                            Kết quả bầu cử
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-400 text-sm">
+                                Số phiếu:
                               </span>
-                              <code className="font-mono text-xs bg-blue-100/70 dark:bg-blue-800/50 p-1 rounded text-blue-800 dark:text-blue-300">
-                                {selectedCandidate.blockchainAddress}
-                              </code>
-                              <button
-                                className="ml-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                                onClick={() =>
-                                  navigator.clipboard.writeText(
-                                    selectedCandidate.blockchainAddress || '',
-                                  )
-                                }
-                                title="Sao chép địa chỉ"
-                              >
-                                <Copy className="h-3.5 w-3.5" />
-                              </button>
+                              <div className="font-semibold text-lg text-gray-900 dark:text-white">
+                                {selectedCandidate.votes || 0}
+                              </div>
                             </div>
-                            <div className="flex items-center">
-                              <a
-                                href={`https://explorer.holihu.online/address/${selectedCandidate.blockchainAddress}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
-                              >
-                                Xem trên Blockchain Explorer
-                                <ExternalLink className="h-3 w-3 ml-1" />
-                              </a>
+
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-400 text-sm">
+                                Tỉ lệ:
+                              </span>
+                              <div className="font-semibold text-lg text-gray-900 dark:text:white">
+                                {(selectedCandidate.votePercentage || 0).toFixed(2)}%
+                              </div>
+                            </div>
+
+                            <div className="col-span-2">
+                              <span className="text-gray-500 dark:text-gray-400 text-sm">
+                                Thứ hạng:
+                              </span>
+                              <div className="font-semibold text-lg text-gray-900 dark:text:white">
+                                {electionResults?.candidates.findIndex(
+                                  (c) => c.id === selectedCandidate.id,
+                                ) !== undefined
+                                  ? `${electionResults?.candidates.findIndex((c) => c.id === selectedCandidate.id) + 1}/${electionResults?.candidates.length}`
+                                  : '-'}
+                              </div>
                             </div>
                           </div>
-                        ) : (
-                          <p className="text-blue-700 dark:text-blue-400 text-sm italic">
-                            Không có thông tin blockchain cho ứng viên này.
-                          </p>
-                        )}
+
+                          <div className="mt-4">
+                            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                              <span>Tỉ lệ phiếu bầu</span>
+                              <span>{(selectedCandidate.votePercentage || 0).toFixed(2)}%</span>
+                            </div>
+                            <Progress
+                              value={selectedCandidate.votePercentage || 0}
+                              className="h-2.5 bg-gray-100 dark:bg-gray-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="bg-gray-50/70 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
+                          <h4 className="font-medium text-gray-900 dark:text:white mb-2 flex items-center">
+                            <Info className="h-4 w-4 text-blue-500 mr-1.5" />
+                            Thông tin cá nhân
+                          </h4>
+                          {selectedCandidate.moTa ? (
+                            <p className="text-gray-700 dark:text-gray-300 text-sm">
+                              {selectedCandidate.moTa}
+                            </p>
+                          ) : (
+                            <p className="text-gray-500 dark:text-gray-400 text-sm italic">
+                              Không có thông tin chi tiết.
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="bg-blue-50/50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100/50 dark:border-blue-800/30">
+                          <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2 flex items-center">
+                            <Database className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-1.5" />
+                            Thông tin blockchain
+                          </h4>
+                          {selectedCandidate.blockchainAddress ? (
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center">
+                                <span className="text-blue-700 dark:text-blue-400 text-sm mr-2">
+                                  Địa chỉ:
+                                </span>
+                                <code className="font-mono text-xs bg-blue-100/70 dark:bg-blue-800/50 p-1 rounded text-blue-800 dark:text-blue-300">
+                                  {selectedCandidate.blockchainAddress}
+                                </code>
+                                <button
+                                  className="ml-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                  onClick={() =>
+                                    navigator.clipboard.writeText(
+                                      selectedCandidate.blockchainAddress || '',
+                                    )
+                                  }
+                                  title="Sao chép địa chỉ"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                              <div className="flex items-center">
+                                <a
+                                  href={`https://explorer.holihu.online/address/${selectedCandidate.blockchainAddress}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+                                >
+                                  Xem trên Blockchain Explorer
+                                  <ExternalLink className="h-3 w-3 ml-1" />
+                                </a>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-blue-700 dark:text-blue-400 text-sm italic">
+                              Không có thông tin blockchain cho ứng viên này.
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowCandidateDetails(false)}
-                    className="mr-2"
-                  >
-                    Đóng
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      // Share candidate information
-                      navigator.clipboard.writeText(
-                        `Thông tin ứng viên: ${selectedCandidate.hoTen}\nSố phiếu: ${selectedCandidate.votes}\nTỉ lệ: ${(selectedCandidate.votePercentage || 0).toFixed(2)}%`,
-                      );
-                      toast({
-                        title: 'Đã sao chép',
-                        description: 'Thông tin ứng viên đã được sao chép vào clipboard',
-                      });
-                    }}
-                  >
-                    <Share className="h-4 w-4 mr-1.5" />
-                    Chia sẻ
-                  </Button>
-                </DialogFooter>
-              </>
-            )}
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCandidateDetails(false)}
+                      className="mr-2"
+                    >
+                      Đóng
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        // Share candidate information
+                        navigator.clipboard.writeText(
+                          `Thông tin ứng viên: ${selectedCandidate.hoTen}\nSố phiếu: ${selectedCandidate.votes}\nTỉ lệ: ${(selectedCandidate.votePercentage || 0).toFixed(2)}%`,
+                        );
+                        toast({
+                          title: 'Đã sao chép',
+                          description: 'Thông tin ứng viên đã được sao chép vào clipboard',
+                        });
+                      }}
+                    >
+                      <Share className="h-4 w-4 mr-1.5" />
+                      Chia sẻ
+                    </Button>
+                  </DialogFooter>
+                </>
+              )}
           </DialogContent>
         </Dialog>
       </div>
