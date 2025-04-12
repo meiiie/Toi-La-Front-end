@@ -13,7 +13,7 @@ import { fetchCacChucNang } from '../store/slice/chucNangSlice';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/Tabs';
-import { toast } from '../components/ui/Use-toast';
+import { toast } from '../test/components/use-toast';
 import { Download, Search } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { VaiTroChucNang, ChucNang } from '../store/types';

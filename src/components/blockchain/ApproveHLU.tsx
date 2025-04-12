@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { parseUnits, SigningKey, Contract, JsonRpcProvider, Signature, formatEther } from 'ethers';
 import { useToast } from '../../test/components/use-toast';
 import apiClient from '../../api/apiClient';
@@ -14,7 +12,12 @@ import {
   Shield,
   ExternalLink,
   Wallet,
+  Zap,
+  FileCheck,
 } from 'lucide-react';
+
+// Định nghĩa địa chỉ fallback nếu không có trong contractAddresses
+const QUAN_LY_PHIEU_BAU_ADDRESS = '0x9c244B5E1F168510B9b812573b1B667bd1E654c8';
 
 interface SessionKeyInfo {
   sessionKey: string;
@@ -25,11 +28,15 @@ interface SessionKeyInfo {
 interface ApproveHLUProps {
   scwAddress: string;
   sessionKey: SessionKeyInfo | null;
+  contractAddress?: string; // Thêm địa chỉ cuộc bầu cử
+  targetType?: string; // Thêm tham số mới để nhận loại target cần approve
   onSuccess?: () => void;
   onBalancesUpdated?: (balances: {
     hluBalance: string;
     allowanceForFactory: string;
     allowanceForPaymaster: string;
+    allowanceForElection?: string; // Thêm allowance cho cuộc bầu cử
+    allowanceForQuanLyPhieuBau?: string; // Thêm allowance cho quản lý phiếu bầu
   }) => void;
   setIsLoading?: (loading: boolean) => void;
   showMessage?: (message: string) => void;
@@ -41,6 +48,7 @@ interface ContractAddresses {
   factoryAddress: string;
   paymasterAddress: string;
   hluTokenAddress: string;
+  quanLyPhieuBauAddress?: string; // Thêm địa chỉ của quản lý phiếu bầu
   chainId: number;
 }
 
@@ -48,6 +56,8 @@ interface BalanceInfo {
   hluBalance: string;
   allowanceForFactory: string;
   allowanceForPaymaster: string;
+  allowanceForElection?: string; // Thêm allowance cho cuộc bầu cử
+  allowanceForQuanLyPhieuBau?: string; // Thêm allowance cho quản lý phiếu bầu
 }
 
 enum ApproveStatus {
@@ -55,13 +65,17 @@ enum ApproveStatus {
   CHECKING = 1,
   APPROVING_PAYMASTER = 2,
   APPROVING_FACTORY = 3,
-  SUCCESS = 4,
-  FAILED = 5,
+  APPROVING_ELECTION = 4,
+  APPROVING_QUANLYPHIEUBAU = 5, // Thêm trạng thái approve cho quản lý phiếu bầu
+  SUCCESS = 6, // Cập nhật con số
+  FAILED = 7, // Cập nhật con số
 }
 
 const ApproveHLU: React.FC<ApproveHLUProps> = ({
   scwAddress,
   sessionKey,
+  contractAddress,
+  targetType = 'election', // Mặc định là election nếu không có
   onSuccess,
   onBalancesUpdated,
   setIsLoading: setParentLoading,
@@ -74,23 +88,44 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
     hluBalance: '0',
     allowanceForFactory: '0',
     allowanceForPaymaster: '0',
+    allowanceForElection: '0',
+    allowanceForQuanLyPhieuBau: '0', // Thêm allowance cho quản lý phiếu bầu
   });
   const [hasEnoughBalance, setHasEnoughBalance] = useState(false);
   const [hasFactoryAllowance, setHasFactoryAllowance] = useState(false);
   const [hasPaymasterAllowance, setHasPaymasterAllowance] = useState(false);
+  const [hasElectionAllowance, setHasElectionAllowance] = useState(false);
+  const [hasQuanLyPhieuBauAllowance, setHasQuanLyPhieuBauAllowance] = useState(false); // Thêm trạng thái cho quản lý phiếu bầu
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [status, setStatus] = useState(ApproveStatus.NOT_STARTED);
   const [txHash, setTxHash] = useState('');
   const [userOpHash, setUserOpHash] = useState('');
+  const [isInitialCheck, setIsInitialCheck] = useState(true); // Thêm state để tránh kiểm tra lặp lại
+
+  // Flag để tránh lặp vô hạn
+  const isCheckingRef = useRef(false);
+  const isMounted = useRef(true);
+  const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Toast notification hook
   const { toast } = useToast();
 
+  // Cleanup khi component unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+      if (checkTimeoutRef.current) {
+        clearTimeout(checkTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Hàm hiển thị thông báo
   const showMessage = useCallback(
     (msg: string) => {
+      if (!isMounted.current) return;
       setMessage(msg);
       console.log(msg);
       if (parentShowMessage) parentShowMessage(msg);
@@ -101,6 +136,7 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
   // Hàm hiển thị lỗi
   const showError = useCallback(
     (msg: string) => {
+      if (!isMounted.current) return;
       setError(msg);
       console.error(msg);
       if (parentShowError) parentShowError(msg);
@@ -115,7 +151,7 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
     [toast, parentShowError],
   );
 
-  // Thiết lập isLoading
+  // Thiết lập isLoading - sửa để tránh vòng lặp vô hạn
   useEffect(() => {
     if (setParentLoading) {
       setParentLoading(isLoading);
@@ -125,9 +161,12 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
   // Lấy địa chỉ các contract
   const fetchContractAddresses = useCallback(async () => {
     try {
+      if (contractAddresses) return contractAddresses; // Tránh gọi API nếu đã có dữ liệu
+
       setIsLoading(true);
       const response = await apiClient.get('/api/Blockchain/contract-addresses');
       if (response.data && response.data.success) {
+        if (!isMounted.current) return null;
         setContractAddresses(response.data);
         showMessage('Đã lấy thông tin địa chỉ contract');
         return response.data;
@@ -138,18 +177,26 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
       showError('Lỗi khi lấy địa chỉ contract: ' + (error as Error).message);
       return null;
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
-  }, [showMessage, showError]);
+  }, [showMessage, showError, contractAddresses]);
 
-  // Kiểm tra số dư và allowances
+  // Kiểm tra số dư và allowances - sửa đổi để tránh vòng lặp vô hạn
   const checkBalancesAndAllowances = useCallback(async () => {
+    // Ngăn không cho kiểm tra nhiều lần cùng lúc
+    if (isCheckingRef.current) {
+      return null;
+    }
+
     if (!scwAddress) {
       showError('Không có địa chỉ ví thông minh (SCW)');
       return null;
     }
 
     try {
+      isCheckingRef.current = true;
       setStatus(ApproveStatus.CHECKING);
       setIsLoading(true);
 
@@ -168,11 +215,44 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
         `/api/Blockchain/check-allowance?scwAddress=${scwAddress}&spenderType=paymaster`,
       );
 
-      const balanceInfo = {
+      // Khởi tạo balanceInfo
+      const balanceInfo: BalanceInfo = {
         hluBalance: balanceResponse.data?.balance?.toString() || '0',
         allowanceForFactory: factoryAllowanceResponse.data?.allowance?.toString() || '0',
         allowanceForPaymaster: paymasterAllowanceResponse.data?.allowance?.toString() || '0',
       };
+
+      // Kiểm tra allowance của địa chỉ cuộc bầu cử nếu có
+      if (contractAddress) {
+        try {
+          const electionAllowanceResponse = await apiClient.get(
+            `/api/Blockchain/check-contract-allowance?scwAddress=${scwAddress}&contractAddress=${contractAddress}`,
+          );
+          balanceInfo.allowanceForElection =
+            electionAllowanceResponse.data?.allowance?.toString() || '0';
+        } catch (error) {
+          console.warn('Không thể kiểm tra allowance cho cuộc bầu cử:', error);
+          balanceInfo.allowanceForElection = '0';
+        }
+      }
+
+      // Kiểm tra allowance của quản lý phiếu bầu
+      try {
+        if (contractAddresses?.quanLyPhieuBauAddress || QUAN_LY_PHIEU_BAU_ADDRESS) {
+          const quanLyPhieuBauAddress =
+            contractAddresses?.quanLyPhieuBauAddress || QUAN_LY_PHIEU_BAU_ADDRESS;
+          const quanLyPhieuBauAllowanceResponse = await apiClient.get(
+            `/api/Blockchain/check-contract-allowance?scwAddress=${scwAddress}&contractAddress=${quanLyPhieuBauAddress}`,
+          );
+          balanceInfo.allowanceForQuanLyPhieuBau =
+            quanLyPhieuBauAllowanceResponse.data?.allowance?.toString() || '0';
+        }
+      } catch (error) {
+        console.warn('Không thể kiểm tra allowance cho quản lý phiếu bầu:', error);
+        balanceInfo.allowanceForQuanLyPhieuBau = '0';
+      }
+
+      if (!isMounted.current) return null;
 
       setBalances(balanceInfo);
 
@@ -184,17 +264,23 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
       const hasBalance = Number.parseFloat(balanceInfo.hluBalance) >= 5.0;
       const hasFactory = Number.parseFloat(balanceInfo.allowanceForFactory) >= 4.0;
       const hasPaymaster = Number.parseFloat(balanceInfo.allowanceForPaymaster) >= 1.0;
+      const hasElection =
+        !contractAddress || Number.parseFloat(balanceInfo.allowanceForElection || '0') >= 10.0;
+      const hasQuanLyPhieuBau =
+        Number.parseFloat(balanceInfo.allowanceForQuanLyPhieuBau || '0') >= 3.0;
 
       setHasEnoughBalance(hasBalance);
       setHasFactoryAllowance(hasFactory);
       setHasPaymasterAllowance(hasPaymaster);
+      setHasElectionAllowance(hasElection);
+      setHasQuanLyPhieuBauAllowance(hasQuanLyPhieuBau);
 
       showMessage(
-        `Số dư: ${balanceInfo.hluBalance} HLU, Factory allowance: ${balanceInfo.allowanceForFactory}, Paymaster allowance: ${balanceInfo.allowanceForPaymaster}`,
+        `Số dư: ${balanceInfo.hluBalance} HLU, Factory: ${balanceInfo.allowanceForFactory}, Paymaster: ${balanceInfo.allowanceForPaymaster}${contractAddress ? `, Cuộc bầu cử: ${balanceInfo.allowanceForElection}` : ''}, Quản lý phiếu bầu: ${balanceInfo.allowanceForQuanLyPhieuBau}`,
       );
 
       // Kiểm tra nếu đủ tất cả điều kiện
-      if (hasBalance && hasFactory && hasPaymaster) {
+      if (hasBalance && hasFactory && hasPaymaster && hasElection && hasQuanLyPhieuBau) {
         setStatus(ApproveStatus.SUCCESS);
         showMessage('Đã có đủ số dư và quyền truy cập token');
 
@@ -212,17 +298,33 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
       } else if (!hasBalance) {
         showError(`Số dư HLU không đủ. Cần ít nhất 5 HLU, hiện có ${balanceInfo.hluBalance} HLU`);
         setStatus(ApproveStatus.FAILED);
+      } else {
+        setStatus(ApproveStatus.NOT_STARTED);
       }
 
       return balanceInfo;
     } catch (error) {
+      if (!isMounted.current) return null;
       showError('Lỗi khi kiểm tra số dư và quyền: ' + (error as Error).message);
       setStatus(ApproveStatus.FAILED);
       return null;
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+        setIsInitialCheck(false); // Đánh dấu đã kiểm tra xong
+        isCheckingRef.current = false; // Reset flag
+      }
     }
-  }, [scwAddress, showMessage, showError, toast, onBalancesUpdated, onSuccess]);
+  }, [
+    scwAddress,
+    contractAddress,
+    contractAddresses,
+    showMessage,
+    showError,
+    toast,
+    onBalancesUpdated,
+    onSuccess,
+  ]);
 
   // Kiểm tra trạng thái UserOperation
   const checkUserOpStatus = useCallback(
@@ -231,6 +333,8 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
 
       try {
         const response = await apiClient.get(`/api/bundler/check-status?userOpHash=${hash}`);
+
+        if (!isMounted.current) return false;
 
         if (response.data.status === 'success') {
           showMessage('Giao dịch đã được xác nhận thành công!');
@@ -254,25 +358,66 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
     [showMessage, showError, checkBalancesAndAllowances],
   );
 
-  // Hàm approve token cho Paymaster hoặc Factory
+  // Hàm approve token cho Paymaster, Factory, hoặc cuộc bầu cử - được tối ưu hóa
   const approveToken = useCallback(
-    async (isForFactory: boolean) => {
+    async (target: 'paymaster' | 'factory' | 'election' | 'quanlyphieubau') => {
       if (!sessionKey || !contractAddresses) {
         showError('Thiếu thông tin session key hoặc địa chỉ contract');
         return false;
       }
 
-      const targetType = isForFactory ? 'Factory' : 'Paymaster';
-      const targetAddress = isForFactory
-        ? contractAddresses.factoryAddress
-        : contractAddresses.paymasterAddress;
-      const approveAmount = isForFactory ? '8' : '10'; // 8 HLU cho Factory, 10 HLU cho Paymaster
+      // Xác định loại target và địa chỉ target
+      let targetType: string;
+      let targetAddress: string;
+      let approveAmount: string;
+
+      switch (target) {
+        case 'factory':
+          targetType = 'Factory';
+          targetAddress = contractAddresses.factoryAddress;
+          approveAmount = '8'; // 8 HLU cho Factory
+          break;
+        case 'paymaster':
+          targetType = 'Paymaster';
+          targetAddress = contractAddresses.paymasterAddress;
+          approveAmount = '10'; // 10 HLU cho Paymaster
+          break;
+        case 'election':
+          if (!contractAddress) {
+            showError('Thiếu địa chỉ cuộc bầu cử');
+            return false;
+          }
+          targetType = 'Cuộc bầu cử';
+          targetAddress = contractAddress;
+          approveAmount = '20'; // 20 HLU cho cuộc bầu cử
+          break;
+        case 'quanlyphieubau':
+          targetType = 'Quản lý phiếu bầu';
+          targetAddress = contractAddresses.quanLyPhieuBauAddress || QUAN_LY_PHIEU_BAU_ADDRESS;
+          approveAmount = '3'; // 3 HLU cho Quản lý phiếu bầu
+          break;
+        default:
+          showError('Loại target không hợp lệ');
+          return false;
+      }
 
       try {
         setIsLoading(true);
-        setStatus(
-          isForFactory ? ApproveStatus.APPROVING_FACTORY : ApproveStatus.APPROVING_PAYMASTER,
-        );
+        switch (target) {
+          case 'factory':
+            setStatus(ApproveStatus.APPROVING_FACTORY);
+            break;
+          case 'paymaster':
+            setStatus(ApproveStatus.APPROVING_PAYMASTER);
+            break;
+          case 'election':
+            setStatus(ApproveStatus.APPROVING_ELECTION);
+            break;
+          case 'quanlyphieubau':
+            setStatus(ApproveStatus.APPROVING_QUANLYPHIEUBAU);
+            break;
+        }
+
         showMessage(`Bắt đầu phê duyệt token cho ${targetType}...`);
 
         // Khởi tạo provider CHỈ ĐỂ LẤY DỮ LIỆU
@@ -328,11 +473,11 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
           initCode: '0x',
           callData: executeCallData,
           callGasLimit: '200000',
-          verificationGasLimit: isForFactory ? '250000' : '150000', // Tăng gas cho factory vì dùng paymaster
+          verificationGasLimit: target === 'factory' ? '250000' : '150000', // Tăng gas cho factory vì dùng paymaster
           preVerificationGas: '50000',
           maxFeePerGas: parseUnits('5', 'gwei').toString(),
           maxPriorityFeePerGas: parseUnits('2', 'gwei').toString(),
-          paymasterAndData: isForFactory ? contractAddresses.paymasterAddress : '0x', // Dùng paymaster cho factory
+          paymasterAndData: target === 'factory' ? contractAddresses.paymasterAddress : '0x', // Dùng paymaster cho factory
           signature: '0x',
         };
 
@@ -373,7 +518,12 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
           userOpHash: userOpHash,
         });
 
-        if (bundlerResponse.data && bundlerResponse.data.UserOpHash) {
+        if (!isMounted.current) return false;
+
+        if (
+          bundlerResponse.data &&
+          (bundlerResponse.data.UserOpHash || bundlerResponse.data.userOpHash)
+        ) {
           const hash =
             bundlerResponse.data.UserOpHash || bundlerResponse.data.userOpHash || userOpHash;
           setUserOpHash(hash);
@@ -384,7 +534,7 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
           let attempts = 0;
           const maxAttempts = 10;
 
-          while (!confirmed && attempts < maxAttempts) {
+          while (!confirmed && attempts < maxAttempts && isMounted.current) {
             await new Promise((resolve) => setTimeout(resolve, 3000)); // đợi 3 giây
             attempts++;
 
@@ -404,7 +554,7 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
             }
           }
 
-          if (!confirmed) {
+          if (!confirmed && isMounted.current) {
             showMessage(
               `Giao dịch đang chờ xử lý, bạn có thể kiểm tra sau trên blockchain explorer.`,
             );
@@ -417,42 +567,72 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
           );
         }
       } catch (error) {
+        if (!isMounted.current) return false;
         console.error(`Lỗi khi approve token cho ${targetType}:`, error);
         showError(`Lỗi khi approve token cho ${targetType}: ` + (error as Error).message);
         setStatus(ApproveStatus.FAILED);
         return false;
       } finally {
-        setIsLoading(false);
+        if (isMounted.current) {
+          setIsLoading(false);
+        }
       }
     },
-    [sessionKey, contractAddresses, scwAddress, showMessage, showError, toast, checkUserOpStatus],
+    [
+      sessionKey,
+      contractAddresses,
+      scwAddress,
+      contractAddress,
+      showMessage,
+      showError,
+      toast,
+      checkUserOpStatus,
+    ],
   );
 
   // Hàm approve cho Paymaster
   const approvePaymaster = useCallback(async () => {
-    return approveToken(false);
+    return approveToken('paymaster');
   }, [approveToken]);
 
   // Hàm approve cho Factory
   const approveFactory = useCallback(async () => {
-    return approveToken(true);
+    return approveToken('factory');
   }, [approveToken]);
 
-  // Lấy địa chỉ contract khi component mount
+  // Hàm approve cho cuộc bầu cử
+  const approveElection = useCallback(async () => {
+    return approveToken('election');
+  }, [approveToken]);
+
+  // Hàm approve cho Quản lý phiếu bầu
+  const approveQuanLyPhieuBau = useCallback(async () => {
+    return approveToken('quanlyphieubau');
+  }, [approveToken]);
+
+  // Lấy địa chỉ contract khi component mount - sửa để tránh vòng lặp nhiều lần
   useEffect(() => {
-    if (!contractAddresses) {
+    if (!contractAddresses && !isLoading) {
       fetchContractAddresses();
     }
-  }, [contractAddresses, fetchContractAddresses]);
+  }, [contractAddresses, fetchContractAddresses, isLoading]);
 
-  // Kiểm tra số dư và allowances khi địa chỉ SCW hoặc contract thay đổi
+  // Kiểm tra số dư và allowances khi địa chỉ SCW hoặc contract thay đổi - sửa để tránh vòng lặp
   useEffect(() => {
-    if (scwAddress && contractAddresses) {
-      checkBalancesAndAllowances();
-    }
-  }, [scwAddress, contractAddresses, checkBalancesAndAllowances]);
+    // Chỉ kiểm tra khi có đủ điều kiện và khi là lần kiểm tra đầu tiên
+    if (scwAddress && contractAddresses && isInitialCheck && !isCheckingRef.current) {
+      // Sử dụng timeout để tránh nhiều kiểm tra liên tiếp
+      if (checkTimeoutRef.current) {
+        clearTimeout(checkTimeoutRef.current);
+      }
 
-  // Render UI
+      checkTimeoutRef.current = setTimeout(() => {
+        checkBalancesAndAllowances();
+      }, 100);
+    }
+  }, [scwAddress, contractAddresses, isInitialCheck, checkBalancesAndAllowances, targetType]);
+
+  // Render UI với cải tiến cho UX
   return (
     <div className="p-6 rounded-2xl bg-white dark:bg-[#162A45]/50 backdrop-blur-md border border-gray-200 dark:border-[#2A3A5A] shadow-lg dark:shadow-[0_0_50px_rgba(79,139,255,0.15)]">
       <div className="flex items-center mb-4">
@@ -478,13 +658,21 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
               <li>
                 Cần phê duyệt <strong>ít nhất 1 HLU</strong> cho Paymaster
               </li>
+              {contractAddress && (
+                <li>
+                  Cần phê duyệt <strong>ít nhất 10 HLU</strong> cho Cuộc bầu cử
+                </li>
+              )}
+              <li>
+                Cần phê duyệt <strong>ít nhất 3 HLU</strong> cho Quản lý phiếu bầu
+              </li>
             </ul>
           </span>
         </p>
       </div>
 
       {/* Thông tin số dư và allowance */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div
           className={`p-4 rounded-lg border ${hasEnoughBalance ? 'bg-green-50 dark:bg-[#1A442A]/50 border-green-200 dark:border-[#2A5A3A]/50' : 'bg-red-50 dark:bg-[#421A1A]/50 border-red-200 dark:border-[#5A2A2A]/50'}`}
         >
@@ -530,11 +718,70 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
         </div>
       </div>
 
+      {/* Thêm hàng mới cho cuộc bầu cử và quản lý phiếu bầu */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Thêm thông tin allowance cho cuộc bầu cử nếu có */}
+        {contractAddress && (
+          <div
+            className={`p-4 rounded-lg border ${hasElectionAllowance ? 'bg-green-50 dark:bg-[#1A442A]/50 border-green-200 dark:border-[#2A5A3A]/50' : 'bg-yellow-50 dark:bg-[#333A1A]/50 border-yellow-200 dark:border-[#5A5A2A]/50'}`}
+          >
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-1">Cuộc Bầu Cử Allowance</p>
+            <p
+              className={`text-lg font-medium ${hasElectionAllowance ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}`}
+            >
+              {balances.allowanceForElection || '0'} HLU
+            </p>
+            {!hasElectionAllowance && (
+              <p className="text-yellow-600 dark:text-yellow-400 text-xs mt-1">
+                Cần ít nhất 10 HLU
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Thêm thông tin allowance cho quản lý phiếu bầu */}
+        <div
+          className={`p-4 rounded-lg border ${hasQuanLyPhieuBauAllowance ? 'bg-green-50 dark:bg-[#1A442A]/50 border-green-200 dark:border-[#2A5A3A]/50' : 'bg-yellow-50 dark:bg-[#333A1A]/50 border-yellow-200 dark:border-[#5A5A2A]/50'}`}
+        >
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-1">
+            Quản Lý Phiếu Bầu Allowance
+          </p>
+          <p
+            className={`text-lg font-medium ${hasQuanLyPhieuBauAllowance ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}`}
+          >
+            {balances.allowanceForQuanLyPhieuBau || '0'} HLU
+          </p>
+          {!hasQuanLyPhieuBauAllowance && (
+            <p className="text-yellow-600 dark:text-yellow-400 text-xs mt-1">Cần ít nhất 3 HLU</p>
+          )}
+        </div>
+      </div>
+
+      {/* Địa chỉ cuộc bầu cử nếu có */}
+      {contractAddress && (
+        <div className="p-4 mb-6 rounded-lg bg-gray-50 dark:bg-[#1A2942]/20 border border-gray-200 dark:border-[#2A3A5A]/50">
+          <h3 className="text-md font-medium mb-2 text-gray-700 dark:text-gray-300 flex items-center">
+            <Wallet className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" />
+            Thông tin cuộc bầu cử
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
+            Địa chỉ contract cuộc bầu cử:
+          </p>
+          <p className="font-mono text-sm text-gray-800 dark:text-gray-200 truncate">
+            {contractAddress}
+          </p>
+        </div>
+      )}
+
       {/* Nút Refresh */}
       <div className="flex justify-end mb-6">
         <button
-          onClick={checkBalancesAndAllowances}
-          disabled={isLoading}
+          onClick={() => {
+            if (!isCheckingRef.current) {
+              checkBalancesAndAllowances();
+            }
+          }}
+          disabled={isLoading || isCheckingRef.current}
           className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 dark:bg-[#1A2942]/50 border border-blue-100 dark:border-[#2A3A5A] text-blue-700 dark:text-[#4F8BFF] hover:bg-blue-100 dark:hover:bg-[#1A2942] disabled:opacity-50 flex items-center"
         >
           {isLoading && status === ApproveStatus.CHECKING ? (
@@ -584,20 +831,64 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
           </button>
         )}
 
-        {/* Trạng thái thành công */}
-        {hasEnoughBalance && hasFactoryAllowance && hasPaymasterAllowance && (
-          <div className="p-4 rounded-lg bg-green-50 dark:bg-[#1A442A]/50 border border-green-200 dark:border-[#2A5A3A]/50 flex items-start">
-            <CheckCircle className="w-5 h-5 mr-2 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-green-700 dark:text-green-400 font-medium">
-                Đã phê duyệt đầy đủ token!
-              </p>
-              <p className="text-gray-600 dark:text-[#B0BEC5] text-sm mt-1">
-                Tất cả điều kiện đã đáp ứng, bạn có thể tiếp tục triển khai cuộc bầu cử.
-              </p>
-            </div>
-          </div>
+        {/* Approve cuộc bầu cử */}
+        {contractAddress &&
+          !hasElectionAllowance &&
+          hasEnoughBalance &&
+          hasFactoryAllowance &&
+          hasPaymasterAllowance && (
+            <button
+              onClick={approveElection}
+              disabled={isLoading || !sessionKey}
+              className="w-full py-3 rounded-lg font-medium bg-gradient-to-r from-green-500 to-green-600 dark:from-[#2E7D32] dark:to-[#1B5E20] text-white hover:shadow-lg hover:shadow-green-300/30 dark:hover:shadow-[#1B5E20]/20 disabled:opacity-50 transition-all duration-300 flex items-center justify-center"
+            >
+              {isLoading && status === ApproveStatus.APPROVING_ELECTION ? (
+                <Loader className="animate-spin mr-2" size={18} />
+              ) : (
+                <Zap className="mr-2" size={18} />
+              )}
+              {isLoading && status === ApproveStatus.APPROVING_ELECTION
+                ? 'Đang phê duyệt cho Cuộc bầu cử...'
+                : 'Phê duyệt cho Cuộc bầu cử'}
+            </button>
+          )}
+
+        {/* Approve Quản lý phiếu bầu */}
+        {!hasQuanLyPhieuBauAllowance && hasEnoughBalance && (
+          <button
+            onClick={approveQuanLyPhieuBau}
+            disabled={isLoading || !sessionKey}
+            className="w-full py-3 rounded-lg font-medium bg-gradient-to-r from-teal-500 to-teal-600 dark:from-[#00897B] dark:to-[#00796B] text-white hover:shadow-lg hover:shadow-teal-300/30 dark:hover:shadow-[#00796B]/20 disabled:opacity-50 transition-all duration-300 flex items-center justify-center"
+          >
+            {isLoading && status === ApproveStatus.APPROVING_QUANLYPHIEUBAU ? (
+              <Loader className="animate-spin mr-2" size={18} />
+            ) : (
+              <FileCheck className="mr-2" size={18} />
+            )}
+            {isLoading && status === ApproveStatus.APPROVING_QUANLYPHIEUBAU
+              ? 'Đang phê duyệt cho Quản lý phiếu bầu...'
+              : 'Phê duyệt cho Quản lý phiếu bầu'}
+          </button>
         )}
+
+        {/* Trạng thái thành công */}
+        {hasEnoughBalance &&
+          hasFactoryAllowance &&
+          hasPaymasterAllowance &&
+          hasQuanLyPhieuBauAllowance &&
+          (!contractAddress || hasElectionAllowance) && (
+            <div className="p-4 rounded-lg bg-green-50 dark:bg-[#1A442A]/50 border border-green-200 dark:border-[#2A5A3A]/50 flex items-start">
+              <CheckCircle className="w-5 h-5 mr-2 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-green-700 dark:text-green-400 font-medium">
+                  Đã phê duyệt đầy đủ token!
+                </p>
+                <p className="text-gray-600 dark:text-[#B0BEC5] text-sm mt-1">
+                  Tất cả điều kiện đã đáp ứng, bạn có thể tiếp tục triển khai cuộc bầu cử.
+                </p>
+              </div>
+            </div>
+          )}
 
         {/* Không đủ số dư */}
         {!hasEnoughBalance && (

@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 
 // Hard-code địa chỉ HoLiHu Token
-const HLU_TOKEN_ADDRESS = '0x820F15F12Aa75BAa89A16B20768024C8604Ea16f';
+const HLU_TOKEN_ADDRESS = '0x0c69a0bF43618D8ba8465e095F78AdB3A15F2666';
 // RPC endpoint của mạng blockchain private
 const RPC_URL = 'https://geth.holihu.online/rpc';
 

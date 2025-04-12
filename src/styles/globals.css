@@ -452,3 +452,46 @@
 .dark .pulse-button {
   animation: pulse-border 2s infinite;
 }
+
+/* Hiệu ứng bóng mờ cho NFT */
+
+/* Hiệu ứng glow cho model 3D */
+.model-3d-glow {
+  box-shadow: 0 0 15px 5px rgba(99, 102, 241, 0.15);
+}
+
+/* Thêm một số CSS cho hiệu ứng đặc biệt */
+.nft-card-bg {
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.nft-card-shadow {
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+}
+
+.model-3d-glow {
+  box-shadow: 0 0 20px rgba(79, 70, 229, 0.2);
+}
+
+.holographic-badge {
+  background: linear-gradient(45deg, #7928ca, #2563eb, #4f46e5, #10b981);
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+  color: white;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}

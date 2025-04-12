@@ -39,8 +39,10 @@ import {
   Hexagon,
   Network,
   Link,
+  Database,
+  ArrowUpRight,
 } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../test/components/use-toast';
 import ApproveHLU from '../components/blockchain/ApproveHLU';
 
@@ -87,6 +89,8 @@ interface ElectionData {
   ngayKetThuc: string;
   moTa: string;
   trangThaiBlockchain: number;
+  blockchainAddress?: string;
+  blockchainServerId?: string;
 }
 
 interface ContractAddresses {
@@ -145,6 +149,7 @@ const BlockchainDeployment: React.FC = () => {
   // Get the election ID from URL params
   const { id } = useParams<{ id: string }>();
   const electionId = id || '';
+  const navigate = useNavigate();
 
   // Toast notifications
   const { toast } = useToast();
@@ -180,6 +185,16 @@ const BlockchainDeployment: React.FC = () => {
   const [frontendHash, setFrontendHash] = useState('');
   const [backendHash, setBackendHash] = useState('');
   const [hashesLinked, setHashesLinked] = useState(false);
+  // State cho đồng bộ dữ liệu
+  const [syncStatus, setSyncStatus] = useState<{
+    isRunning: boolean;
+    progress: number;
+    message: string;
+  }>({
+    isRunning: false,
+    progress: 0,
+    message: '',
+  });
 
   // Hàm hiển thị thông báo - memoized function
   const showMessage = useCallback((msg: string) => {
@@ -417,6 +432,8 @@ const BlockchainDeployment: React.FC = () => {
         title: 'Khóa phiên hiện tại',
         description: `Khóa phiên còn hạn đến: ${new Date(sessionKey.expiresAt * 1000).toLocaleString()}`,
       });
+
+      console.log('Session key:', sessionKey.sessionKey);
 
       return sessionKey;
     }
@@ -961,7 +978,6 @@ const BlockchainDeployment: React.FC = () => {
   );
 
   // Xử lý sự kiện setApproveLoading từ component ApproveHLU
-  // ĐÂY LÀ ĐIỂM QUAN TRỌNG GÂY RA LỖI: Không truyền setIsLoading trực tiếp vào ApproveHLU
   const handleApproveLoading = useCallback((loading: boolean) => {
     // Chỉ cập nhật nếu giá trị thay đổi để tránh re-render liên tục
     setIsLoading((prevLoading) => {
@@ -971,6 +987,148 @@ const BlockchainDeployment: React.FC = () => {
       return prevLoading;
     });
   }, []);
+
+  // Hàm đồng bộ dữ liệu blockchain
+  const handleSyncData = useCallback(async () => {
+    if (!electionId) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: 'Không tìm thấy ID cuộc bầu cử',
+      });
+      return;
+    }
+
+    try {
+      setSyncStatus({
+        isRunning: true,
+        progress: 10,
+        message: 'Đang bắt đầu đồng bộ dữ liệu...',
+      });
+
+      // Gọi API để đồng bộ
+      const response = await apiClient.post(`/api/CuocBauCu/syncBlockchain/${electionId}`, {
+        forceCheck: true,
+      });
+
+      setSyncStatus({
+        isRunning: true,
+        progress: 50,
+        message: 'Đang xử lý dữ liệu...',
+      });
+
+      // Giả lập thời gian xử lý
+      setTimeout(() => {
+        if (response.data && response.data.success) {
+          setSyncStatus({
+            isRunning: false,
+            progress: 100,
+            message: 'Đồng bộ dữ liệu thành công!',
+          });
+
+          toast({
+            title: 'Thành công',
+            description: 'Đã đồng bộ dữ liệu giữa SQL và blockchain thành công',
+          });
+
+          // Làm mới dữ liệu sau khi đồng bộ
+          refreshData();
+        } else {
+          setSyncStatus({
+            isRunning: false,
+            progress: 0,
+            message: response.data?.message || 'Đồng bộ dữ liệu thất bại',
+          });
+
+          toast({
+            variant: 'destructive',
+            title: 'Lỗi',
+            description: response.data?.message || 'Đồng bộ dữ liệu thất bại',
+          });
+        }
+      }, 2000);
+    } catch (error) {
+      setSyncStatus({
+        isRunning: false,
+        progress: 0,
+        message: 'Đồng bộ dữ liệu thất bại: ' + (error as Error).message,
+      });
+
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: 'Đồng bộ dữ liệu thất bại: ' + (error as Error).message,
+      });
+    }
+  }, [electionId, toast, refreshData]);
+
+  // Sync all missing server IDs
+  const syncAllMissingServerIds = useCallback(async () => {
+    try {
+      setSyncStatus({
+        isRunning: true,
+        progress: 10,
+        message: 'Đang đồng bộ tất cả ServerId thiếu...',
+      });
+
+      // Gọi API để đồng bộ tất cả
+      const response = await apiClient.post('/api/CuocBauCu/syncAllServerIds');
+
+      setSyncStatus({
+        isRunning: true,
+        progress: 50,
+        message: 'Đang xử lý dữ liệu...',
+      });
+
+      // Giả lập thời gian xử lý
+      setTimeout(() => {
+        if (response.data) {
+          setSyncStatus({
+            isRunning: false,
+            progress: 100,
+            message: `Đồng bộ hoàn tất: ${response.data.successCount}/${response.data.totalProcessed} thành công`,
+          });
+
+          toast({
+            title: 'Thành công',
+            description: `Đồng bộ hoàn tất: ${response.data.successCount}/${response.data.totalProcessed} thành công`,
+          });
+
+          // Làm mới dữ liệu sau khi đồng bộ
+          refreshData();
+        } else {
+          setSyncStatus({
+            isRunning: false,
+            progress: 0,
+            message: 'Đồng bộ dữ liệu thất bại',
+          });
+
+          toast({
+            variant: 'destructive',
+            title: 'Lỗi',
+            description: 'Đồng bộ dữ liệu thất bại',
+          });
+        }
+      }, 2000);
+    } catch (error) {
+      setSyncStatus({
+        isRunning: false,
+        progress: 0,
+        message: 'Đồng bộ dữ liệu thất bại: ' + (error as Error).message,
+      });
+
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: 'Đồng bộ dữ liệu thất bại: ' + (error as Error).message,
+      });
+    }
+  }, [toast, refreshData]);
+
+  // Quay lại trang quản lý cuộc bầu cử
+  const handleBackToElection = useCallback(() => {
+    navigate(`/app/user-elections/elections/${electionId}`);
+  }, [navigate, electionId]);
 
   return (
     <div className="relative p-8 bg-gradient-to-b from-white to-gray-50 dark:from-[#0A0F18] dark:via-[#121A29] dark:to-[#0D1321] rounded-xl shadow-lg overflow-hidden">
@@ -991,14 +1149,24 @@ const BlockchainDeployment: React.FC = () => {
               )}
             </p>
           </div>
-          <button
-            onClick={refreshData}
-            className="p-3 rounded-full bg-white dark:bg-[#1A2942]/50 hover:bg-gray-100 dark:hover:bg-[#1A2942] transition-colors shadow-md flex items-center gap-2"
-            title="Làm mới dữ liệu"
-          >
-            <RefreshCw className="w-5 h-5 text-blue-500 dark:text-[#4F8BFF]" />
-            <span className="text-gray-700 dark:text-gray-200 font-medium">Làm mới</span>
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={refreshData}
+              className="p-3 rounded-full bg-white dark:bg-[#1A2942]/50 hover:bg-gray-100 dark:hover:bg-[#1A2942] transition-colors shadow-md flex items-center gap-2"
+              title="Làm mới dữ liệu"
+            >
+              <RefreshCw className="w-5 h-5 text-blue-500 dark:text-[#4F8BFF]" />
+              <span className="text-gray-700 dark:text-gray-200 font-medium">Làm mới</span>
+            </button>
+            <button
+              onClick={handleBackToElection}
+              className="p-3 rounded-full bg-white dark:bg-[#1A2942]/50 hover:bg-gray-100 dark:hover:bg-[#1A2942] transition-colors shadow-md flex items-center gap-2"
+              title="Quay lại trang quản lý"
+            >
+              <ArrowUpRight className="w-5 h-5 text-blue-500 dark:text-[#4F8BFF]" />
+              <span className="text-gray-700 dark:text-gray-200 font-medium">Quay lại</span>
+            </button>
+          </div>
         </div>
 
         {/* Election Info Card */}
@@ -1081,6 +1249,167 @@ const BlockchainDeployment: React.FC = () => {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Blockchain Sync Section - THÊM MỚI */}
+        {electionData && electionData.trangThaiBlockchain === 2 && (
+          <div className="mb-8 p-6 rounded-2xl bg-white dark:bg-[#162A45]/50 border border-gray-200 dark:border-[#2A3A5A] shadow-lg">
+            <div className="flex items-center mb-4">
+              <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#1A2942]/50 border border-blue-100 dark:border-[#2A3A5A] mr-3">
+                <Database className="h-6 w-6 text-blue-500 dark:text-[#4F8BFF]" />
+              </div>
+              <h2 className="text-xl font-medium text-gray-800 dark:text-white">
+                Đồng Bộ Dữ Liệu Blockchain
+              </h2>
+            </div>
+
+            <div className="p-4 mb-6 rounded-lg bg-blue-50 dark:bg-[#1A2942]/80 border border-blue-200 dark:border-[#4F8BFF]/30 text-blue-800 dark:text-[#E1F5FE]">
+              <p className="flex items-start">
+                <Info className="mr-2 flex-shrink-0 mt-1" size={18} />
+                <span>
+                  Công cụ này giúp đồng bộ dữ liệu giữa cơ sở dữ liệu SQL và blockchain, đảm bảo
+                  tính nhất quán của dữ liệu.
+                  {electionData.blockchainAddress && (
+                    <span className="block mt-2">
+                      Địa chỉ blockchain hiện tại:{' '}
+                      <code className="bg-white/30 dark:bg-[#1A2942]/50 px-2 py-1 rounded font-mono text-sm">
+                        {electionData.blockchainAddress}
+                      </code>
+                    </span>
+                  )}
+                </span>
+              </p>
+            </div>
+
+            {/* Sync Progress */}
+            {syncStatus.isRunning && (
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-1">
+                  <span>{syncStatus.message}</span>
+                  <span>{syncStatus.progress}%</span>
+                </div>
+                <div className="relative h-2 bg-gray-200 dark:bg-[#1A2942] rounded-full overflow-hidden">
+                  <div
+                    className="absolute h-full rounded-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-purple-600"
+                    style={{ width: `${syncStatus.progress}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+
+            {/* Sync Status Message */}
+            {!syncStatus.isRunning && syncStatus.message && (
+              <div
+                className={`p-4 rounded-lg mb-4 ${
+                  syncStatus.progress === 100
+                    ? 'bg-green-50 dark:bg-[#1A442A]/50 border border-green-200 dark:border-[#2A5A3A]/50 text-green-800 dark:text-green-300'
+                    : 'bg-red-50 dark:bg-[#421A1A]/50 border border-red-200 dark:border-[#5A2A2A]/50 text-red-800 dark:text-red-300'
+                }`}
+              >
+                <p className="flex items-start">
+                  {syncStatus.progress === 100 ? (
+                    <CheckCircle className="mr-2 flex-shrink-0 mt-1" size={18} />
+                  ) : (
+                    <AlertCircle className="mr-2 flex-shrink-0 mt-1" size={18} />
+                  )}
+                  <span>{syncStatus.message}</span>
+                </p>
+              </div>
+            )}
+
+            {/* Blockchain Address Info */}
+            {electionData.blockchainAddress && (
+              <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-blue-50 dark:from-[#1A2942]/50 dark:to-[#1E1A29]/50 border border-blue-100 dark:border-[#2A3A5A]/70 mb-4">
+                <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-white flex items-center">
+                  <Network className="w-5 h-5 mr-2 text-blue-500 dark:text-[#4F8BFF]" />
+                  Thông Tin Blockchain
+                </h3>
+
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <span className="text-gray-500 dark:text-gray-400 w-24">Địa chỉ:</span>
+                    <code className="text-xs bg-white/70 dark:bg-gray-800/70 p-1 rounded font-mono flex-1 overflow-hidden text-ellipsis">
+                      {electionData.blockchainAddress}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(electionData.blockchainAddress || '');
+                        toast({
+                          title: 'Đã sao chép',
+                          description: 'Địa chỉ đã được sao chép vào clipboard',
+                        });
+                      }}
+                      className="ml-2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#1A2942] text-gray-500 dark:text-gray-400"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                  {electionData.blockchainServerId && (
+                    <div className="flex items-center">
+                      <span className="text-gray-500 dark:text-gray-400 w-24">Server ID:</span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {electionData.blockchainServerId}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center">
+                    <span className="text-gray-500 dark:text-gray-400 w-24">Explorer:</span>
+                    <a
+                      href={`https://explorer.holihu.online/address/${electionData.blockchainAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 flex items-center hover:underline"
+                    >
+                      Xem trên blockchain
+                      <ExternalLink className="ml-1 h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sync Actions */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={handleSyncData}
+                disabled={syncStatus.isRunning}
+                className="px-4 py-3 rounded-lg font-medium bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-[#0288D1] dark:to-[#3949AB] text-white hover:shadow-lg disabled:opacity-50 transition-all duration-300 flex items-center justify-center"
+              >
+                {syncStatus.isRunning ? (
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Đồng Bộ Cuộc Bầu Cử Này
+              </button>
+
+              <button
+                onClick={syncAllMissingServerIds}
+                disabled={syncStatus.isRunning}
+                className="px-4 py-3 rounded-lg font-medium bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-[#3949AB] dark:to-[#6A1B9A] text-white hover:shadow-lg disabled:opacity-50 transition-all duration-300 flex items-center justify-center"
+              >
+                {syncStatus.isRunning ? (
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Database className="mr-2 h-4 w-4" />
+                )}
+                Đồng Bộ Tất Cả ServerId
+              </button>
             </div>
           </div>
         )}

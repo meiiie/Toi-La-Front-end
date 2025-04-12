@@ -17,6 +17,8 @@ import {
   Loader,
   Shield,
   Vote,
+  Eye,
+  Info,
 } from 'lucide-react';
 
 interface ElectionCardProps {
@@ -49,12 +51,12 @@ const ElectionCard: React.FC<ElectionCardProps> = ({ election }) => {
     setShowFullDescription(!showFullDescription);
   };
 
+  // Xử lý khi người dùng click vào thẻ (xem chi tiết)
   const handleViewDetails = () => {
     if (!user) {
       setShowNotification(true);
     } else {
-      // Thay đổi đường dẫn để điều hướng đến trang tham gia bầu cử
-      navigate(`/app/user-elections/elections/${election.id}/participate`);
+      navigate(`/app/elections/${election.id}`);
     }
   };
 
@@ -70,10 +72,16 @@ const ElectionCard: React.FC<ElectionCardProps> = ({ election }) => {
       ? election.moTa.substring(0, truncateLength) + '...'
       : election.moTa;
 
-  // Xác định trạng thái cuộc bầu cử
+  const parseVietnameseDate = (dateStr: string) => {
+    const [datePart, timePart] = dateStr.split(' ');
+    const [day, month, year] = datePart.split('/');
+    const [hour, minute] = timePart.split(':');
+    return new Date(+year, +month - 1, +day, +hour, +minute);
+  };
+
   const now = new Date();
-  const startDate = new Date(election.ngayBatDau);
-  const endDate = new Date(election.ngayKetThuc);
+  const startDate = parseVietnameseDate(election.ngayBatDau);
+  const endDate = parseVietnameseDate(election.ngayKetThuc);
 
   let status = '';
   let statusColor = '';
@@ -144,18 +152,11 @@ const ElectionCard: React.FC<ElectionCardProps> = ({ election }) => {
 
   const blockchainStatus = getBlockchainStatus();
 
-  // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  };
-
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-3xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 border border-gray-100 dark:border-gray-700 w-full">
+    <div
+      className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-3xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 border border-gray-100 dark:border-gray-700 w-full cursor-pointer"
+      onClick={handleViewDetails}
+    >
       {/* Card Header - Image - Responsive height */}
       <div className="relative h-36 sm:h-48 overflow-hidden">
         {imageUrl && !imageError ? (
@@ -197,7 +198,10 @@ const ElectionCard: React.FC<ElectionCardProps> = ({ election }) => {
           {showFullDescription ? election.moTa : truncatedDescription}
           {election.moTa.length > truncateLength && (
             <button
-              onClick={toggleDescription}
+              onClick={(e) => {
+                e.stopPropagation(); // Ngăn chặn event bubbling lên thẻ cha
+                toggleDescription();
+              }}
               className="ml-1 text-blue-600 dark:text-blue-400 hover:underline focus:outline-none"
             >
               {showFullDescription ? 'Ẩn bớt' : 'Xem thêm'}
@@ -212,14 +216,14 @@ const ElectionCard: React.FC<ElectionCardProps> = ({ election }) => {
               size={14}
               className="mr-1.5 sm:mr-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
             />
-            <span>Bắt đầu: {formatDate(election.ngayBatDau)}</span>
+            <span>Bắt đầu: {election.ngayBatDau}</span>
           </div>
           <div className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
             <Clock
               size={14}
               className="mr-1.5 sm:mr-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
             />
-            <span>Kết thúc: {formatDate(election.ngayKetThuc)}</span>
+            <span>Kết thúc: {election.ngayKetThuc}</span>
           </div>
 
           {/* Blockchain Address (if available) - Better text wrapping */}
@@ -240,14 +244,19 @@ const ElectionCard: React.FC<ElectionCardProps> = ({ election }) => {
           )}
         </div>
 
-        {/* Action Button - Better tap area for mobile */}
-        <button
-          onClick={handleViewDetails}
-          className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg sm:rounded-xl flex items-center justify-center font-medium transition-all duration-300 hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 dark:from-blue-600 dark:to-indigo-700 dark:hover:from-blue-700 dark:hover:to-indigo-800 text-sm sm:text-base"
-        >
-          <span>Tham gia bầu cử</span>
-          <ArrowRight size={16} className="ml-2" />
-        </button>
+        {/* Action Buttons - Better tap area for mobile */}
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // Ngăn event bubbling
+              handleViewDetails();
+            }}
+            className="flex-1 py-2.5 sm:py-3 px-4 bg-white border border-gray-200 dark:bg-gray-700 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg sm:rounded-xl flex items-center justify-center font-medium transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800 text-sm sm:text-base"
+          >
+            <Eye size={16} className="mr-2" />
+            <span>Chi tiết</span>
+          </button>
+        </div>
       </div>
 
       {/* Notification Modal */}

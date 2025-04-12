@@ -1,4 +1,4 @@
-// Cập nhật store.tsx để thêm viBlockchainReducer
+// Cập nhật store.tsx để thêm cuocBauCuAccessReducer
 import { configureStore } from '@reduxjs/toolkit';
 import cuocBauCuReducer from './slice/cuocBauCuSlice';
 import nguoiDungReducer from './slice/nguoiDungSlice';
@@ -33,7 +33,10 @@ import nhanThongTinReducer from './slice/nhanThongTinSlice';
 import blockchainReducer from './sliceBlockchain/blockchainSlice';
 import cuocBauCuImageReducer from './slice/cuocBauCuImageSlice';
 import dieuLeReducer from './slice/dieuLeSlice';
-import viBlockchainReducer from './sliceBlockchain/viBlockchainSlice'; // Import reducer mới
+import viBlockchainReducer from './sliceBlockchain/viBlockchainSlice';
+import cuocBauCuAccessReducer from './slice/cuocBauCuAccessSlice'; // Thêm import này
+import uploadFileBallotReducer from './slice/uploadFileBallotSlice'; // Thêm import này
+import { uploadFile } from '../api/uploadFileApi';
 
 export const store = configureStore({
   reducer: {
@@ -70,7 +73,9 @@ export const store = configureStore({
     blockchain: blockchainReducer,
     cuocBauCuImage: cuocBauCuImageReducer,
     dieuLe: dieuLeReducer,
-    viBlockchain: viBlockchainReducer, // Thêm reducer mới vào store
+    viBlockchain: viBlockchainReducer,
+    cuocBauCuAccess: cuocBauCuAccessReducer, // Thêm reducer mới này
+    uploadFileBallot: uploadFileBallotReducer, // Thêm reducer mới này
   },
 });
 

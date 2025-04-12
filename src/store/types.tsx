@@ -10,7 +10,65 @@ export type CuTri = {
   cuocBauCuId?: number;
   phienBauCuId?: number;
   taiKhoanId?: number;
+  vaiTroId?: number;
+  trangThai?: string;
+  hasBlockchainWallet?: boolean;
+  blockchainAddress?: string; // Thêm trường này
+  tenVaiTro?: string;
 };
+
+// Type cho request gửi email xác thực cử tri
+export interface VoterVerificationRequest {
+  email: string;
+  phienBauCuId: number;
+  cuocBauCuId: number;
+}
+
+export interface VoterData {
+  sdt: string;
+  email: string;
+  xacMinh: string | boolean; // Can be 'yes'/'no' when read from file or boolean when processed
+  boPhieu?: boolean;
+  soLanGuiOTP?: number;
+  phienBauCuId?: number;
+  cuocBauCuId?: number;
+  taiKhoanId?: number;
+  vaiTroId?: number;
+  hasBlockchainWallet?: boolean;
+}
+
+// Interface for sanitized voter data
+export interface SanitizedVoterData {
+  sdt: string;
+  email: string;
+  xacMinh: boolean;
+  boPhieu: boolean;
+  soLanGuiOTP: number;
+  phienBauCuId: number;
+  cuocBauCuId: number;
+  taiKhoanId: number;
+  vaiTroId?: number;
+  hasBlockchainWallet?: boolean;
+}
+
+// Type cho response của xác thực token
+// Trong types.tsx, thay thế/cập nhật VoterVerificationResponse hiện tại
+export interface VoterVerificationResponse {
+  success: boolean;
+  id: number;
+  email?: string;
+  sdt?: string;
+  xacMinh: boolean;
+  boPhieu: boolean;
+  soLanGuiOtp: number; // Lưu ý là 'Otp' không viết hoa
+  phienBauCuId?: number;
+  hasTaiKhoan: boolean;
+  hasBlockchainWallet: boolean;
+  blockchainAddress: string | null;
+  taiKhoanId?: number;
+  status: 'verified' | 'pending' | 'not_sent';
+  message?: string;
+}
 
 export type ContactData = {
   ten: string;
@@ -153,8 +211,52 @@ export type UngCuVien = {
   viTriUngCuId: number;
   cuocBauCuId?: number;
   phienBauCuId?: number;
+  taiKhoanId?: number; // Thêm trường TaiKhoanId
+  cuTriId?: number; // Thêm trường CuTriId
 };
 
+export type CheckCandidateResponse = {
+  isCandidate: boolean;
+};
+
+export type UngCuVienDetailDTO = {
+  id: number;
+  hoTen: string;
+  anh?: string;
+  anhUrl?: string; // URL hình ảnh với SAS token
+  moTa: string;
+  viTriUngCuId: number;
+  tenViTriUngCu?: string;
+  cuocBauCuId: number;
+  tenCuocBauCu?: string;
+  phienBauCuId?: number;
+  tenPhienBauCu?: string;
+  taiKhoanId?: number;
+  tenTaiKhoan?: string;
+  cuTriId?: number;
+  emailCuTri?: string;
+  diaChiVi?: string; // Địa chỉ ví blockchain
+};
+
+// Type cho response của API lấy địa chỉ blockchain
+export type BlockchainAddressResponse = {
+  success: boolean;
+  message: string;
+  blockchainAddress?: string;
+};
+
+export type UngVienRegistrationDTO = {
+  hoTen: string;
+  anh?: string;
+  moTa: string;
+  viTriUngCuId: number;
+  cuocBauCuId: number;
+  phienBauCuId?: number;
+  taiKhoanId?: number;
+  // Thông tin cử tri
+  sdt: string;
+  email: string;
+};
 export type VaiTro = {
   id: number;
   tenVaiTro: string;
@@ -237,6 +339,42 @@ export type CuocBauCu = {
   tongSoPhieuBau?: number;
 };
 
+export type CuocBauCuDTO = {
+  id: number;
+  tenCuocBauCu: string;
+  moTa: string;
+  ngayBatDau: string; // Định dạng "dd/MM/yyyy HH:mm"
+  ngayKetThuc: string; // Định dạng "dd/MM/yyyy HH:mm"
+  taiKhoanId: number;
+  anhCuocBauCu?: string;
+  blockchainServerId?: number;
+  blockchainAddress?: string;
+};
+
+export interface PhienBauCuDTO {
+  id: number;
+  tenPhienBauCu: string;
+  cuocBauCuId: number;
+  moTa: string;
+  ngayBatDau: string;
+  ngayKetThuc: string;
+  cuTriIds?: number[];
+  phieuBauIds?: number[];
+  taiKhoanVaiTroUserIds?: number[];
+  ungCuVienIds?: number[];
+  viTriUngCuIds?: number[];
+  trangThai?: string;
+}
+
+export interface CreateUpdatePhienBauCuDTO {
+  id: number;
+  tenPhienBauCu: string;
+  cuocBauCuId: number;
+  moTa: string;
+  ngayBatDau: string;
+  ngayKetThuc: string;
+}
+
 // Định nghĩa các trạng thái blockchain
 export enum TrangThaiBlockchain {
   ChuaTrienKhai = 0,
@@ -256,16 +394,49 @@ export type PhienBauCu = {
   tienTrinhPhienBau?: number;
   gioBatDau?: string;
   gioKetThuc?: string;
+  trangThaiBlockchain?: number;
+  blockchainAddress?: string;
 };
 
-export type ViTriUngCu = {
+// Thêm vào file types.ts hoặc cập nhật nếu đã có
+export interface ViTriUngCu {
   id: number;
   tenViTriUngCu: string;
   soPhieuToiDa: number;
-  phienBauCuId: number;
-  cuocBauCuId?: number;
-  ungCuVien?: UngCuVien[];
-};
+  moTa?: string; // Thêm trường mô tả
+  phienBauCuId?: number;
+  cuocBauCuId: number;
+}
+
+// Định nghĩa interface cho phản hồi thống kê chi tiết
+export interface DetailedStatisticsResponse {
+  success: boolean;
+  statistics: Array<{
+    id: number;
+    tenViTriUngCu: string;
+    soPhieuToiDa: number;
+    moTa?: string | null;
+    soUngCuVien: number;
+    tyLePercentage: number;
+    trangThai: string;
+  }>;
+  summary: {
+    totalPositions: number;
+    totalMaxVotes: number;
+    totalCandidates: number;
+    overallPercentage: number;
+  };
+}
+
+// Định nghĩa interface cho phản hồi thông tin đầy đủ
+export interface FullInfoResponse {
+  success: boolean;
+  data: Array<{
+    viTri: ViTriUngCu;
+    ungViens: UngCuVien[];
+    soUngVien: number;
+  }>;
+}
 
 export type PhieuBau = {
   id: number;
@@ -514,6 +685,59 @@ export type UploadDieuLeResponse = {
   };
 };
 
+// Thêm vào cuối file types.tsx hiện tại
+
+// DTO mở rộng cho ứng cử viên với URL ảnh
+export type UngCuVienWithImageDTO = UngCuVien & {
+  anhUrl: string; // URL ảnh đã có SAS token
+};
+
+// Interface cho response khi upload/get ảnh ứng cử viên
+export type UngCuVienImageResponse = {
+  success: boolean;
+  message: string;
+  imageUrl: string;
+  fileName: string;
+  fileInfo?: {
+    id: number;
+    tenFile: string;
+    kichThuoc: string;
+    ngayUpload: string;
+    noiDungType?: string;
+  };
+};
+
+// Interface cho response khi lấy nhiều ảnh ứng cử viên
+export type UngCuVienMultipleImagesResponse = {
+  success: boolean;
+  images: Array<{
+    ungCuVienId: number;
+    imageUrl: string;
+    fileName: string;
+    fileInfo?: {
+      id: number;
+      tenFile: string;
+      kichThuoc: string;
+      ngayUpload: string;
+      noiDungType?: string;
+    };
+  }>;
+};
+
+// Interface cho thống kê vị trí ứng cử
+export type ViTriUngCuStatistic = {
+  id: number;
+  tenViTriUngCu: string;
+  soPhieuToiDa: number;
+  soUngCuVien: number;
+};
+
+// Interface cho response thống kê vị trí ứng cử
+export type ViTriUngCuStatisticsResponse = {
+  success: boolean;
+  statistics: ViTriUngCuStatistic[];
+};
+
 export type ViBlockchain = {
   viId: number;
   taiKhoanId: number;
@@ -545,4 +769,26 @@ export type ThongBaoDieuLeDTO = {
 
 export type XacNhanDieuLeDTO = {
   taiKhoanId: number;
+};
+
+export type UngCuVienWithAddress = UngCuVien & {
+  diaChiVi?: string;
+  email?: string;
+};
+
+export type Ballot = {
+  tokenId: number;
+  metadata?: BallotMetadata;
+};
+
+export type BallotMetadata = {
+  name?: string;
+  description?: string;
+  image?: string;
+  attributes?: Array<{
+    trait_type: string;
+    value: string;
+  }>;
+  background_color?: string;
+  [key: string]: any;
 };

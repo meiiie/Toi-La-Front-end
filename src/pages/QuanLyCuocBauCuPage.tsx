@@ -27,6 +27,7 @@ import {
   Search,
   ArrowUpRight,
   AlertCircle,
+  Database,
 } from 'lucide-react';
 
 // Redux imports
@@ -67,6 +68,10 @@ import UploadAnh from '../test/UploadAnh';
 import DieuLePage from './DieuLePage';
 import type { PhienBauCu } from '../store/types';
 
+// Blockchain components
+import BlockchainIntegrationPanel from '../components/blockchain/BlockchainIntegrationPanel';
+import BlockchainSyncButton from '../components/blockchain/BlockchainSyncButton';
+
 const QuanLyCuocBauCuPage: React.FC = () => {
   const { id: cuocBauCuId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -78,6 +83,7 @@ const QuanLyCuocBauCuPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [showBlockchainTab, setShowBlockchainTab] = useState(false);
 
   // Redux store
   const { cuocBauCu, dangTai: dangTaiCuocBauCu } = useSelector(
@@ -308,6 +314,12 @@ const QuanLyCuocBauCuPage: React.FC = () => {
             <DieuLePage />
           </div>
         );
+      case 'blockchain':
+        return (
+          <div className="space-y-6">
+            <BlockchainIntegrationPanel cuocBauCuId={Number(cuocBauCuId)} cuocBauCu={cuocBauCu} />
+          </div>
+        );
       case 'sessions':
         return (
           <>
@@ -324,13 +336,26 @@ const QuanLyCuocBauCuPage: React.FC = () => {
                   onChange={handleSearchChange}
                 />
               </div>
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white rounded-lg w-full sm:w-auto"
-                onClick={() => setIsCreateModalOpen(true)}
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Tạo Phiên Mới
-              </Button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button
+                  className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white rounded-lg"
+                  onClick={() => setIsCreateModalOpen(true)}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Tạo Phiên Mới
+                </Button>
+                <BlockchainSyncButton
+                  cuocBauCuId={Number(cuocBauCuId)}
+                  variant="outline"
+                  size="default"
+                  className="flex-1 sm:flex-none"
+                  onSyncComplete={() => {
+                    if (cuocBauCuId) {
+                      dispatch(fetchCuocBauCuById(Number(cuocBauCuId)));
+                    }
+                  }}
+                />
+              </div>
             </div>
 
             {dangTaiPhienBauCu ? (
@@ -390,6 +415,49 @@ const QuanLyCuocBauCuPage: React.FC = () => {
       default: // overview
         return (
           <>
+            {/* Thẻ thông tin blockchain */}
+            <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-100 dark:border-blue-800/30">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center">
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 mr-3">
+                    <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-white">
+                      Blockchain Integration
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300">
+                      {blockchainStatus.status === 'Đã triển khai'
+                        ? 'Cuộc bầu cử đã được triển khai thành công lên blockchain'
+                        : 'Triển khai cuộc bầu cử lên blockchain để đảm bảo tính minh bạch và bất biến'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2 w-full md:w-auto">
+                  <Button
+                    className="flex-1 md:flex-none bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                    onClick={handleBlockchainDeployment}
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    Triển Khai Blockchain
+                  </Button>
+                  {cuocBauCu?.trangThaiBlockchain === 2 && (
+                    <BlockchainSyncButton
+                      cuocBauCuId={Number(cuocBauCuId)}
+                      variant="outline"
+                      size="default"
+                      className="flex-1 md:flex-none"
+                      onSyncComplete={() => {
+                        if (cuocBauCuId) {
+                          dispatch(fetchCuocBauCuById(Number(cuocBauCuId)));
+                        }
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Timeline Activity */}
             <div>
               <h3 className="text-xl font-medium text-gray-800 dark:text-white mb-4">
@@ -445,21 +513,24 @@ const QuanLyCuocBauCuPage: React.FC = () => {
             </div>
 
             {/* Quick Actions */}
-            <div>
+            <div className="mt-8">
               <h3 className="text-xl font-medium text-gray-800 dark:text-white mb-4">
                 Thao tác nhanh
               </h3>
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white rounded-lg"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg h-auto py-3"
                   onClick={() => setIsCreateModalOpen(true)}
                 >
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  Tạo Phiên Mới
+                  <div className="text-left">
+                    <div className="font-medium">Tạo Phiên Mới</div>
+                    <div className="text-xs opacity-90">Thêm phiên bầu cử mới</div>
+                  </div>
                 </Button>
                 <Button
                   variant="outline"
-                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg h-auto py-3"
                   onClick={() => {
                     if (cuocBauCuId) {
                       navigate(`/app/user-elections/elections/${cuocBauCuId}/rules`);
@@ -467,22 +538,31 @@ const QuanLyCuocBauCuPage: React.FC = () => {
                   }}
                 >
                   <Book className="mr-2 h-4 w-4" />
-                  Quản Lý Điều Lệ
+                  <div className="text-left">
+                    <div className="font-medium">Quản Lý Điều Lệ</div>
+                    <div className="text-xs opacity-90">Cập nhật quy định</div>
+                  </div>
                 </Button>
                 <Button
                   variant="outline"
-                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg h-auto py-3"
                   onClick={handleBlockchainDeployment}
                 >
                   <Shield className="mr-2 h-4 w-4" />
-                  Triển Khai Blockchain
+                  <div className="text-left">
+                    <div className="font-medium">Triển Khai Blockchain</div>
+                    <div className="text-xs opacity-90">Đảm bảo tính minh bạch</div>
+                  </div>
                 </Button>
                 <Button
                   variant="outline"
-                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg h-auto py-3"
                 >
                   <BarChart2 className="mr-2 h-4 w-4" />
-                  Xem Kết Quả
+                  <div className="text-left">
+                    <div className="font-medium">Xem Kết Quả</div>
+                    <div className="text-xs opacity-90">Thống kê và biểu đồ</div>
+                  </div>
                 </Button>
               </div>
             </div>
@@ -577,6 +657,13 @@ const QuanLyCuocBauCuPage: React.FC = () => {
                   >
                     <Shield className="mr-2 h-4 w-4" />
                     <span>Triển khai Blockchain</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={() => setActiveTab('blockchain')}
+                  >
+                    <Database className="mr-2 h-4 w-4" />
+                    <span>Đồng bộ Blockchain</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
                     <UserPlus className="mr-2 h-4 w-4" />
@@ -720,7 +807,7 @@ const QuanLyCuocBauCuPage: React.FC = () => {
       >
         <div className="space-y-6">
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid grid-cols-3 gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+            <TabsList className="grid grid-cols-4 gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
               <TabsTrigger
                 value="overview"
                 className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm"
@@ -734,6 +821,13 @@ const QuanLyCuocBauCuPage: React.FC = () => {
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Phiên bầu cử
+              </TabsTrigger>
+              <TabsTrigger
+                value="blockchain"
+                className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm"
+              >
+                <Database className="h-4 w-4 mr-2" />
+                Blockchain
               </TabsTrigger>
               <TabsTrigger
                 value="media"
@@ -764,9 +858,9 @@ const QuanLyCuocBauCuPage: React.FC = () => {
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
                   Thông tin Blockchain
                 </h3>
-                <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                <div className="p-3 rounded-lg bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-900/50 dark:to-blue-900/20 border border-blue-100 dark:border-blue-900/30">
                   <div className="flex items-center gap-2 mb-2">
-                    <Shield className="h-4 w-4 text-green-500 dark:text-green-400" />
+                    <Shield className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                     <span className="text-sm font-medium text-gray-800 dark:text-white">
                       {blockchainStatus.status}
                     </span>
@@ -776,16 +870,30 @@ const QuanLyCuocBauCuPage: React.FC = () => {
                       <span>Mạng:</span>
                       <span className="text-gray-700 dark:text-gray-300">HoliHu Chain</span>
                     </p>
-                    <p className="flex justify-between">
-                      <span>Địa chỉ:</span>
-                      <span className="text-gray-700 dark:text-gray-300 font-mono">
-                        0x123...789
-                      </span>
-                    </p>
-                    <p className="flex justify-between">
-                      <span>Thời gian:</span>
-                      <span className="text-gray-700 dark:text-gray-300">12/01/2025</span>
-                    </p>
+                    {cuocBauCu?.blockchainAddress && (
+                      <p className="flex justify-between">
+                        <span>Địa chỉ:</span>
+                        <span className="text-gray-700 dark:text-gray-300 font-mono">
+                          {cuocBauCu.blockchainAddress.substring(0, 6)}...
+                          {cuocBauCu.blockchainAddress.substring(
+                            cuocBauCu.blockchainAddress.length - 4,
+                          )}
+                        </span>
+                      </p>
+                    )}
+                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <BlockchainSyncButton
+                        cuocBauCuId={Number(cuocBauCuId)}
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs"
+                        onSyncComplete={() => {
+                          if (cuocBauCuId) {
+                            dispatch(fetchCuocBauCuById(Number(cuocBauCuId)));
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -804,7 +912,7 @@ const QuanLyCuocBauCuPage: React.FC = () => {
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
-                            'data:image/png;base64,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';
+                            'data:image/png;base64,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';
                         }}
                       />
                     </div>
@@ -933,7 +1041,7 @@ const QuanLyCuocBauCuPage: React.FC = () => {
 
               {/* Actions */}
               <div className="pt-2">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white rounded-lg">
+                <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg">
                   <BarChart2 className="mr-2 h-4 w-4" />
                   Xem Thống Kê Chi Tiết
                 </Button>
@@ -978,6 +1086,15 @@ const QuanLyCuocBauCuPage: React.FC = () => {
                     <span className="font-medium text-gray-800 dark:text-white">Phiên bầu cử</span>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Quản lý các phiên bầu cử trong cuộc bầu cử này
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <Database className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-medium text-gray-800 dark:text-white">Blockchain</span>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Triển khai và đồng bộ dữ liệu với blockchain
                     </p>
                   </div>
                 </li>
@@ -1030,6 +1147,17 @@ const QuanLyCuocBauCuPage: React.FC = () => {
                   </div>
                 </li>
                 <li className="flex items-start">
+                  <Database className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-medium text-gray-800 dark:text-white">
+                      Đồng bộ Blockchain
+                    </span>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Đồng bộ dữ liệu giữa SQL và blockchain để đảm bảo tính nhất quán
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start">
                   <Edit className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0 mt-0.5" />
                   <div>
                     <span className="font-medium text-gray-800 dark:text-white">
@@ -1046,7 +1174,7 @@ const QuanLyCuocBauCuPage: React.FC = () => {
 
           <AlertDialogFooter>
             <Button
-              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white rounded-lg"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg"
               onClick={() => setShowHelp(false)}
             >
               Đã hiểu
@@ -1071,7 +1199,7 @@ const QuanLyCuocBauCuPage: React.FC = () => {
             <AlertDialogFooter>
               <AlertDialogAction
                 onClick={() => setSuccessMessage(null)}
-                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white rounded-lg"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg"
               >
                 OK
               </AlertDialogAction>

@@ -21,6 +21,7 @@ export const capNhatPhienBauCu = async (phienBauCu: PhienBauCu): Promise<PhienBa
 
 export const getPhienBauCuById = async (id: number): Promise<PhienBauCu> => {
   const response = await apiClient.get(`${API_URL}/${id}`);
+  console.log(response.data);
   return response.data;
 };
 

@@ -141,18 +141,22 @@ const ToastItem: React.FC<{ toast: Toast; onClose: () => void }> = ({ toast, onC
   );
 };
 
-// Utility function for easier toast creation
-export const toast = {
-  default: (props: Omit<Toast, 'id' | 'variant'>) => {
-    const { addToast } = useToast();
-    addToast({ ...props, variant: 'default' });
-  },
-  success: (props: Omit<Toast, 'id' | 'variant'>) => {
-    const { addToast } = useToast();
-    addToast({ ...props, variant: 'success' });
-  },
-  error: (props: Omit<Toast, 'id' | 'variant'>) => {
-    const { addToast } = useToast();
-    addToast({ ...props, variant: 'destructive' });
-  },
+// Custom hook for toast utilities
+export const useToastUtils = () => {
+  const { addToast } = useToast();
+
+  return React.useMemo(
+    () => ({
+      default: (props: Omit<Toast, 'id' | 'variant'>) => {
+        addToast({ ...props, variant: 'default' });
+      },
+      success: (props: Omit<Toast, 'id' | 'variant'>) => {
+        addToast({ ...props, variant: 'success' });
+      },
+      error: (props: Omit<Toast, 'id' | 'variant'>) => {
+        addToast({ ...props, variant: 'destructive' });
+      },
+    }),
+    [addToast],
+  );
 };

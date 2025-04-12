@@ -22,6 +22,8 @@ import { HiOutlineCube } from 'react-icons/hi';
 import type { AppDispatch, RootState } from '../store/store';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import { useWeb3 } from '../context/Web3Context';
+// Thêm import mới
+import { clearAllAccessCache, resetSecurityState } from '../utils/authUtils';
 
 declare global {
   interface Window {
@@ -47,7 +49,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose, onRecaptchaVerify }) => 
   const navigate = useNavigate();
   const { connectWallet, isConnecting, currentAccount, signMessage } = useWeb3();
   const theme = 'dark';
-  const { dangTai: reduxLoading } = useSelector((state: RootState) => state.dangNhapTaiKhoan);
+  interface DangNhapTaiKhoanState {
+    dangTai: boolean;
+  }
+
+  const { dangTai: reduxLoading } = useSelector(
+    (state: RootState) => state.dangNhapTaiKhoan as DangNhapTaiKhoanState,
+  );
   const { executeRecaptcha } = useGoogleReCaptcha();
   const metaMaskLoginTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { addToast } = useToast();
@@ -117,6 +125,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose, onRecaptchaVerify }) => 
         return;
       }
 
+      // Xóa tất cả cache quyền truy cập trước khi đăng nhập
+      clearAllAccessCache();
+
       const result = await dispatch(
         login({
           tenDangNhap: username,
@@ -127,6 +138,19 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose, onRecaptchaVerify }) => 
 
       if (login.fulfilled.match(result)) {
         const { user } = result.payload;
+
+        // Reset trạng thái bảo mật và lưu thông tin người dùng mới
+        resetSecurityState(user.id);
+
+        // Lưu thông tin người dùng
+        localStorage.setItem(
+          'user_data',
+          JSON.stringify({
+            id: user.id,
+            username: user.tenDangNhap,
+            role: user.vaiTro?.tenVaiTro || 'Nguoi Dung',
+          }),
+        );
 
         // Nếu tài khoản có liên kết MetaMask, thử kết nối ẩn
         if (user.isMetaMask && user.diaChiVi) {
@@ -232,6 +256,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose, onRecaptchaVerify }) => 
         return;
       }
 
+      // Xóa tất cả cache quyền truy cập trước khi đăng nhập
+      clearAllAccessCache();
+
       let walletAddress = currentAccount;
       if (!walletAddress) {
         walletAddress = await connectWallet();
@@ -271,6 +298,22 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose, onRecaptchaVerify }) => 
           );
 
           if (loginWithMetaMask.fulfilled.match(result)) {
+            const { user } = result.payload;
+
+            // Reset trạng thái bảo mật và lưu thông tin người dùng mới
+            resetSecurityState(user.id);
+
+            // Lưu thông tin người dùng
+            localStorage.setItem(
+              'user_data',
+              JSON.stringify({
+                id: user.id,
+                username: user.tenDangNhap,
+                role: user.vaiTro?.tenVaiTro || 'Nguoi Dung',
+                walletAddress: walletAddress,
+              }),
+            );
+
             addToast({
               title: 'Thành công',
               description: 'Đăng nhập với MetaMask thành công!',

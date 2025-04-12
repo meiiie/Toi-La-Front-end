@@ -30,8 +30,8 @@ import { FaEthereum } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '../components/ui/Use-toast';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
-// Xóa dòng import useReCaptcha không tồn tại
-// import { useReCaptcha } from "../components/ui/Use-recaptcha"
+// Import utilities để xử lý cache quyền truy cập
+import { clearAllAccessCache, resetSecurityState } from '../utils/authUtils';
 
 // Đã được cung cấp từ context
 declare global {
@@ -63,7 +63,6 @@ const LoginPage: React.FC = () => {
   const metaMaskLoginTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { addToast } = useToast();
   const { executeRecaptcha } = useGoogleReCaptcha();
-  // Xóa dòng const { executeRecaptcha } = useReCaptcha();
 
   // Initialize blockchain nodes for animation
   const [blockchainNodes, setBlockchainNodes] = useState<
@@ -99,6 +98,19 @@ const LoginPage: React.FC = () => {
       if (refreshJwtToken.fulfilled.match(result)) {
         const { accessToken, user } = result.payload;
         if (accessToken) {
+          // Đặt thông tin người dùng hiện tại
+          resetSecurityState(user.id);
+
+          // Lưu thông tin người dùng
+          localStorage.setItem(
+            'user_data',
+            JSON.stringify({
+              id: user.id,
+              username: user.tenDangNhap,
+              role: user.vaiTro?.tenVaiTro || 'Nguoi Dung',
+            }),
+          );
+
           dispatch(await fetchLatestSession(user.id.toString()));
           const redirectTo = searchParams.get('redirectTo');
           localStorage.setItem('isLoggedOut', 'false');
@@ -186,6 +198,9 @@ const LoginPage: React.FC = () => {
         return;
       }
 
+      // Xóa tất cả cache quyền truy cập trước khi đăng nhập người dùng mới
+      clearAllAccessCache();
+
       const result = await dispatch(
         login({
           tenDangNhap: username,
@@ -202,6 +217,20 @@ const LoginPage: React.FC = () => {
           } else {
             localStorage.removeItem('rememberedUsername');
           }
+
+          // Reset trạng thái bảo mật và lưu thông tin người dùng mới
+          resetSecurityState(user.id);
+
+          // Lưu thông tin người dùng
+          localStorage.setItem(
+            'user_data',
+            JSON.stringify({
+              id: user.id,
+              username: user.tenDangNhap,
+              role: user.vaiTro?.tenVaiTro || 'Nguoi Dung',
+            }),
+          );
+
           dispatch(await fetchLatestSession(user.id.toString()));
           const redirectTo = searchParams.get('redirectTo');
           localStorage.setItem('isLoggedOut', 'false');
@@ -311,6 +340,9 @@ const LoginPage: React.FC = () => {
         return;
       }
 
+      // Xóa tất cả cache quyền truy cập trước khi đăng nhập
+      clearAllAccessCache();
+
       // Kết nối ví nếu chưa có
       let walletAddress = currentAccount;
       if (!walletAddress) {
@@ -355,12 +387,32 @@ const LoginPage: React.FC = () => {
           console.log('result', result);
 
           if (loginWithMetaMask.fulfilled.match(result)) {
+            const { user } = result.payload;
+
+            // Reset trạng thái bảo mật và lưu thông tin người dùng mới
+            resetSecurityState(user.id);
+
+            // Lưu thông tin người dùng
+            localStorage.setItem(
+              'user_data',
+              JSON.stringify({
+                id: user.id,
+                username: user.tenDangNhap,
+                role: user.vaiTro?.tenVaiTro || 'Nguoi Dung',
+                walletAddress: walletAddress,
+              }),
+            );
+
+            // Đặt cờ là chưa đăng xuất
+            localStorage.setItem('isLoggedOut', 'false');
+
             addToast({
               title: 'Thành công',
               description: 'Đăng nhập với MetaMask thành công!',
               variant: 'success',
               duration: 3000,
             });
+
             navigate('/main');
           } else {
             throw new Error((result.payload as string) || 'Đăng nhập với MetaMask thất bại.');
