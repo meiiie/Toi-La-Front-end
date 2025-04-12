@@ -38,6 +38,7 @@ import {
   ExternalLink,
   XCircle,
   Layers,
+  FileText, // Added missing FileText icon
 } from 'lucide-react';
 import axios from 'axios';
 import { fetchCuocBauCuById } from '../store/slice/cuocBauCuByIdSlice';
@@ -2346,7 +2347,7 @@ const TrangKetQua: React.FC = () => {
                     )}
 
                     <div className="mt-4 text-center">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text:white">
                         {selectedCandidate.hoTen}
                       </h3>
                       <p className="text-gray-500 dark:text-gray-400">
@@ -2374,7 +2375,7 @@ const TrangKetQua: React.FC = () => {
 
                           <div>
                             <span className="text-gray-500 dark:text-gray-400 text-sm">Tỉ lệ:</span>
-                            <div className="font-semibold text-lg text-gray-900 dark:text-white">
+                            <div className="font-semibold text-lg text-gray-900 dark:text:white">
                               {(selectedCandidate.votePercentage || 0).toFixed(2)}%
                             </div>
                           </div>
@@ -2383,7 +2384,7 @@ const TrangKetQua: React.FC = () => {
                             <span className="text-gray-500 dark:text-gray-400 text-sm">
                               Thứ hạng:
                             </span>
-                            <div className="font-semibold text-lg text-gray-900 dark:text-white">
+                            <div className="font-semibold text-lg text-gray-900 dark:text:white">
                               {electionResults?.candidates.findIndex(
                                 (c) => c.id === selectedCandidate.id,
                               ) !== undefined
@@ -2406,7 +2407,7 @@ const TrangKetQua: React.FC = () => {
                       </div>
 
                       <div className="bg-gray-50/70 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <h4 className="font-medium text-gray-900 dark:text:white mb-2 flex items-center">
                           <Info className="h-4 w-4 text-blue-500 mr-1.5" />
                           Thông tin cá nhân
                         </h4>
