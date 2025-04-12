@@ -3,7 +3,7 @@ import axios from 'axios';
 
 //const API_BASE_URL = 'https://backendholihu.azure-api.net/';
 const API_BASE_URL =
-  'https://webapplication320250413010854-cydgdecvava8ghe2.southeastasia-01.azurewebsites.net/';
+  'https://webapplication320250413021023-cpbxh5g5ajdvbyd2.canadacentral-01.azurewebsites.net/';
 // Cấu hình interceptor để thêm token vào headers
 const authApi = axios.create({
   baseURL: API_BASE_URL,
