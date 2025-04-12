@@ -290,7 +290,7 @@ const ElectionResultChart: React.FC<{
     setActiveIndex(null);
   }, [setActiveIndex]);
 
-  const renderActiveShape = (props) => {
+  const renderActiveShape = (props: any) => {
     const RADIAN = Math.PI / 180;
     const {
       cx,
@@ -2412,7 +2412,7 @@ const TrangKetQua: React.FC = () => {
                               <span className="text-gray-500 dark:text-gray-400 text-sm">
                                 Số phiếu:
                               </span>
-                              <div className="font-semibold text-lg text-gray-900 dark:text-white">
+                              <div className="font-semibold text-lg text-gray-900 dark:text:white">
                                 {selectedCandidate.votes || 0}
                               </div>
                             </div>
