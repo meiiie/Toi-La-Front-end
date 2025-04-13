@@ -89,6 +89,16 @@ const QuanLyPhienBauCuPage: React.FC<QuanLyPhienBauCuProps> = ({
   const walletInfo = useSelector((state: RootState) => state.viBlockchain?.data);
   const [scwAddress, setScwAddress] = useState<string>('');
 
+  // Parse Vietnamese date format (dd/mm/yyyy hh:mm)
+  const parseVietnameseDate = (dateStr: string) => {
+    if (!dateStr) return new Date();
+
+    const [datePart, timePart] = dateStr.split(' ');
+    const [day, month, year] = datePart.split('/');
+    const [hour, minute] = timePart.split(':');
+    return new Date(+year, +month - 1, +day, +hour, +minute);
+  };
+
   // State
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -239,8 +249,8 @@ const QuanLyPhienBauCuPage: React.FC<QuanLyPhienBauCuProps> = ({
     if (!phienBauCu) return null;
 
     const now = new Date();
-    const startDate = new Date(phienBauCu.ngayBatDau);
-    const endDate = new Date(phienBauCu.ngayKetThuc);
+    const startDate = parseVietnameseDate(phienBauCu.ngayBatDau);
+    const endDate = parseVietnameseDate(phienBauCu.ngayKetThuc);
 
     const timeRemaining: TimeInfo = {
       days: 0,
@@ -479,8 +489,8 @@ const QuanLyPhienBauCuPage: React.FC<QuanLyPhienBauCuProps> = ({
               </Badge>
               <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 flex items-center">
                 <Calendar className="h-4 w-4 mr-1 text-blue-600 dark:text-blue-400" />
-                <span className="hidden xs:inline">{formatDate(phienBauCu?.ngayBatDau)} - </span>
-                <span>{formatDate(phienBauCu?.ngayKetThuc)}</span>
+                <span className="hidden xs:inline">{phienBauCu?.ngayBatDau} - </span>
+                <span>{phienBauCu?.ngayKetThuc}</span>
               </span>
             </div>
           </div>

@@ -98,6 +98,16 @@ const XemChiTietPhienBauCu: React.FC<XemChiTietPhienBauCuProps> = ({
   const dispatch = useDispatch<AppDispatch>();
   const { toast } = useToast();
 
+  // Parse Vietnamese date format (dd/mm/yyyy hh:mm)
+  const parseVietnameseDate = (dateStr: string) => {
+    if (!dateStr) return new Date();
+
+    const [datePart, timePart] = dateStr.split(' ');
+    const [day, month, year] = datePart.split('/');
+    const [hour, minute] = timePart.split(':');
+    return new Date(+year, +month - 1, +day, +hour, +minute);
+  };
+
   // State
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -296,17 +306,8 @@ const XemChiTietPhienBauCu: React.FC<XemChiTietPhienBauCuProps> = ({
     try {
       if (!dateString) return 'Không xác định';
 
-      const date = new Date(dateString);
-      // Check if date is valid
-      if (isNaN(date.getTime())) return 'Không xác định';
-
-      return new Intl.DateTimeFormat('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }).format(date);
+      // Simply return the original Vietnamese date format string
+      return dateString;
     } catch (error) {
       return 'Không xác định';
     }
@@ -331,8 +332,8 @@ const XemChiTietPhienBauCu: React.FC<XemChiTietPhienBauCuProps> = ({
     if (!phienBauCu) return null;
 
     const now = new Date();
-    const startDate = new Date(phienBauCu.ngayBatDau);
-    const endDate = new Date(phienBauCu.ngayKetThuc);
+    const startDate = parseVietnameseDate(phienBauCu.ngayBatDau);
+    const endDate = parseVietnameseDate(phienBauCu.ngayKetThuc);
 
     const timeRemaining = {
       days: 0,

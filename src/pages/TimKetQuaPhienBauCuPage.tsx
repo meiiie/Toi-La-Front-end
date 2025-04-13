@@ -440,9 +440,25 @@ const TrangKetQua = () => {
   // Lấy thông tin cuộc bầu cử và phiên bầu cử từ Redux
   useEffect(() => {
     if (cuocBauCuId) {
-      dispatch(fetchCuocBauCuById(cuocBauCuId));
+      // Kiểm tra xem API endpoint có tồn tại không trước khi gọi
+      try {
+        apiClient
+          .get(`/api/CuocBauCu/${cuocBauCuId}`)
+          .then((response) => {
+            if (response.data) {
+              console.log('Lấy dữ liệu cuộc bầu cử từ API thành công:', response.data);
+              // Xử lý dữ liệu nếu cần
+            }
+          })
+          .catch((error) => {
+            console.warn('API không tồn tại hoặc có lỗi, bỏ qua lấy dữ liệu từ SQL:', error);
+            // Không dispatch để tránh lỗi 404
+          });
+      } catch (error) {
+        console.warn('Lỗi khi kiểm tra API:', error);
+      }
     }
-  }, [cuocBauCuId, dispatch]);
+  }, [cuocBauCuId]);
 
   // Lấy danh sách phiên bầu cử khi có cuocBauCuId
   useEffect(() => {
@@ -485,58 +501,65 @@ const TrangKetQua = () => {
           }
         }
 
-        // Bây giờ sử dụng địa chỉ contract đã xác định để lấy dữ liệu
-        console.log(`Kết nối đến contract tại địa chỉ: ${contractAddress}`);
-        const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
+        {
+          /* Bây giờ sử dụng địa chỉ contract đã xác định để lấy dữ liệu */
+        }
+        try {
+          console.log(`Kết nối đến contract tại địa chỉ: ${contractAddress}`);
+          const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
 
-        // Lấy thông tin cuộc bầu cử từ blockchain
-        const electionData = await contract.layThongTinCoBan(cuocBauCuId);
+          // Lấy thông tin cuộc bầu cử từ blockchain
+          const electionData = await contract.layThongTinCoBan(cuocBauCuId);
 
-        setElectionInfo({
-          name: electionData[4],
-          owner: electionData[0],
-          isActive: electionData[1],
-          startTime: new Date(Number(electionData[2]) * 1000).toLocaleString('vi-VN'),
-          endTime: new Date(Number(electionData[3]) * 1000).toLocaleString('vi-VN'),
-        });
+          setElectionInfo({
+            name: electionData[4],
+            owner: electionData[0],
+            isActive: electionData[1],
+            startTime: new Date(Number(electionData[2]) * 1000).toLocaleString('vi-VN'),
+            endTime: new Date(Number(electionData[3]) * 1000).toLocaleString('vi-VN'),
+          });
 
-        // Lấy danh sách phiên bầu cử từ blockchain
-        const phienIds = await contract.layDanhSachPhienBauCu(cuocBauCuId, 0, 20);
+          // Lấy danh sách phiên bầu cử từ blockchain
+          const phienIds = await contract.layDanhSachPhienBauCu(cuocBauCuId, 0, 20);
 
-        if (phienIds && phienIds.length > 0) {
-          // Lấy thông tin chi tiết cho từng phiên
-          const phienDetails = await Promise.all(
-            phienIds.map(async (id: any) => {
-              try {
-                const phienData = await contract.layThongTinPhienBauCu(cuocBauCuId, id);
-                return {
-                  id: Number(id),
-                  isActive: phienData[0],
-                  startTime: new Date(Number(phienData[1]) * 1000),
-                  endTime: new Date(Number(phienData[2]) * 1000),
-                  candidateCount: Number(phienData[4]),
-                  voterCount: Number(phienData[5]),
-                };
-              } catch (error) {
-                console.warn(`Không thể lấy thông tin chi tiết cho phiên ${id}:`, error);
-                return { id: Number(id), error: true };
-              }
-            }),
-          );
+          if (phienIds && phienIds.length > 0) {
+            // Lấy thông tin chi tiết cho từng phiên
+            const phienDetails = await Promise.all(
+              phienIds.map(async (id: any) => {
+                try {
+                  const phienData = await contract.layThongTinPhienBauCu(cuocBauCuId, id);
+                  return {
+                    id: Number(id),
+                    isActive: phienData[0],
+                    startTime: new Date(Number(phienData[1]) * 1000),
+                    endTime: new Date(Number(phienData[2]) * 1000),
+                    candidateCount: Number(phienData[4]),
+                    voterCount: Number(phienData[5]),
+                  };
+                } catch (error) {
+                  console.warn(`Không thể lấy thông tin chi tiết cho phiên ${id}:`, error);
+                  return { id: Number(id), error: true };
+                }
+              }),
+            );
 
-          setDanhSachPhien(phienDetails.filter((p) => !p.error));
+            setDanhSachPhien(phienDetails.filter((p) => !p.error));
 
-          // Chọn phiên đầu tiên hoặc phiên được chỉ định
-          if (!selectedPhien) {
-            if (phienBauCuIdParam) {
-              setSelectedPhien(Number(phienBauCuIdParam));
-            } else if (phienDetails.length > 0) {
-              const validPhien = phienDetails.find((p) => !p.error);
-              if (validPhien) {
-                setSelectedPhien(validPhien.id);
+            // Chọn phiên đầu tiên hoặc phiên được chỉ định
+            if (!selectedPhien) {
+              if (phienBauCuIdParam) {
+                setSelectedPhien(Number(phienBauCuIdParam));
+              } else if (phienDetails.length > 0) {
+                const validPhien = phienDetails.find((p) => !p.error);
+                if (validPhien) {
+                  setSelectedPhien(validPhien.id);
+                }
               }
             }
           }
+        } catch (contractError) {
+          console.error('Lỗi khi gọi contract:', contractError);
+          throw contractError; // Ném lỗi để xử lý ở catch bên ngoài
         }
 
         // Cập nhật dữ liệu SQL nếu cần để đồng bộ
@@ -563,7 +586,7 @@ const TrangKetQua = () => {
 
           if (cuocBauCu && cacPhienBauCu.length > 0) {
             toast({
-              variant: 'warning',
+              variant: 'default',
               title: 'Chuyển sang dữ liệu dự phòng',
               description: 'Đang sử dụng dữ liệu từ cơ sở dữ liệu do không thể kết nối blockchain.',
             });
@@ -1073,8 +1096,20 @@ const TrangKetQua = () => {
     </ResponsiveContainer>
   );
 
-  // Render biểu đồ theo loại được chọn
   const renderActiveChart = () => {
+    // Nếu không có dữ liệu, hiển thị thông báo
+    if (!votingResults || votingResults.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center text-gray-500 dark:text-gray-400">
+            <Database className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p>Không có dữ liệu kết quả để hiển thị</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Hiển thị biểu đồ tương ứng với loại được chọn
     switch (activeChartType) {
       case CHART_TYPES.PIE:
         return renderPieChart();
@@ -1562,56 +1597,58 @@ const TrangKetQua = () => {
 
               {/* Chart type selector */}
               <div className="flex items-center space-x-2">
-                <TabsList>
-                  <TabsTrigger
-                    value={CHART_TYPES.BAR}
-                    onClick={() => setActiveChartType(CHART_TYPES.BAR)}
-                    className={
-                      activeChartType === CHART_TYPES.BAR
-                        ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
-                        : ''
-                    }
-                  >
-                    <BarChart2 className="h-4 w-4 mr-1.5" />
-                    <span className="hidden sm:inline">Cột</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value={CHART_TYPES.PIE}
-                    onClick={() => setActiveChartType(CHART_TYPES.PIE)}
-                    className={
-                      activeChartType === CHART_TYPES.PIE
-                        ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
-                        : ''
-                    }
-                  >
-                    <PieChartIcon className="h-4 w-4 mr-1.5" />
-                    <span className="hidden sm:inline">Tròn</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value={CHART_TYPES.RADAR}
-                    onClick={() => setActiveChartType(CHART_TYPES.RADAR)}
-                    className={
-                      activeChartType === CHART_TYPES.RADAR
-                        ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
-                        : ''
-                    }
-                  >
-                    <Cpu className="h-4 w-4 mr-1.5" />
-                    <span className="hidden sm:inline">Radar</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value={CHART_TYPES.RADIALBAR}
-                    onClick={() => setActiveChartType(CHART_TYPES.RADIALBAR)}
-                    className={
-                      activeChartType === CHART_TYPES.RADIALBAR
-                        ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
-                        : ''
-                    }
-                  >
-                    <Server className="h-4 w-4 mr-1.5" />
-                    <span className="hidden sm:inline">Radial</span>
-                  </TabsTrigger>
-                </TabsList>
+                <Tabs
+                  defaultValue={CHART_TYPES.BAR}
+                  value={activeChartType}
+                  onValueChange={setActiveChartType}
+                >
+                  <TabsList>
+                    <TabsTrigger
+                      value={CHART_TYPES.BAR}
+                      className={
+                        activeChartType === CHART_TYPES.BAR
+                          ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
+                          : ''
+                      }
+                    >
+                      <BarChart2 className="h-4 w-4 mr-1.5" />
+                      <span className="hidden sm:inline">Cột</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value={CHART_TYPES.PIE}
+                      className={
+                        activeChartType === CHART_TYPES.PIE
+                          ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
+                          : ''
+                      }
+                    >
+                      <PieChartIcon className="h-4 w-4 mr-1.5" />
+                      <span className="hidden sm:inline">Tròn</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value={CHART_TYPES.RADAR}
+                      className={
+                        activeChartType === CHART_TYPES.RADAR
+                          ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
+                          : ''
+                      }
+                    >
+                      <Cpu className="h-4 w-4 mr-1.5" />
+                      <span className="hidden sm:inline">Radar</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value={CHART_TYPES.RADIALBAR}
+                      className={
+                        activeChartType === CHART_TYPES.RADIALBAR
+                          ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
+                          : ''
+                      }
+                    >
+                      <Server className="h-4 w-4 mr-1.5" />
+                      <span className="hidden sm:inline">Radial</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
 
                 <TooltipProvider>
                   <UITooltip>

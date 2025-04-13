@@ -91,6 +91,16 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
     }
   }, [dispatch, cuocBauCuId]);
 
+  // Parse Vietnamese date format (dd/mm/yyyy hh:mm) - this is already correctly defined
+  const parseVietnameseDate = useCallback((dateStr: string) => {
+    if (!dateStr) return new Date();
+
+    const [datePart, timePart] = dateStr.split(' ');
+    const [day, month, year] = datePart.split('/');
+    const [hour, minute] = timePart.split(':');
+    return new Date(+year, +month - 1, +day, +hour, +minute);
+  }, []);
+
   // Tính thời gian còn lại và trạng thái cuộc bầu cử
   const getElectionStatus = useCallback(() => {
     if (!cuocBauCu)
@@ -101,8 +111,8 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
       };
 
     const now = new Date();
-    const startDate = new Date(cuocBauCu.ngayBatDau);
-    const endDate = new Date(cuocBauCu.ngayKetThuc);
+    const startDate = parseVietnameseDate(cuocBauCu.ngayBatDau);
+    const endDate = parseVietnameseDate(cuocBauCu.ngayKetThuc);
 
     if (now < startDate) {
       return { status: 'Sắp diễn ra', color: 'blue', icon: <Clock className="h-4 w-4" /> };
@@ -111,7 +121,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
       return { status: 'Đã kết thúc', color: 'gray', icon: <CheckCircle className="h-4 w-4" /> };
     }
     return { status: 'Đang diễn ra', color: 'green', icon: <Zap className="h-4 w-4" /> };
-  }, [cuocBauCu]);
+  }, [cuocBauCu, parseVietnameseDate]);
 
   // Lấy trạng thái blockchain
   const getBlockchainStatus = useCallback(() => {
@@ -150,8 +160,8 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
     if (!cuocBauCu) return 0;
 
     const now = new Date();
-    const startDate = new Date(cuocBauCu.ngayBatDau);
-    const endDate = new Date(cuocBauCu.ngayKetThuc);
+    const startDate = parseVietnameseDate(cuocBauCu.ngayBatDau);
+    const endDate = parseVietnameseDate(cuocBauCu.ngayKetThuc);
 
     if (now < startDate) return 0;
     if (now > endDate) return 100;
@@ -160,14 +170,14 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
     const elapsed = now.getTime() - startDate.getTime();
 
     return Math.min(100, Math.round((elapsed / totalDuration) * 100));
-  }, [cuocBauCu]);
+  }, [cuocBauCu, parseVietnameseDate]);
 
   // Tính thời gian còn lại
   const getTimeRemaining = useCallback(() => {
     if (!cuocBauCu) return { days: 0, hours: 0, minutes: 0 };
 
     const now = new Date();
-    const endDate = new Date(cuocBauCu.ngayKetThuc);
+    const endDate = parseVietnameseDate(cuocBauCu.ngayKetThuc);
 
     if (now > endDate) return { days: 0, hours: 0, minutes: 0 };
 
@@ -177,7 +187,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     return { days, hours, minutes };
-  }, [cuocBauCu]);
+  }, [cuocBauCu, parseVietnameseDate]);
 
   // Lấy các giá trị đã tính toán
   const electionStatus = getElectionStatus();
@@ -410,6 +420,12 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
     );
   }
 
+  // Format date for display - let's keep original format
+  const formatDate = useCallback((dateString: string) => {
+    if (!dateString) return '';
+    return dateString; // Return the original Vietnamese format string
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-[#0A0F18] dark:via-[#121A29] dark:to-[#0D1321]">
       {/* Particle Background */}
@@ -480,8 +496,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
 
                 <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30">
                   <Calendar className="h-3 w-3 mr-1" />
-                  {new Date(cuocBauCu?.ngayBatDau).toLocaleDateString('vi-VN')} -{' '}
-                  {new Date(cuocBauCu?.ngayKetThuc).toLocaleDateString('vi-VN')}
+                  {formatDate(cuocBauCu?.ngayBatDau)} - {formatDate(cuocBauCu?.ngayKetThuc)}
                 </Badge>
               </div>
 
