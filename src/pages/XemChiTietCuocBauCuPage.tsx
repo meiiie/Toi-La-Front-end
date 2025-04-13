@@ -3,12 +3,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { motion } from 'framer-motion';
 import {
   Calendar,
   Clock,
   Users,
-  Vote,
   CheckCircle,
   Eye,
   AlertTriangle,
@@ -45,34 +43,50 @@ import {
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/Tabs';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/Alter';
+import { Alert, AlertDescription, AlertTitle } from '../components/ui/Alert';
 import { Separator } from '../components/ui/Separator';
 import { Skeleton } from '../components/ui/Skeleton';
 import ParticleBackground from '../components/backgrounds/ParticleBackground';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/Tooltip';
 
-// Định nghĩa component chính
-const parseVietnameseDate = (dateStr: string | undefined): Date | null => {
-  if (!dateStr) return null;
+// Hàm phân tích ngày tháng kiểu Việt Nam - đặt bên ngoài component để tránh tạo lại
+const parseVietnameseDate = (dateStr: string) => {
+  if (!dateStr) return new Date();
 
   try {
     const [datePart, timePart] = dateStr.split(' ');
-    if (!datePart || !timePart) return null;
+    if (!datePart) return new Date();
 
     const [day, month, year] = datePart.split('/');
-    const [hour, minute] = timePart.split(':');
+    const [hour, minute] = timePart ? timePart.split(':') : ['0', '0'];
 
-    if (!day || !month || !year || !hour || !minute) return null;
+    const safeYear = parseInt(year) || new Date().getFullYear();
+    const safeMonth = (parseInt(month) || 1) - 1; // Trừ 1 vì tháng trong JS bắt đầu từ 0
+    const safeDay = parseInt(day) || 1;
+    const safeHour = parseInt(hour) || 0;
+    const safeMinute = parseInt(minute) || 0;
 
-    return new Date(+year, +month - 1, +day, +hour, +minute);
+    return new Date(safeYear, safeMonth, safeDay, safeHour, safeMinute);
   } catch (error) {
-    console.error('Error parsing date:', error);
-    return null;
+    console.error('Lỗi khi phân tích ngày tháng:', dateStr, error);
+    return new Date();
   }
 };
 
+const formatDate = (dateString: string) => {
+  if (!dateString) return '';
+  return dateString;
+};
+
 const XemChiTietCuocBauCuPage: React.FC = () => {
-  const { id: cuocBauCuId } = useParams<{ id: string }>();
+  // Lấy thông tin từ URL
+  const { id: cuocBauCuIdString } = useParams<{ id: string }>();
+  const cuocBauCuId = useMemo(() => {
+    if (!cuocBauCuIdString) return null;
+    const id = Number(cuocBauCuIdString);
+    return isNaN(id) ? null : id;
+  }, [cuocBauCuIdString]);
+
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
 
@@ -81,14 +95,14 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [showSessionSelectModal, setShowSessionSelectModal] = useState<boolean>(false);
 
-  // Redux state
+  // Redux state - sử dụng useMemo để tránh các reference mới trong mỗi render
   const { cuocBauCu, dangTai: dangTaiCuocBauCu } = useSelector(
     (state: RootState) => state.cuocBauCuById,
   );
-  const { cacPhienBauCu, dangTai: dangTaiPhienBauCu } = useSelector(
+  const { cacPhienBauCu = [], dangTai: dangTaiPhienBauCu } = useSelector(
     (state: RootState) => state.phienBauCu,
   );
-  const { imageUrl, fileInfo } = useSelector((state: RootState) => state.cuocBauCuImage);
+  const { imageUrl } = useSelector((state: RootState) => state.cuocBauCuImage);
   const { dieuLeCuocBauCu, dangTai: dangTaiDieuLe } = useSelector(
     (state: RootState) => state.dieuLe,
   );
@@ -96,177 +110,172 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
 
   // Kiểm tra dark mode
   useEffect(() => {
-    const isDark = localStorage.getItem('theme') === 'dark';
-    setIsDarkMode(isDark);
+    const checkTheme = () => {
+      const isDark = localStorage.getItem('theme') === 'dark';
+      setIsDarkMode(isDark);
+    };
+
+    checkTheme();
   }, []);
 
-  // Fetch data khi component mount
+  // Fetch data chỉ một lần khi component mount và cuocBauCuId thay đổi
   useEffect(() => {
-    if (cuocBauCuId) {
-      dispatch(fetchCuocBauCuById(Number(cuocBauCuId)));
-      dispatch(fetchCacPhienBauCuByCuocBauCuId(Number(cuocBauCuId)));
-      dispatch(fetchImageUrl(Number(cuocBauCuId)));
-      dispatch(fetchDieuLeByCuocBauCuId(Number(cuocBauCuId)));
+    if (cuocBauCuId !== null) {
+      dispatch(fetchCuocBauCuById(cuocBauCuId));
+      dispatch(fetchCacPhienBauCuByCuocBauCuId(cuocBauCuId));
+      dispatch(fetchImageUrl(cuocBauCuId));
+      dispatch(fetchDieuLeByCuocBauCuId(cuocBauCuId));
     }
-  }, [dispatch, cuocBauCuId]);
+  }, [cuocBauCuId, dispatch]);
 
-  // Memoize the parsed dates to prevent unnecessary re-renders
-  const parsedDates = useMemo(() => {
-    if (!cuocBauCu) return { startDate: null, endDate: null };
+  // Memoize các giá trị startDate và endDate để tránh tính toán lại
+  const { startDate, endDate } = useMemo(() => {
+    if (!cuocBauCu) return { startDate: new Date(), endDate: new Date() };
     return {
       startDate: parseVietnameseDate(cuocBauCu.ngayBatDau),
       endDate: parseVietnameseDate(cuocBauCu.ngayKetThuc),
     };
-  }, [cuocBauCu]);
+  }, [cuocBauCu?.ngayBatDau, cuocBauCu?.ngayKetThuc]);
 
-  // Get all status values in a single useMemo to avoid circular dependencies
-  const statusData = useMemo(() => {
-    // Election status
-    let electionStatus = {
-      status: 'Không xác định',
-      color: 'gray',
-      icon: <AlertTriangle className="h-4 w-4" />,
-    };
+  // Memoize các giá trị tính toán
+  const electionStatus = useMemo(() => {
+    if (!cuocBauCu) {
+      return {
+        status: 'Không xác định',
+        color: 'gray',
+        icon: <AlertTriangle className="h-4 w-4" />,
+      };
+    }
 
-    if (cuocBauCu && parsedDates.startDate && parsedDates.endDate) {
-      const now = new Date();
-      if (now < parsedDates.startDate) {
-        electionStatus = {
-          status: 'Sắp diễn ra',
+    const now = new Date();
+    if (now < startDate) {
+      return { status: 'Sắp diễn ra', color: 'blue', icon: <Clock className="h-4 w-4" /> };
+    }
+    if (now > endDate) {
+      return { status: 'Đã kết thúc', color: 'gray', icon: <CheckCircle className="h-4 w-4" /> };
+    }
+    return { status: 'Đang diễn ra', color: 'green', icon: <Zap className="h-4 w-4" /> };
+  }, [cuocBauCu, startDate, endDate]);
+
+  const blockchainStatus = useMemo(() => {
+    if (!cuocBauCu || cuocBauCu.trangThaiBlockchain === undefined) {
+      return { status: 'Chưa triển khai', color: 'yellow', icon: <Shield className="h-4 w-4" /> };
+    }
+
+    switch (cuocBauCu.trangThaiBlockchain) {
+      case TrangThaiBlockchain.ChuaTrienKhai:
+        return { status: 'Chưa triển khai', color: 'yellow', icon: <Shield className="h-4 w-4" /> };
+      case TrangThaiBlockchain.DangTrienKhai:
+        return {
+          status: 'Đang triển khai',
           color: 'blue',
-          icon: <Clock className="h-4 w-4" />,
+          icon: <Clock className="h-4 w-4 animate-spin" />,
         };
-      } else if (now > parsedDates.endDate) {
-        electionStatus = {
-          status: 'Đã kết thúc',
-          color: 'gray',
+      case TrangThaiBlockchain.DaTrienKhai:
+        return {
+          status: 'Đã triển khai',
+          color: 'green',
           icon: <CheckCircle className="h-4 w-4" />,
         };
-      } else {
-        electionStatus = {
-          status: 'Đang diễn ra',
-          color: 'green',
-          icon: <Zap className="h-4 w-4" />,
+      case TrangThaiBlockchain.TrienKhaiThatBai:
+        return {
+          status: 'Triển khai thất bại',
+          color: 'red',
+          icon: <AlertTriangle className="h-4 w-4" />,
         };
-      }
+      default:
+        return { status: 'Chưa triển khai', color: 'yellow', icon: <Shield className="h-4 w-4" /> };
     }
+  }, [cuocBauCu?.trangThaiBlockchain]);
 
-    // Blockchain status
-    let blockchainStatus = {
-      status: 'Chưa triển khai',
-      color: 'yellow',
-      icon: <Shield className="h-4 w-4" />,
-    };
+  const progress = useMemo(() => {
+    if (!cuocBauCu) return 0;
 
-    if (cuocBauCu && cuocBauCu.trangThaiBlockchain !== undefined) {
-      switch (cuocBauCu.trangThaiBlockchain) {
-        case TrangThaiBlockchain.ChuaTrienKhai:
-          blockchainStatus = {
-            status: 'Chưa triển khai',
-            color: 'yellow',
-            icon: <Shield className="h-4 w-4" />,
-          };
-          break;
-        case TrangThaiBlockchain.DangTrienKhai:
-          blockchainStatus = {
-            status: 'Đang triển khai',
-            color: 'blue',
-            icon: <Clock className="h-4 w-4 animate-spin" />,
-          };
-          break;
-        case TrangThaiBlockchain.DaTrienKhai:
-          blockchainStatus = {
-            status: 'Đã triển khai',
-            color: 'green',
-            icon: <CheckCircle className="h-4 w-4" />,
-          };
-          break;
-        case TrangThaiBlockchain.TrienKhaiThatBai:
-          blockchainStatus = {
-            status: 'Triển khai thất bại',
-            color: 'red',
-            icon: <AlertTriangle className="h-4 w-4" />,
-          };
-          break;
-      }
-    }
+    const now = new Date();
+    if (now < startDate) return 0;
+    if (now > endDate) return 100;
 
-    // Calculate progress
-    let progress = 0;
-    if (cuocBauCu && parsedDates.startDate && parsedDates.endDate) {
-      const now = new Date();
-      if (now < parsedDates.startDate) {
-        progress = 0;
-      } else if (now > parsedDates.endDate) {
-        progress = 100;
-      } else {
-        const totalDuration = parsedDates.endDate.getTime() - parsedDates.startDate.getTime();
-        if (totalDuration <= 0) {
-          progress = 0;
-        } else {
-          const elapsed = now.getTime() - parsedDates.startDate.getTime();
-          progress = Math.min(100, Math.round((elapsed / totalDuration) * 100));
-        }
-      }
-    }
+    const totalDuration = endDate.getTime() - startDate.getTime();
+    if (totalDuration <= 0) return 0;
 
-    // Calculate time remaining
-    let timeRemaining = { days: 0, hours: 0, minutes: 0 };
-    if (cuocBauCu && parsedDates.endDate) {
-      const now = new Date();
-      if (now < parsedDates.endDate) {
-        const diff = parsedDates.endDate.getTime() - now.getTime();
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        timeRemaining = { days, hours, minutes };
-      }
-    }
+    const elapsed = now.getTime() - startDate.getTime();
+    return Math.min(100, Math.round((elapsed / totalDuration) * 100));
+  }, [cuocBauCu, startDate, endDate]);
 
-    return {
-      electionStatus,
-      blockchainStatus,
-      progress,
-      timeRemaining,
-    };
-  }, [cuocBauCu, parsedDates]);
+  const timeRemaining = useMemo(() => {
+    if (!cuocBauCu) return { days: 0, hours: 0, minutes: 0 };
 
-  // Extract individual variables from the combined status data
-  const { electionStatus, blockchainStatus, progress, timeRemaining } = statusData;
+    const now = new Date();
+    if (now > endDate) return { days: 0, hours: 0, minutes: 0 };
 
-  // Format date for display
-  const formatDate = useCallback((dateString: string | undefined): string => {
-    if (!dateString) return '';
-    return dateString;
-  }, []);
+    const diff = endDate.getTime() - now.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-  // Xử lý khi nhấn nút "Xem chi tiết phiên bầu cử"
-  const handleViewSessions = () => {
+    return { days, hours, minutes };
+  }, [cuocBauCu, endDate]);
+
+  // Handlers
+  const handleViewSessions = useCallback(() => {
     if (!user) {
-      // Nếu chưa đăng nhập, chuyển đến trang đăng nhập
       navigate('/login');
       return;
     }
 
-    // Nếu có một phiên duy nhất, chuyển trực tiếp đến trang chi tiết phiên
     if (cacPhienBauCu.length === 1) {
       navigate(`/app/elections/${cuocBauCuId}/session/${cacPhienBauCu[0].id}`);
       return;
     }
 
-    // Nếu có nhiều phiên, hiển thị modal để chọn phiên
     setShowSessionSelectModal(true);
-  };
+  }, [user, cacPhienBauCu, cuocBauCuId, navigate]);
 
-  // Handler khi chọn phiên để xem chi tiết
-  const handleSessionSelect = (phienBauCuId: number) => {
-    setShowSessionSelectModal(false);
-    // Điều hướng đến trang chi tiết phiên bầu cử
-    navigate(`/app/elections/${cuocBauCuId}/session/${phienBauCuId}`);
-  };
+  const handleSessionSelect = useCallback(
+    (phienBauCuId: number) => {
+      setShowSessionSelectModal(false);
+      navigate(`/app/elections/${cuocBauCuId}/session/${phienBauCuId}`);
+    },
+    [cuocBauCuId, navigate],
+  );
 
-  // Render các phiên hiện có
-  const renderSessions = () => {
+  // Render loading state
+  if (dangTaiCuocBauCu) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-[#0A0F18] dark:via-[#121A29] dark:to-[#0D1321] p-4 md:p-8">
+        <div className="container mx-auto max-w-6xl">
+          <Skeleton className="h-8 w-1/3 bg-gray-200 dark:bg-gray-800/50 mb-2" />
+          <Skeleton className="h-6 w-1/2 bg-gray-200 dark:bg-gray-800/50 mb-6" />
+          <Skeleton className="h-64 w-full bg-gray-200 dark:bg-gray-800/50 rounded-xl mb-6" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-32 w-full bg-gray-200 dark:bg-gray-800/50 rounded-xl" />
+            <Skeleton className="h-32 w-full bg-gray-200 dark:bg-gray-800/50 rounded-xl" />
+            <Skeleton className="h-32 w-full bg-gray-200 dark:bg-gray-800/50 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render error state
+  if (!cuocBauCu && !dangTaiCuocBauCu) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-[#0A0F18] dark:via-[#121A29] dark:to-[#0D1321] p-4 md:p-8">
+        <div className="container mx-auto max-w-6xl">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Lỗi</AlertTitle>
+            <AlertDescription>
+              Không thể tải thông tin cuộc bầu cử. Vui lòng thử lại sau.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  // Render các phiên hiện có - làm thành component con để tránh re-render
+  const SessionsList = React.memo(() => {
     if (dangTaiPhienBauCu) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -356,10 +365,10 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
         ))}
       </div>
     );
-  };
+  });
 
   // Modal chọn phiên bầu cử để xem chi tiết
-  const renderSessionSelectionModal = () => {
+  const SessionSelectionModal = React.memo(() => {
     if (!showSessionSelectModal) return null;
 
     return (
@@ -426,51 +435,9 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
         </div>
       </div>
     );
-  };
+  });
 
-  // Render loading state
-  if (dangTaiCuocBauCu) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-[#0A0F18] dark:via-[#121A29] dark:to-[#0D1321] p-4 md:p-8">
-        <div className="container mx-auto max-w-6xl">
-          <Skeleton className="h-8 w-1/3 bg-gray-200 dark:bg-gray-800/50 mb-2" />
-          <Skeleton className="h-6 w-1/2 bg-gray-200 dark:bg-gray-800/50 mb-6" />
-
-          <Skeleton className="h-64 w-full bg-gray-200 dark:bg-gray-800/50 rounded-xl mb-6" />
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Skeleton className="h-32 w-full bg-gray-200 dark:bg-gray-800/50 rounded-xl" />
-            <Skeleton className="h-32 w-full bg-gray-200 dark:bg-gray-800/50 rounded-xl" />
-            <Skeleton className="h-32 w-full bg-gray-200 dark:bg-gray-800/50 rounded-xl" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Render error state
-  if (!cuocBauCu && !dangTaiCuocBauCu) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-[#0A0F18] dark:via-[#121A29] dark:to-[#0D1321] p-4 md:p-8">
-        <div className="container mx-auto max-w-6xl">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Lỗi</AlertTitle>
-            <AlertDescription>
-              Không thể tải thông tin cuộc bầu cử. Vui lòng thử lại sau.
-            </AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    );
-  }
-
-  // Format date for display - let's keep original format
-  const formatDate = useCallback((dateString: string | undefined) => {
-    if (!dateString) return '';
-    return dateString; // Return the original Vietnamese format string
-  }, []);
-
+  // Main component render
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-[#0A0F18] dark:via-[#121A29] dark:to-[#0D1321]">
       {/* Particle Background */}
@@ -979,7 +946,9 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
                       Danh sách các phiên bầu cử trong cuộc bầu cử {cuocBauCu?.tenCuocBauCu}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>{renderSessions()}</CardContent>
+                  <CardContent>
+                    <SessionsList />
+                  </CardContent>
                 </Card>
               </TabsContent>
 
@@ -1058,7 +1027,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
       </div>
 
       {/* Modal chọn phiên bầu cử để xem chi tiết */}
-      {renderSessionSelectionModal()}
+      <SessionSelectionModal />
     </div>
   );
 };
