@@ -43,7 +43,7 @@ import {
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/Tabs';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/Alert';
+import { Alert, AlertDescription, AlertTitle } from '../components/ui/Alter';
 import { Separator } from '../components/ui/Separator';
 import { Skeleton } from '../components/ui/Skeleton';
 import ParticleBackground from '../components/backgrounds/ParticleBackground';
