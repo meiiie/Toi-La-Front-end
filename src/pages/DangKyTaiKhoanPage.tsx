@@ -183,7 +183,7 @@ const RegisterPage: React.FC = () => {
 
   return (
     <GoogleReCaptchaProvider
-      reCaptchaKey="6LfL9PIqAAAAAFGQnjVFb4F7ep4FfvUAyNaz9bVJ"
+      reCaptchaKey="6LdKGRYrAAAAAARohWQGLhHKWuVQE_PnjDbfA_Wb"
       scriptProps={{
         async: false,
         defer: true,

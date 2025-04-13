@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
@@ -52,13 +52,23 @@ import ParticleBackground from '../components/backgrounds/ParticleBackground';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/Tooltip';
 
 // Định nghĩa component chính
-const parseVietnameseDate = (dateStr: string) => {
-  if (!dateStr) return new Date();
+const parseVietnameseDate = (dateStr: string | undefined): Date | null => {
+  if (!dateStr) return null;
 
-  const [datePart, timePart] = dateStr.split(' ');
-  const [day, month, year] = datePart.split('/');
-  const [hour, minute] = timePart.split(':');
-  return new Date(+year, +month - 1, +day, +hour, +minute);
+  try {
+    const [datePart, timePart] = dateStr.split(' ');
+    if (!datePart || !timePart) return null;
+
+    const [day, month, year] = datePart.split('/');
+    const [hour, minute] = timePart.split(':');
+
+    if (!day || !month || !year || !hour || !minute) return null;
+
+    return new Date(+year, +month - 1, +day, +hour, +minute);
+  } catch (error) {
+    console.error('Error parsing date:', error);
+    return null;
+  }
 };
 
 const XemChiTietCuocBauCuPage: React.FC = () => {
@@ -100,9 +110,18 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
     }
   }, [dispatch, cuocBauCuId]);
 
+  // Memoize the parsed dates to prevent unnecessary re-renders
+  const parsedDates = useMemo(() => {
+    if (!cuocBauCu) return { startDate: null, endDate: null };
+    return {
+      startDate: parseVietnameseDate(cuocBauCu.ngayBatDau),
+      endDate: parseVietnameseDate(cuocBauCu.ngayKetThuc),
+    };
+  }, [cuocBauCu]);
+
   // Tính thời gian còn lại và trạng thái cuộc bầu cử
   const getElectionStatus = useCallback(() => {
-    if (!cuocBauCu)
+    if (!cuocBauCu || !parsedDates.startDate || !parsedDates.endDate)
       return {
         status: 'Không xác định',
         color: 'gray',
@@ -110,17 +129,15 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
       };
 
     const now = new Date();
-    const startDate = parseVietnameseDate(cuocBauCu.ngayBatDau);
-    const endDate = parseVietnameseDate(cuocBauCu.ngayKetThuc);
 
-    if (now < startDate) {
+    if (now < parsedDates.startDate) {
       return { status: 'Sắp diễn ra', color: 'blue', icon: <Clock className="h-4 w-4" /> };
     }
-    if (now > endDate) {
+    if (now > parsedDates.endDate) {
       return { status: 'Đã kết thúc', color: 'gray', icon: <CheckCircle className="h-4 w-4" /> };
     }
     return { status: 'Đang diễn ra', color: 'green', icon: <Zap className="h-4 w-4" /> };
-  }, [cuocBauCu]);
+  }, [cuocBauCu, parsedDates]);
 
   // Lấy trạng thái blockchain
   const getBlockchainStatus = useCallback(() => {
@@ -156,43 +173,42 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
 
   // Tính progress của cuộc bầu cử
   const calculateProgress = useCallback(() => {
-    if (!cuocBauCu) return 0;
+    if (!cuocBauCu || !parsedDates.startDate || !parsedDates.endDate) return 0;
 
     const now = new Date();
-    const startDate = parseVietnameseDate(cuocBauCu.ngayBatDau);
-    const endDate = parseVietnameseDate(cuocBauCu.ngayKetThuc);
 
-    if (now < startDate) return 0;
-    if (now > endDate) return 100;
+    if (now < parsedDates.startDate) return 0;
+    if (now > parsedDates.endDate) return 100;
 
-    const totalDuration = endDate.getTime() - startDate.getTime();
-    const elapsed = now.getTime() - startDate.getTime();
+    const totalDuration = parsedDates.endDate.getTime() - parsedDates.startDate.getTime();
+    if (totalDuration <= 0) return 0;
+
+    const elapsed = now.getTime() - parsedDates.startDate.getTime();
 
     return Math.min(100, Math.round((elapsed / totalDuration) * 100));
-  }, [cuocBauCu]);
+  }, [cuocBauCu, parsedDates]);
 
   // Tính thời gian còn lại
   const getTimeRemaining = useCallback(() => {
-    if (!cuocBauCu) return { days: 0, hours: 0, minutes: 0 };
+    if (!cuocBauCu || !parsedDates.endDate) return { days: 0, hours: 0, minutes: 0 };
 
     const now = new Date();
-    const endDate = parseVietnameseDate(cuocBauCu.ngayKetThuc);
 
-    if (now > endDate) return { days: 0, hours: 0, minutes: 0 };
+    if (now > parsedDates.endDate) return { days: 0, hours: 0, minutes: 0 };
 
-    const diff = endDate.getTime() - now.getTime();
+    const diff = parsedDates.endDate.getTime() - now.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     return { days, hours, minutes };
-  }, [cuocBauCu]);
+  }, [cuocBauCu, parsedDates]);
 
-  // Lấy các giá trị đã tính toán
-  const electionStatus = getElectionStatus();
-  const blockchainStatus = getBlockchainStatus();
-  const progress = calculateProgress();
-  const timeRemaining = getTimeRemaining();
+  // Lấy các giá trị đã tính toán - Memoize these values to prevent recalculation on every render
+  const electionStatus = useMemo(() => getElectionStatus(), [getElectionStatus]);
+  const blockchainStatus = useMemo(() => getBlockchainStatus(), [getBlockchainStatus]);
+  const progress = useMemo(() => calculateProgress(), [calculateProgress]);
+  const timeRemaining = useMemo(() => getTimeRemaining(), [getTimeRemaining]);
 
   // Xử lý khi nhấn nút "Xem chi tiết phiên bầu cử"
   const handleViewSessions = () => {
@@ -420,7 +436,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
   }
 
   // Format date for display - let's keep original format
-  const formatDate = useCallback((dateString: string) => {
+  const formatDate = useCallback((dateString: string | undefined) => {
     if (!dateString) return '';
     return dateString; // Return the original Vietnamese format string
   }, []);

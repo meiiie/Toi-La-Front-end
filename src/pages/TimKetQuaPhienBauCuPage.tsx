@@ -159,17 +159,22 @@ const TrangKetQua = () => {
     idPhien?: string;
   }>();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const { toast } = useToast();
-
-  // Redux state
-  const { cuocBauCu } = useSelector((state: RootState) => state.cuocBauCuById);
-  const { cacPhienBauCu } = useSelector((state: RootState) => state.phienBauCu);
 
   // Các thông tin cơ bản
   const [contractAddresses, setContractAddresses] = useState(CONTRACT_ADDRESSES);
-  const [cuocBauCuList, setCuocBauCuList] = useState<Array<{ id: number; ten: string }>>([]);
-  const [cuocBauCuId, setCuocBauCuId] = useState(Number(cuocBauCuIdParam) || 1);
+  const [cuocBauCuList, setCuocBauCuList] = useState<
+    Array<{
+      id: number;
+      ten: string;
+      blockchainAddress: string;
+    }>
+  >([]);
+
+  const [cuocBauCuId, setCuocBauCuId] = useState<number | null>(
+    cuocBauCuIdParam ? Number(cuocBauCuIdParam) : null,
+  );
+
   const [danhSachPhien, setDanhSachPhien] = useState<
     Array<{
       id: number;
@@ -180,6 +185,7 @@ const TrangKetQua = () => {
       voterCount: number;
     }>
   >([]);
+
   const [selectedPhien, setSelectedPhien] = useState<number | null>(
     phienBauCuIdParam ? Number(phienBauCuIdParam) : null,
   );
@@ -230,6 +236,7 @@ const TrangKetQua = () => {
   const [activeChartType, setActiveChartType] = useState<string>(CHART_TYPES.BAR);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingAllElections, setIsLoadingAllElections] = useState(false);
 
   // Determines if data is loaded successfully
   const hasData = useMemo(() => {
@@ -275,109 +282,92 @@ const TrangKetQua = () => {
     fetchContractAddresses();
   }, []);
 
-  // Lấy danh sách các cuộc bầu cử từ Factory Contract
+  // Lấy tất cả các cuộc bầu cử (server ID) từ blockchain
   useEffect(() => {
-    const fetchElectionList = async () => {
+    const fetchAllElections = async () => {
       try {
+        setIsLoadingAllElections(true);
         setLoadingStage('elections');
-        const provider = new ethers.JsonRpcProvider(FALLBACK_RPC_URL);
 
-        // Sử dụng Factory Contract
+        const provider = new ethers.JsonRpcProvider(FALLBACK_RPC_URL);
         const factoryContract = new ethers.Contract(
           contractAddresses.CuocBauCuFactory || CONTRACT_ADDRESSES.CuocBauCuFactory,
           factoryAbi,
           provider,
         );
 
-        let electionIds: number[] = [];
+        // Lấy tổng số cuộc bầu cử/server từ ID cuộc bầu cử tiếp theo
+        const nextId = await factoryContract.idCuocBauCuTiepTheo();
+        const maxId = Number(nextId);
+        console.log(`Tổng số cuộc bầu cử (server ID) trên blockchain: ${maxId - 1}`);
 
-        try {
-          // Lấy tổng số server (cuộc bầu cử) từ idCuocBauCuTiepTheo
-          const nextId = await factoryContract.idCuocBauCuTiepTheo();
-          console.log('ID tiếp theo từ Factory:', Number(nextId));
+        // Danh sách server hoạt động
+        const activeServers: Array<{ id: number; ten: string; blockchainAddress: string }> = [];
 
-          if (Number(nextId) > 1) {
-            // Tạo mảng từ 1 đến nextId-1
-            for (let i = 1; i < Number(nextId); i++) {
-              // Kiểm tra trạng thái của từng cuộc bầu cử
-              try {
-                const serverInfo = await factoryContract.layThongTinServer(i);
-                // Chỉ lấy những server đang hoạt động (trangThai = 0)
-                if (serverInfo && serverInfo[3] === 0) {
-                  electionIds.push(i);
-                }
-              } catch (err) {
-                console.warn(`Không thể lấy thông tin cho server ID ${i}:`, err);
-              }
-            }
-            console.log(`Đã tìm thấy ${electionIds.length} cuộc bầu cử đang hoạt động`);
-          }
-        } catch (error) {
-          console.warn('Không thể lấy tổng số cuộc bầu cử từ Factory:', error);
-
-          // Fallback: nếu không lấy được danh sách từ Factory, thử các ID từ 1-5
-          electionIds = [1, 2, 3, 4, 5];
-          console.log('Sử dụng danh sách ID mặc định:', electionIds);
-        }
-
-        // Lấy thông tin chi tiết cho mỗi cuộc bầu cử
-        const electionDataPromises = electionIds.map(async (id: number) => {
+        // Lặp qua từng ID và kiểm tra trạng thái
+        for (let i = 1; i < maxId; i++) {
           try {
-            // Lấy thông tin từ Factory
-            const serverInfo = await factoryContract.layThongTinServer(id);
+            // Gọi layThongTinServer để lấy thông tin chi tiết
+            const serverInfo = await factoryContract.layThongTinServer(i);
 
-            if (serverInfo && serverInfo[0] !== ethers.ZeroAddress) {
-              const contractAddress = serverInfo[0]; // Địa chỉ contract quản lý cuộc bầu cử
-
-              // Kết nối tới contract cuộc bầu cử cụ thể để lấy thông tin chi tiết
-              const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
-              let tenCuocBauCu = serverInfo[1];
-
-              try {
-                const basicInfo = await contract.layThongTinCoBan(id);
-                if (basicInfo && basicInfo[4]) {
-                  tenCuocBauCu = basicInfo[4]; // Ưu tiên tên từ contract cuộc bầu cử
-                }
-              } catch (err) {
-                console.warn(`Không thể lấy thông tin cơ bản từ contract cuộc bầu cử ${id}:`, err);
-              }
-
-              return {
-                id: Number(id),
-                ten: tenCuocBauCu || `Cuộc bầu cử #${id}`,
-                isActive: true,
-                startTime: new Date(),
-                endTime: new Date(Date.now() + 86400000),
-                blockchainAddress: contractAddress,
-              };
-            } else {
-              throw new Error(`Server ID ${id} không tồn tại hoặc không hoạt động`);
+            // Chỉ thêm các server đang hoạt động (trangThai = 0)
+            if (serverInfo && serverInfo[0] !== ethers.ZeroAddress && serverInfo[3] === 0) {
+              activeServers.push({
+                id: i,
+                ten: serverInfo[1] || `Cuộc bầu cử #${i}`,
+                blockchainAddress: serverInfo[0],
+              });
             }
           } catch (err) {
-            console.warn(`Không thể lấy thông tin cho cuộc bầu cử ${id}:`, err);
-            return {
-              id: Number(id),
-              ten: `Cuộc bầu cử #${id}`,
-              isActive: false,
-              startTime: new Date(),
-              endTime: new Date(),
-            };
+            console.warn(`Không thể lấy thông tin cho server ID ${i}:`, err);
           }
-        });
-
-        // Chỉ giữ lại các cuộc bầu cử hợp lệ
-        const electionsData = (await Promise.all(electionDataPromises)).filter(
-          (election) => election.isActive || election.blockchainAddress,
-        );
-
-        setCuocBauCuList(electionsData);
-
-        // Nếu không có ID cuộc bầu cử được chọn, chọn ID cuộc bầu cử đầu tiên
-        if (!cuocBauCuIdParam && electionsData.length > 0) {
-          setCuocBauCuId(electionsData[0].id);
         }
+
+        console.log(`Tìm thấy ${activeServers.length} cuộc bầu cử đang hoạt động`);
+
+        if (activeServers.length === 0) {
+          // Nếu không tìm thấy server nào đang hoạt động, thử với các ID mặc định
+          const fallbackIds = [1, 2, 3, 4, 5];
+          for (const id of fallbackIds) {
+            try {
+              const serverInfo = await factoryContract.layThongTinServer(id);
+              if (serverInfo && serverInfo[0] !== ethers.ZeroAddress) {
+                activeServers.push({
+                  id,
+                  ten: serverInfo[1] || `Cuộc bầu cử #${id}`,
+                  blockchainAddress: serverInfo[0],
+                });
+              }
+            } catch {}
+          }
+        }
+
+        // Cập nhật danh sách cuộc bầu cử
+        setCuocBauCuList(activeServers);
+
+        // Nếu có ID từ URL, kiểm tra xem có tồn tại không
+        if (cuocBauCuIdParam) {
+          const idFromUrl = Number(cuocBauCuIdParam);
+          const exists = activeServers.some((s) => s.id === idFromUrl);
+          if (exists) {
+            setCuocBauCuId(idFromUrl);
+          } else {
+            // Nếu ID không tồn tại, chọn ID đầu tiên trong danh sách
+            if (activeServers.length > 0) {
+              setCuocBauCuId(activeServers[0].id);
+              navigate(`/ket-qua/${activeServers[0].id}`);
+            }
+          }
+        } else if (activeServers.length > 0) {
+          // Nếu không có ID từ URL, chọn ID đầu tiên
+          setCuocBauCuId(activeServers[0].id);
+          navigate(`/ket-qua/${activeServers[0].id}`);
+        }
+
+        setIsLoadingAllElections(false);
       } catch (error) {
         console.error('Lỗi khi lấy danh sách cuộc bầu cử từ blockchain:', error);
+        setIsLoadingAllElections(false);
         toast({
           variant: 'destructive',
           title: 'Lỗi kết nối blockchain',
@@ -386,8 +376,8 @@ const TrangKetQua = () => {
       }
     };
 
-    fetchElectionList();
-  }, [contractAddresses.CuocBauCuFactory, cuocBauCuIdParam, toast]);
+    fetchAllElections();
+  }, [contractAddresses.CuocBauCuFactory, cuocBauCuIdParam, navigate, toast]);
 
   // Lấy thông tin cuộc bầu cử và phiên bầu cử từ Redux
   useEffect(() => {
