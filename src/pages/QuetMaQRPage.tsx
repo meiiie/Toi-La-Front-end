@@ -38,6 +38,7 @@ const QuetMaQRPage: React.FC = () => {
   const [scanning, setScanning] = useState(false);
   const [scannedData, setScannedData] = useState<QRData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [processingImage, setProcessingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [token, setToken] = useState<string | null>(null);
   const [sdt, setSdt] = useState('');
@@ -77,77 +78,272 @@ const QuetMaQRPage: React.FC = () => {
   };
 
   const handleError = (message: string, error: any) => {
+    console.error('QR Error:', error);
     setError(message);
     setIsValidating(true); // Ẩn ô input khi có lỗi
+    setProcessingImage(false);
+  };
+
+  // Hàm tiền xử lý hình ảnh trước khi phân tích QR
+  const preprocessImage = (img: HTMLImageElement): HTMLCanvasElement => {
+    const canvas = document.createElement('canvas');
+
+    // Kích thước tối đa để xử lý (giảm kích thước ảnh quá lớn)
+    const MAX_SIZE = 1000;
+    let width = img.width;
+    let height = img.height;
+
+    // Tính toán tỷ lệ để giảm kích thước nếu cần
+    if (width > MAX_SIZE || height > MAX_SIZE) {
+      const ratio = width / height;
+      if (width > height) {
+        width = MAX_SIZE;
+        height = Math.floor(width / ratio);
+      } else {
+        height = MAX_SIZE;
+        width = Math.floor(height * ratio);
+      }
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+
+    // Vẽ hình ảnh với kích thước mới
+    ctx.drawImage(img, 0, 0, width, height);
+
+    return canvas;
+  };
+
+  // Hàm cố gắng lọc lỗi nhiễu, tăng độ tương phản và làm rõ hình ảnh
+  const enhanceImage = (canvas: HTMLCanvasElement): HTMLCanvasElement => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // Tăng độ tương phản và chuyển sang đen trắng để dễ nhận diện
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      // Tính giá trị grayscale
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+
+      // Tăng độ tương phản (threshold đơn giản)
+      const threshold = 120;
+      const newValue = gray < threshold ? 0 : 255;
+
+      data[i] = data[i + 1] = data[i + 2] = newValue;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setProcessingImage(true);
+      setError(null);
+
+      // Kiểm tra loại file
+      if (!file.type.startsWith('image/')) {
+        handleError('File không hợp lệ. Vui lòng chọn file hình ảnh.', 'Invalid file type');
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, img.width, img.height);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
-            if (code) {
-              processQRData(code.data);
-              setError(null); // Reset error when file upload is successful
-            } else {
-              setError('Không thể đọc mã QR từ ảnh. Vui lòng thử lại với ảnh khác.');
-              setIsValidating(true); // Ẩn ô input khi có lỗi
+        try {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              // Bước 1: Tiền xử lý hình ảnh
+              const processedCanvas = preprocessImage(img);
+
+              // Bước 2: Tăng cường chất lượng hình ảnh
+              const enhancedCanvas = enhanceImage(processedCanvas);
+
+              // Bước 3: Thử phân tích ở nhiều kích thước
+              let code = null;
+              const ctx = enhancedCanvas.getContext('2d');
+
+              if (ctx) {
+                const imageData = ctx.getImageData(
+                  0,
+                  0,
+                  enhancedCanvas.width,
+                  enhancedCanvas.height,
+                );
+                code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                // Nếu không thành công, thử các phương pháp khác
+                if (!code) {
+                  // Phương pháp 1: Đảo ngược màu sắc
+                  const invertedData = new Uint8ClampedArray(imageData.data);
+                  for (let i = 0; i < invertedData.length; i += 4) {
+                    invertedData[i] = 255 - invertedData[i];
+                    invertedData[i + 1] = 255 - invertedData[i + 1];
+                    invertedData[i + 2] = 255 - invertedData[i + 2];
+                  }
+                  const invertedImageData = new ImageData(
+                    invertedData,
+                    imageData.width,
+                    imageData.height,
+                  );
+                  ctx.putImageData(invertedImageData, 0, 0);
+                  code = jsQR(invertedImageData.data, imageData.width, imageData.height);
+                }
+              }
+
+              if (code) {
+                processQRData(code.data);
+                setProcessingImage(false);
+              } else {
+                // Nếu tất cả các phương pháp đều thất bại
+                handleError(
+                  'Không thể đọc mã QR từ ảnh. Vui lòng thử lại với ảnh khác hoặc ảnh có chất lượng tốt hơn.',
+                  'QR code not found',
+                );
+              }
+            } catch (err) {
+              handleError('Lỗi khi xử lý hình ảnh. Vui lòng thử lại.', err);
             }
-          }
-        };
-        img.src = e.target?.result as string;
+          };
+          img.onerror = () => {
+            handleError('Lỗi khi tải hình ảnh. Vui lòng thử lại.', 'Image load error');
+          };
+          img.src = e.target?.result as string;
+        } catch (err) {
+          handleError('Lỗi khi đọc file. Vui lòng thử lại.', err);
+        }
+      };
+      reader.onerror = () => {
+        handleError('Lỗi khi đọc file. Vui lòng thử lại.', 'File read error');
       };
       reader.readAsDataURL(file);
     }
   };
 
   const processQRData = (data: string) => {
-    let type: QRDataType = 'TEXT';
-    if (data.startsWith('http://') || data.startsWith('https://')) {
-      type = 'URL';
-    } else if (data.startsWith('mailto:')) {
-      type = 'EMAIL';
-    } else if (data.startsWith('tel:')) {
-      type = 'PHONE';
-    } else if (data.startsWith('sms:')) {
-      type = 'SMS';
-    } else if (data.startsWith('WIFI:')) {
-      type = 'WIFI';
-    } else if (data.startsWith('BEGIN:VCARD')) {
-      type = 'VCARD';
-    }
-    setScannedData({ type, content: data });
-    if (type === 'URL') {
-      const url = new URL(data);
-      const tokenParam = url.searchParams.get('token');
-      if (tokenParam) {
-        setToken(tokenParam);
-        dispatch(xacThucPhieuMoi(tokenParam))
-          .unwrap()
-          .then(() => {
-            setIsValidating(false);
-            setError(null); // Reset error when token is valid
-          })
-          .catch((err) => {
-            handleError('Error message', err);
-          });
-      } else {
-        setError('Không tìm thấy mã mời hợp lệ.');
-        setIsValidating(true); // Ẩn ô input khi có lỗi
+    try {
+      let type: QRDataType = 'TEXT';
+
+      // Nhật ký dữ liệu đầu vào để gỡ lỗi
+      console.log('QR Data content:', data);
+
+      if (data.startsWith('http://') || data.startsWith('https://')) {
+        type = 'URL';
+      } else if (data.startsWith('mailto:')) {
+        type = 'EMAIL';
+      } else if (data.startsWith('tel:')) {
+        type = 'PHONE';
+      } else if (data.startsWith('sms:')) {
+        type = 'SMS';
+      } else if (data.startsWith('WIFI:')) {
+        type = 'WIFI';
+      } else if (data.startsWith('BEGIN:VCARD')) {
+        type = 'VCARD';
       }
-    } else {
-      setError('Mã QR không hợp lệ.');
-      setIsValidating(true); // Ẩn ô input khi có lỗi
+
+      setScannedData({ type, content: data });
+
+      if (type === 'URL') {
+        try {
+          const url = new URL(data);
+          console.log('URL parsed:', url.toString());
+          console.log('URL params:', Array.from(url.searchParams.entries()));
+
+          const tokenParam = url.searchParams.get('token');
+          if (tokenParam) {
+            setToken(tokenParam);
+            console.log('Token found:', tokenParam);
+
+            dispatch(xacThucPhieuMoi(tokenParam))
+              .unwrap()
+              .then(() => {
+                setIsValidating(false);
+                setError(null);
+              })
+              .catch((err) => {
+                handleError('Lỗi xác thực mã mời: ' + (err.message || 'Không xác định'), err);
+              });
+          } else {
+            // Thử phương pháp thay thế để tìm token
+            // Kiểm tra xem URL có chứa `/invite/` hoặc mẫu tương tự không
+            const urlParts = url.pathname.split('/');
+            const possibleToken = urlParts[urlParts.length - 1];
+
+            if (possibleToken && possibleToken.length > 10) {
+              console.log('Trying alternative token from path:', possibleToken);
+              setToken(possibleToken);
+
+              dispatch(xacThucPhieuMoi(possibleToken))
+                .unwrap()
+                .then(() => {
+                  setIsValidating(false);
+                  setError(null);
+                })
+                .catch(() => {
+                  setError('Không tìm thấy mã mời hợp lệ trong URL.');
+                  setIsValidating(true);
+                });
+            } else {
+              setError('Không tìm thấy mã mời hợp lệ trong URL.');
+              setIsValidating(true);
+            }
+          }
+        } catch (urlError) {
+          console.error('URL parsing error:', urlError);
+
+          // Nếu URL không hợp lệ, kiểm tra xem dữ liệu có phải là token trực tiếp không
+          if (data.length > 10 && !data.includes(' ')) {
+            console.log('Trying direct token:', data);
+            setToken(data);
+
+            dispatch(xacThucPhieuMoi(data))
+              .unwrap()
+              .then(() => {
+                setIsValidating(false);
+                setError(null);
+              })
+              .catch(() => {
+                setError('Mã QR không chứa URL hợp lệ hoặc mã mời.');
+                setIsValidating(true);
+              });
+          } else {
+            setError('URL trong mã QR không hợp lệ.');
+            setIsValidating(true);
+          }
+        }
+      } else {
+        // Thử xem dữ liệu văn bản có phải là token trực tiếp không
+        if (data.length > 10 && !data.includes(' ')) {
+          console.log('Trying direct token from text:', data);
+          setToken(data);
+
+          dispatch(xacThucPhieuMoi(data))
+            .unwrap()
+            .then(() => {
+              setIsValidating(false);
+              setError(null);
+            })
+            .catch(() => {
+              setError('Mã QR không chứa mã mời hợp lệ.');
+              setIsValidating(true);
+            });
+        } else {
+          setError('Mã QR không hợp lệ. Hãy quét mã QR từ hệ thống HoLiHu Blockchain.');
+          setIsValidating(true);
+        }
+      }
+    } catch (err) {
+      handleError('Lỗi khi xử lý dữ liệu mã QR.', err);
     }
   };
 
@@ -244,6 +440,7 @@ const QuetMaQRPage: React.FC = () => {
                 <Button
                   onClick={() => setScanning(true)}
                   className="w-full bg-sky-500 hover:bg-sky-600"
+                  disabled={processingImage}
                 >
                   <QrCode className="mr-2 h-4 w-4" />
                   Bắt đầu quét
@@ -253,9 +450,19 @@ const QuetMaQRPage: React.FC = () => {
                     onClick={() => fileInputRef.current?.click()}
                     className="w-full"
                     variant="outline"
+                    disabled={processingImage}
                   >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Tải lên ảnh mã QR
+                    {processingImage ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Đang xử lý ảnh...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Tải lên ảnh mã QR
+                      </>
+                    )}
                   </Button>
                   <input
                     type="file"
@@ -263,6 +470,7 @@ const QuetMaQRPage: React.FC = () => {
                     onChange={handleFileUpload}
                     accept="image/*"
                     className="hidden"
+                    disabled={processingImage}
                   />
                 </div>
               </div>
