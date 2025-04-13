@@ -221,6 +221,7 @@ const BlockchainDeployment: React.FC = () => {
   const fetchContractAddresses = useCallback(async () => {
     try {
       const response = await apiClient.get('/api/Blockchain/contract-addresses');
+      console.log('Địa chỉ contract:', response.data);
       if (response.data && response.data.success) {
         setContractAddresses(response.data);
         showMessage('Đã lấy thông tin địa chỉ contract');
