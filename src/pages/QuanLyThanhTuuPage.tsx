@@ -90,10 +90,10 @@ const ACHIEVEMENT_TIERS = {
 
 // Placeholder images cho các loại thành tựu
 const TIER_IMAGES = {
-  0: '/api/placeholder/200/200',
-  1: '/api/placeholder/200/200',
-  2: '/api/placeholder/200/200',
-  3: '/api/placeholder/200/200',
+  0: '/badges/bronze-badge.png',
+  1: '/badges/silver-badge.png',
+  2: '/badges/gold-badge.png',
+  3: '/badges/diamond-badge.png',
 };
 
 interface Achievement {
