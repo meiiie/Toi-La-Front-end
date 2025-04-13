@@ -71,6 +71,7 @@ import type { PhienBauCu } from '../store/types';
 // Blockchain components
 import BlockchainIntegrationPanel from '../components/blockchain/BlockchainIntegrationPanel';
 import BlockchainSyncButton from '../components/blockchain/BlockchainSyncButton';
+import { formatDate } from 'react-datepicker/dist/date_utils';
 
 const QuanLyCuocBauCuPage: React.FC = () => {
   const { id: cuocBauCuId } = useParams<{ id: string }>();
@@ -976,7 +977,7 @@ const QuanLyCuocBauCuPage: React.FC = () => {
                         <p className="flex justify-between">
                           <span>Cập nhật:</span>
                           <span className="text-gray-700 dark:text-gray-300">
-                            {formatDate(dieuLeCuocBauCu.thoiGianCapNhat)}
+                            {dieuLeCuocBauCu.thoiGianCapNhat}
                           </span>
                         </p>
                       </div>

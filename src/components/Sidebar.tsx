@@ -102,6 +102,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
     ? currentUser?.vaiTro.tenVaiTro?.includes('Quan Tri Vien')
     : false;
 
+  // Function to close mobile sidebar
+  const closeMobileSidebar = () => {
+    if (isMobile) {
+      setIsDropdownOpen(false);
+    }
+  };
+
   return (
     <>
       {/* Mobile Navigation */}
@@ -167,17 +174,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
                   <div className="px-3 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider">
                     Menu chính
                   </div>
-                  <SidebarItem to="/app" icon={<FaHome />} label="Trang chủ" />
+                  <SidebarItem
+                    to="/app"
+                    icon={<FaHome />}
+                    label="Trang chủ"
+                    onClick={closeMobileSidebar}
+                  />
                   <SidebarItem
                     to="/app/tao-phien-bau-cu"
                     icon={<FaPlus />}
                     label="Tạo cuộc bầu cử"
+                    onClick={closeMobileSidebar}
                   />
-                  <SidebarItem to="/app/upcoming-elections" icon={<FaBell />} label="Thông báo" />
+                  <SidebarItem
+                    to="/app/upcoming-elections"
+                    icon={<FaBell />}
+                    label="Thông báo"
+                    onClick={closeMobileSidebar}
+                  />
                   <SidebarItem
                     to="/app/user-elections"
                     icon={<FaPoll />}
                     label="Quản lý cuộc bầu cử"
+                    onClick={closeMobileSidebar}
                   />
                 </div>
 
@@ -185,13 +204,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
                   <div className="px-3 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider">
                     Công cụ
                   </div>
-                  <SidebarItem to="/app/quan-ly-file" icon={<FaFileAlt />} label="Quản Lý File" />
-                  <SidebarItem to="/app/quet-ma-qr" icon={<FaQrcode />} label="Quét mã QR" />
-                  <SidebarItem to="/app/quan-ly-thanh-tuu" icon={<FaAward />} label="Thành Tựu" />
+                  <SidebarItem
+                    to="/app/quan-ly-file"
+                    icon={<FaFileAlt />}
+                    label="Quản Lý File"
+                    onClick={closeMobileSidebar}
+                  />
+                  <SidebarItem
+                    to="/app/quet-ma-qr"
+                    icon={<FaQrcode />}
+                    label="Quét mã QR"
+                    onClick={closeMobileSidebar}
+                  />
+                  <SidebarItem
+                    to="/app/quan-ly-thanh-tuu"
+                    icon={<FaAward />}
+                    label="Thành Tựu"
+                    onClick={closeMobileSidebar}
+                  />
                   <SidebarItem
                     to="/app/ket-qua-bau-cu"
                     icon={<FaChartBar />}
                     label="Kết Quả Bầu Cử"
+                    onClick={closeMobileSidebar}
                   />
                 </div>
 
@@ -204,16 +239,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
                       to="/app/role-management"
                       icon={<FaUserShield />}
                       label="Quản lý vai trò"
+                      onClick={closeMobileSidebar}
                     />
                     <SidebarItem
                       to="/app/role-assignment"
                       icon={<FaUserTag />}
                       label="Phân quyền"
+                      onClick={closeMobileSidebar}
                     />
                     <SidebarItem
                       to="/app/quan-ly-smart-contract"
                       icon={<FaCode />}
                       label="Quản Lý Smart Contract"
+                      onClick={closeMobileSidebar}
                     />
                   </div>
                 )}

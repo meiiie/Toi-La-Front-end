@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import apiClient from '../api/apiClient';
 
-// Các icons cần thiết
+// Các màu sắc cho biểu đồ
 const COLORS = [
   '#845EC2', // Tím đậm
   '#5CBDB9', // Xanh ngọc
@@ -36,12 +36,150 @@ const cuocBauCuAbi = [
   'function layDanhSachPhienBauCu(uint256 idCuocBauCu, uint256 chiSoBatDau, uint256 gioiHan) external view returns (uint256[] memory)',
 ];
 
+// Component Theme Toggle
+const ThemeToggle = ({ darkMode, toggleDarkMode }) => {
+  return (
+    <button
+      onClick={toggleDarkMode}
+      className="fixed top-6 right-6 z-50 p-2 rounded-full shadow-lg transition-all duration-300 dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200"
+      aria-label="Toggle dark mode"
+    >
+      {darkMode ? (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-6 w-6 text-yellow-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+          />
+        </svg>
+      ) : (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-6 w-6 text-indigo-700"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+          />
+        </svg>
+      )}
+    </button>
+  );
+};
+
+// Loading Spinner Component
+const LoadingSpinner = ({ message = 'Đang tải dữ liệu từ blockchain...' }) => (
+  <div className="flex h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-all duration-500">
+    <div className="text-center p-8 backdrop-blur-lg bg-white/90 dark:bg-black/20 rounded-xl shadow-2xl">
+      <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-3 border-b-3 border-indigo-500"></div>
+      <p className="mt-6 text-gray-800 dark:text-white text-lg font-medium">{message}</p>
+      <p className="mt-2 text-indigo-600 dark:text-indigo-300 text-sm">
+        Quá trình này có thể mất một chút thời gian
+      </p>
+    </div>
+  </div>
+);
+
+// Error Alert Component
+const ErrorAlert = ({ message }) => (
+  <div className="bg-red-50 dark:bg-red-900/40 backdrop-blur-md border-l-4 border-red-500 text-red-800 dark:text-red-100 p-6 mb-8 rounded-lg shadow-xl">
+    <div className="flex">
+      <div className="flex-shrink-0">
+        <svg
+          className="h-6 w-6 text-red-500 dark:text-red-300"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fillRule="evenodd"
+            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </div>
+      <div className="ml-3">
+        <p className="text-lg">{message}</p>
+      </div>
+    </div>
+  </div>
+);
+
+// Empty State Component
+const EmptyStatePrompt = ({ message, icon, actionButton = null }) => (
+  <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-2xl p-8 mb-8 text-center border border-gray-200 dark:border-white/10">
+    <div className="py-16">
+      {icon}
+      <h3 className="text-xl font-medium text-gray-800 dark:text-indigo-200 mb-3">{message}</h3>
+      <p className="text-gray-600 dark:text-gray-400 mb-8">{actionButton?.description}</p>
+      {actionButton?.button}
+    </div>
+  </div>
+);
+
+// Custom tooltip cho biểu đồ
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="backdrop-blur-md bg-white/95 dark:bg-gray-800/95 p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl">
+        <p className="font-bold text-gray-800 dark:text-gray-100">{data.displayAddress}</p>
+        <p className="text-indigo-600 dark:text-indigo-300 font-semibold">{data.votes} phiếu</p>
+        <p className="text-gray-600 dark:text-gray-400">{data.percentage}% tổng phiếu</p>
+        {data.isElected && (
+          <p className="text-emerald-600 dark:text-emerald-400 flex items-center mt-1 font-medium">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 mr-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Trúng cử
+          </p>
+        )}
+      </div>
+    );
+  }
+  return null;
+};
+
+// Main component
 const KetQuaBauCu = () => {
   // Thông tin cố định
   const cuocBauCuId = 1; // Fix cứng ID cuộc bầu cử
   const [contractAddresses, setContractAddresses] = useState({});
   const [contractAddress, setContractAddress] = useState('');
   const [serverId, setServerId] = useState(null);
+
+  // State cho dark mode
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const savedMode = localStorage.getItem('darkMode');
+      return savedMode
+        ? JSON.parse(savedMode)
+        : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
 
   // States cho phiên bầu cử
   const [danhSachPhien, setDanhSachPhien] = useState([]);
@@ -62,6 +200,25 @@ const KetQuaBauCu = () => {
 
   // State cho theo dõi real-time
   const [isMonitoring, setIsMonitoring] = useState(false);
+
+  // Toggle Dark Mode
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
+
+  // Lưu dark mode vào localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('darkMode', JSON.stringify(darkMode));
+
+      // Áp dụng class dark vào document
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, [darkMode]);
 
   // Lấy thông tin contract addresses
   useEffect(() => {
@@ -172,7 +329,7 @@ const KetQuaBauCu = () => {
     };
 
     fetchPhienBauCu();
-  }, [contractAddress]);
+  }, [contractAddress, selectedPhien]);
 
   // Lấy kết quả cho phiên bầu cử được chọn
   const fetchSessionResults = useCallback(async () => {
@@ -300,7 +457,7 @@ const KetQuaBauCu = () => {
       setError(`Lỗi khi lấy kết quả: ${error.message}`);
       setIsChangingSession(false);
     }
-  }, [contractAddress, selectedPhien]);
+  }, [contractAddress, selectedPhien, cuocBauCuId]);
 
   useEffect(() => {
     if (selectedPhien) {
@@ -313,7 +470,6 @@ const KetQuaBauCu = () => {
     if (!isMonitoring || !contractAddress || !selectedPhien) return;
 
     let provider;
-    let contract;
     let interval;
 
     const setupMonitoring = async () => {
@@ -329,8 +485,6 @@ const KetQuaBauCu = () => {
           interval = setInterval(fetchSessionResults, 30000); // Cập nhật mỗi 30 giây
           return;
         }
-
-        contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
 
         // Chỉ dùng polling thay vì WebSocket listener (để tránh lỗi event)
         console.log('Thiết lập polling cho cập nhật dữ liệu');
@@ -352,40 +506,6 @@ const KetQuaBauCu = () => {
       }
     };
   }, [isMonitoring, contractAddress, selectedPhien, fetchSessionResults, sessionInfo]);
-
-  // Custom tooltip cho biểu đồ
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="backdrop-blur-md bg-white/80 p-4 border border-gray-200 rounded-lg shadow-xl">
-          <p className="font-bold text-gray-800">{data.displayAddress}</p>
-          <p className="text-indigo-600 font-semibold">{data.votes} phiếu</p>
-          <p className="text-gray-600">{data.percentage}% tổng phiếu</p>
-          {data.isElected && (
-            <p className="text-emerald-600 flex items-center mt-1 font-medium">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              Trúng cử
-            </p>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
 
   // Tính thời gian còn lại
   const calculateTimeRemaining = () => {
@@ -419,31 +539,33 @@ const KetQuaBauCu = () => {
     fetchSessionResults();
   };
 
+  // RENDER LOGIC
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
-        <div className="text-center p-8 backdrop-blur-lg bg-white/10 rounded-xl shadow-2xl">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-3 border-b-3 border-indigo-500"></div>
-          <p className="mt-6 text-white text-lg font-medium">Đang tải dữ liệu từ blockchain...</p>
-          <p className="mt-2 text-indigo-300 text-sm">
-            Quá trình này có thể mất một chút thời gian
-          </p>
-        </div>
-      </div>
+      <>
+        <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+        <LoadingSpinner />
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+    <div
+      className={`min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-gray-800 dark:text-white transition-colors duration-500`}
+    >
+      <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+
       <div className="container mx-auto px-4 py-8">
         {/* Header kết quả */}
-        <div className="relative overflow-hidden backdrop-blur-xl bg-gradient-to-r from-indigo-900/80 via-purple-900/80 to-indigo-900/80 rounded-2xl shadow-2xl p-8 mb-8">
+        <div className="relative overflow-hidden backdrop-blur-xl bg-gradient-to-r from-indigo-100/80 via-indigo-200/80 to-indigo-100/80 dark:from-indigo-900/80 dark:via-purple-900/80 dark:to-indigo-900/80 rounded-2xl shadow-xl border border-indigo-200/50 dark:border-indigo-800/50 p-8 mb-8">
           <div className="relative z-10">
-            <h1 className="text-3xl md:text-4xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-purple-200">
+            <h1 className="text-3xl md:text-4xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-indigo-500 dark:from-indigo-200 dark:to-purple-200">
               Kết Quả Bầu Cử Blockchain
             </h1>
             {electionInfo && (
-              <p className="text-xl opacity-90 text-indigo-200">{electionInfo.name}</p>
+              <p className="text-xl opacity-90 text-indigo-600 dark:text-indigo-200">
+                {electionInfo.name}
+              </p>
             )}
           </div>
           <div className="absolute top-0 left-0 w-full h-full opacity-10">
@@ -451,7 +573,7 @@ const KetQuaBauCu = () => {
             <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
               <defs>
                 <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                  <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.5" />
+                  <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.5" />
                 </pattern>
               </defs>
               <rect width="100" height="100" fill="url(#grid)" />
@@ -459,32 +581,15 @@ const KetQuaBauCu = () => {
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-900/40 backdrop-blur-md border-l-4 border-red-500 text-red-100 p-6 mb-8 rounded-lg shadow-xl">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-red-300" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-lg">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
+        {error && <ErrorAlert message={error} />}
 
         {/* Chọn phiên bầu cử */}
-        <div className="backdrop-blur-lg bg-white/5 rounded-xl shadow-2xl p-6 mb-8 border border-white/10 transition-all duration-300 hover:bg-white/10">
+        <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div className="flex-grow">
               <label
                 htmlFor="phien-select"
-                className="block text-sm font-medium text-indigo-300 mb-2"
+                className="block text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-2"
               >
                 Chọn phiên bầu cử:
               </label>
@@ -492,7 +597,7 @@ const KetQuaBauCu = () => {
                 id="phien-select"
                 value={selectedPhien || ''}
                 onChange={handleSessionChange}
-                className="block w-full px-4 py-3 bg-gray-800/80 border border-gray-700 rounded-lg text-white shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                className="block w-full px-4 py-3 bg-white dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-800 dark:text-white shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
                 disabled={isChangingSession}
               >
                 <option value="">-- Chọn phiên bầu cử --</option>
@@ -510,7 +615,7 @@ const KetQuaBauCu = () => {
             <div className="flex gap-3">
               <button
                 onClick={refreshData}
-                className="px-5 py-3 bg-indigo-700 text-white rounded-lg hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-900/50"
+                className="px-5 py-3 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-600/20 dark:shadow-indigo-900/50"
                 disabled={isChangingSession || !selectedPhien}
               >
                 {isChangingSession ? (
@@ -560,10 +665,10 @@ const KetQuaBauCu = () => {
 
               <button
                 onClick={toggleMonitoring}
-                className={`px-5 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 transition-all duration-200 shadow-lg flex items-center ${
+                className={`px-5 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 shadow-lg flex items-center ${
                   isMonitoring
-                    ? 'bg-rose-700 text-white hover:bg-rose-600 focus:ring-rose-500 shadow-rose-900/50'
-                    : 'bg-emerald-700 text-white hover:bg-emerald-600 focus:ring-emerald-500 shadow-emerald-900/50'
+                    ? 'bg-rose-600 dark:bg-rose-700 text-white hover:bg-rose-500 dark:hover:bg-rose-600 focus:ring-rose-500 shadow-rose-600/20 dark:shadow-rose-900/50'
+                    : 'bg-emerald-600 dark:bg-emerald-700 text-white hover:bg-emerald-500 dark:hover:bg-emerald-600 focus:ring-emerald-500 shadow-emerald-600/20 dark:shadow-emerald-900/50'
                 }`}
                 disabled={!selectedPhien}
               >
@@ -615,7 +720,7 @@ const KetQuaBauCu = () => {
           </div>
 
           {isMonitoring && (
-            <div className="mt-4 bg-emerald-900/30 border border-emerald-700/50 rounded-lg p-4 text-emerald-300 text-sm animate-pulse">
+            <div className="mt-4 bg-emerald-100/60 dark:bg-emerald-900/30 border border-emerald-300/50 dark:border-emerald-700/50 rounded-lg p-4 text-emerald-700 dark:text-emerald-300 text-sm animate-pulse">
               <div className="flex">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -633,7 +738,7 @@ const KetQuaBauCu = () => {
                 </svg>
                 <div>
                   <p className="font-medium">Đang theo dõi phiên bầu cử #{selectedPhien}</p>
-                  <p className="mt-1 text-emerald-400/80">
+                  <p className="mt-1 text-emerald-600 dark:text-emerald-400/80">
                     Dữ liệu sẽ tự động cập nhật khi có phiếu bầu mới hoặc phiên kết thúc.
                   </p>
                 </div>
@@ -646,11 +751,11 @@ const KetQuaBauCu = () => {
           <>
             {/* Thông tin phiên bầu cử */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              <div className="backdrop-blur-lg bg-white/5 rounded-xl shadow-2xl p-6 border border-white/10 transition-all duration-300 hover:bg-white/10">
-                <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-purple-200 flex items-center">
+              <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-6 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
+                <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-indigo-500 dark:from-indigo-200 dark:to-purple-200 flex items-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 mr-2 text-indigo-400"
+                    className="h-6 w-6 mr-2 text-indigo-600 dark:text-indigo-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -665,45 +770,51 @@ const KetQuaBauCu = () => {
                   Thông tin phiên #{selectedPhien}
                 </h2>
                 <div className="space-y-4">
-                  <div className="flex justify-between border-b border-gray-700 pb-3">
-                    <span className="text-gray-400">Trạng thái:</span>
+                  <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                    <span className="text-gray-600 dark:text-gray-400">Trạng thái:</span>
                     <span
-                      className={`font-medium ${sessionInfo.isActive ? 'text-emerald-400' : 'text-rose-400'}`}
+                      className={`font-medium ${sessionInfo.isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
                     >
                       {sessionInfo.isActive ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc'}
                     </span>
                   </div>
-                  <div className="flex justify-between border-b border-gray-700 pb-3">
-                    <span className="text-gray-400">Thời gian bắt đầu:</span>
-                    <span className="font-medium text-indigo-200">{sessionInfo.startTime}</span>
+                  <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                    <span className="text-gray-600 dark:text-gray-400">Thời gian bắt đầu:</span>
+                    <span className="font-medium text-gray-800 dark:text-indigo-200">
+                      {sessionInfo.startTime}
+                    </span>
                   </div>
-                  <div className="flex justify-between border-b border-gray-700 pb-3">
-                    <span className="text-gray-400">Thời gian kết thúc:</span>
-                    <span className="font-medium text-indigo-200">{sessionInfo.endTime}</span>
+                  <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                    <span className="text-gray-600 dark:text-gray-400">Thời gian kết thúc:</span>
+                    <span className="font-medium text-gray-800 dark:text-indigo-200">
+                      {sessionInfo.endTime}
+                    </span>
                   </div>
-                  <div className="flex justify-between border-b border-gray-700 pb-3">
-                    <span className="text-gray-400">Số cử tri:</span>
-                    <span className="font-medium text-indigo-200">{sessionInfo.voterCount}</span>
+                  <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                    <span className="text-gray-600 dark:text-gray-400">Số cử tri:</span>
+                    <span className="font-medium text-gray-800 dark:text-indigo-200">
+                      {sessionInfo.voterCount}
+                    </span>
                   </div>
-                  <div className="flex justify-between border-b border-gray-700 pb-3">
-                    <span className="text-gray-400">Số ứng viên:</span>
-                    <span className="font-medium text-indigo-200">
+                  <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                    <span className="text-gray-600 dark:text-gray-400">Số ứng viên:</span>
+                    <span className="font-medium text-gray-800 dark:text-indigo-200">
                       {sessionInfo.candidateCount}
                     </span>
                   </div>
-                  <div className="flex justify-between border-b border-gray-700 pb-3">
-                    <span className="text-gray-400">Số ứng viên trúng cử:</span>
-                    <span className="font-medium text-indigo-200">
+                  <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                    <span className="text-gray-600 dark:text-gray-400">Số ứng viên trúng cử:</span>
+                    <span className="font-medium text-gray-800 dark:text-indigo-200">
                       {sessionInfo.electedCandidates?.length || 0}
                     </span>
                   </div>
 
                   {sessionInfo.isActive && (
-                    <div className="bg-indigo-900/40 rounded-lg border border-indigo-700/50 p-4 mt-2">
-                      <p className="text-indigo-200 flex items-center">
+                    <div className="bg-indigo-50 dark:bg-indigo-900/40 rounded-lg border border-indigo-200 dark:border-indigo-700/50 p-4 mt-2">
+                      <p className="text-indigo-700 dark:text-indigo-200 flex items-center">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5 mr-2 text-indigo-400"
+                          className="h-5 w-5 mr-2 text-indigo-600 dark:text-indigo-400"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -717,7 +828,9 @@ const KetQuaBauCu = () => {
                         </svg>
                         <span>
                           <strong className="font-semibold">Thời gian còn lại:</strong>{' '}
-                          <span className="ml-1 text-indigo-100">{calculateTimeRemaining()}</span>
+                          <span className="ml-1 text-indigo-800 dark:text-indigo-100">
+                            {calculateTimeRemaining()}
+                          </span>
                         </span>
                       </p>
                     </div>
@@ -725,11 +838,11 @@ const KetQuaBauCu = () => {
                 </div>
               </div>
 
-              <div className="backdrop-blur-lg bg-white/5 rounded-xl shadow-2xl p-6 border border-white/10 transition-all duration-300 hover:bg-white/10">
-                <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-purple-200 flex items-center">
+              <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-6 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
+                <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-indigo-500 dark:from-indigo-200 dark:to-purple-200 flex items-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 mr-2 text-indigo-400"
+                    className="h-6 w-6 mr-2 text-indigo-600 dark:text-indigo-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -745,14 +858,16 @@ const KetQuaBauCu = () => {
                 </h2>
                 <div className="text-right mb-2">
                   <span className="font-medium text-lg">
-                    <span className="text-indigo-300">{progress.voted}</span>
-                    <span className="text-gray-400"> / </span>
-                    <span className="text-indigo-300">{progress.total}</span>
-                    <span className="text-gray-400"> cử tri </span>
-                    <span className="text-indigo-400">({progress.percentage}%)</span>
+                    <span className="text-indigo-700 dark:text-indigo-300">{progress.voted}</span>
+                    <span className="text-gray-600 dark:text-gray-400"> / </span>
+                    <span className="text-indigo-700 dark:text-indigo-300">{progress.total}</span>
+                    <span className="text-gray-600 dark:text-gray-400"> cử tri </span>
+                    <span className="text-indigo-800 dark:text-indigo-400">
+                      ({progress.percentage}%)
+                    </span>
                   </span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-5 mb-6 overflow-hidden">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-5 mb-6 overflow-hidden">
                   <div
                     className={`h-5 rounded-full transition-all duration-500 ${
                       progress.percentage >= 80
@@ -772,24 +887,30 @@ const KetQuaBauCu = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                  <div className="bg-gradient-to-br from-indigo-800/50 to-indigo-900/50 p-5 rounded-lg text-center shadow-lg">
-                    <div className="text-3xl font-bold text-indigo-300">
+                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-800/50 dark:to-indigo-900/50 p-5 rounded-lg text-center shadow-lg">
+                    <div className="text-3xl font-bold text-indigo-800 dark:text-indigo-300">
                       {sessionInfo.voterCount}
                     </div>
-                    <div className="text-sm text-indigo-400 mt-1">Tổng số cử tri</div>
+                    <div className="text-sm text-indigo-600 dark:text-indigo-400 mt-1">
+                      Tổng số cử tri
+                    </div>
                   </div>
-                  <div className="bg-gradient-to-br from-emerald-800/50 to-emerald-900/50 p-5 rounded-lg text-center shadow-lg">
-                    <div className="text-3xl font-bold text-emerald-300">{progress.voted}</div>
-                    <div className="text-sm text-emerald-400 mt-1">Số phiếu đã bỏ</div>
+                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-800/50 dark:to-emerald-900/50 p-5 rounded-lg text-center shadow-lg">
+                    <div className="text-3xl font-bold text-emerald-800 dark:text-emerald-300">
+                      {progress.voted}
+                    </div>
+                    <div className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">
+                      Số phiếu đã bỏ
+                    </div>
                   </div>
                 </div>
 
                 <div className="mt-6 text-sm">
                   {progress.percentage >= 60 ? (
-                    <div className="flex items-start bg-emerald-900/30 p-4 rounded-lg border border-emerald-700/50">
+                    <div className="flex items-start bg-emerald-50/80 dark:bg-emerald-900/30 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700/50">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 mr-2 text-emerald-400 flex-shrink-0"
+                        className="h-5 w-5 mr-2 text-emerald-600 dark:text-emerald-400 flex-shrink-0"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -801,16 +922,16 @@ const KetQuaBauCu = () => {
                           d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      <span className="text-emerald-300">
+                      <span className="text-emerald-800 dark:text-emerald-300">
                         Đủ điều kiện kết thúc sớm (trên 60% tham gia). Ban tổ chức có thể kết thúc
                         phiên bầu cử ngay bây giờ.
                       </span>
                     </div>
                   ) : (
-                    <div className="flex items-start bg-indigo-900/30 p-4 rounded-lg border border-indigo-700/50">
+                    <div className="flex items-start bg-indigo-50/80 dark:bg-indigo-900/30 p-4 rounded-lg border border-indigo-200 dark:border-indigo-700/50">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 mr-2 text-indigo-400 flex-shrink-0"
+                        className="h-5 w-5 mr-2 text-indigo-600 dark:text-indigo-400 flex-shrink-0"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -822,7 +943,7 @@ const KetQuaBauCu = () => {
                           d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      <span className="text-indigo-300">
+                      <span className="text-indigo-800 dark:text-indigo-300">
                         Chưa đủ điều kiện kết thúc sớm (cần trên 60% cử tri tham gia). Phiên sẽ kết
                         thúc theo thời gian đã định.
                       </span>
@@ -833,11 +954,11 @@ const KetQuaBauCu = () => {
             </div>
 
             {/* Kết quả bỏ phiếu */}
-            <div className="backdrop-blur-lg bg-white/5 rounded-xl shadow-2xl p-6 mb-8 border border-white/10 transition-all duration-300 hover:bg-white/10">
-              <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-purple-200 flex items-center">
+            <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
+              <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-indigo-500 dark:from-indigo-200 dark:to-purple-200 flex items-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 mr-2 text-indigo-400"
+                  className="h-6 w-6 mr-2 text-indigo-600 dark:text-indigo-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -851,17 +972,17 @@ const KetQuaBauCu = () => {
                 </svg>
                 {sessionInfo.isActive ? 'Kết quả bỏ phiếu hiện tại' : 'Kết quả bỏ phiếu cuối cùng'}
                 {sessionInfo.isActive && (
-                  <span className="ml-2 inline-block animate-pulse px-2 py-1 bg-indigo-800/50 text-xs rounded-md text-indigo-300">
+                  <span className="ml-2 inline-block animate-pulse px-2 py-1 bg-indigo-100 dark:bg-indigo-800/50 text-xs rounded-md text-indigo-700 dark:text-indigo-300">
                     Đang cập nhật
                   </span>
                 )}
               </h2>
 
               {votingResults.length === 0 ? (
-                <div className="text-center py-20 text-gray-400">
+                <div className="text-center py-20 text-gray-500 dark:text-gray-400">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-16 w-16 mx-auto mb-4 text-gray-600 opacity-50"
+                    className="h-16 w-16 mx-auto mb-4 text-gray-400 dark:text-gray-600 opacity-50"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -875,7 +996,7 @@ const KetQuaBauCu = () => {
                   </svg>
                   <p className="text-xl">Chưa có dữ liệu kết quả bỏ phiếu.</p>
                   {sessionInfo.isActive && (
-                    <p className="mt-2 text-indigo-400">
+                    <p className="mt-2 text-indigo-600 dark:text-indigo-400">
                       Phiên bầu cử đang diễn ra, hãy chờ đến khi có cử tri bỏ phiếu.
                     </p>
                   )}
@@ -884,8 +1005,8 @@ const KetQuaBauCu = () => {
                 <>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
                     {/* Biểu đồ cột với hiệu ứng glass */}
-                    <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm p-4 rounded-lg shadow-lg h-96">
-                      <h3 className="text-center text-lg font-medium mb-3 text-indigo-300">
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 backdrop-blur-sm p-4 rounded-lg shadow-lg h-96">
+                      <h3 className="text-center text-lg font-medium mb-3 text-indigo-700 dark:text-indigo-300">
                         Số phiếu theo ứng viên
                       </h3>
                       <ResponsiveContainer width="100%" height="90%">
@@ -898,10 +1019,13 @@ const KetQuaBauCu = () => {
                             angle={-45}
                             textAnchor="end"
                             height={60}
-                            tick={{ fill: '#a5b4fc' }}
-                            stroke="#4f46e5"
+                            tick={{ fill: darkMode ? '#a5b4fc' : '#4f46e5' }}
+                            stroke={darkMode ? '#4f46e5' : '#4338ca'}
                           />
-                          <YAxis tick={{ fill: '#a5b4fc' }} stroke="#4f46e5" />
+                          <YAxis
+                            tick={{ fill: darkMode ? '#a5b4fc' : '#4f46e5' }}
+                            stroke={darkMode ? '#4f46e5' : '#4338ca'}
+                          />
                           <Tooltip content={<CustomTooltip />} wrapperStyle={{ outline: 'none' }} />
                           <Bar
                             dataKey="votes"
@@ -924,8 +1048,8 @@ const KetQuaBauCu = () => {
                     </div>
 
                     {/* Biểu đồ tròn với hiệu ứng glass */}
-                    <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm p-4 rounded-lg shadow-lg h-96">
-                      <h3 className="text-center text-lg font-medium mb-3 text-indigo-300">
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 backdrop-blur-sm p-4 rounded-lg shadow-lg h-96">
+                      <h3 className="text-center text-lg font-medium mb-3 text-indigo-700 dark:text-indigo-300">
                         Phân phối phiếu bầu
                       </h3>
                       <ResponsiveContainer width="100%" height="90%">
@@ -957,7 +1081,7 @@ const KetQuaBauCu = () => {
                                 <text
                                   x={x}
                                   y={y}
-                                  fill="#fff"
+                                  fill={darkMode ? '#fff' : '#333'}
                                   fontSize={11}
                                   fontWeight="bold"
                                   textAnchor={x > cx ? 'start' : 'end'}
@@ -976,14 +1100,20 @@ const KetQuaBauCu = () => {
                                 style={{
                                   opacity: 0.95,
                                   strokeWidth: entry.isElected ? 2 : 1,
-                                  stroke: entry.isElected ? '#fff' : '#333',
+                                  stroke: entry.isElected
+                                    ? darkMode
+                                      ? '#fff'
+                                      : '#333'
+                                    : darkMode
+                                      ? '#333'
+                                      : '#fff',
                                 }}
                               />
                             ))}
                           </Pie>
                           <Legend
                             formatter={(value, entry, index) => (
-                              <span style={{ color: '#a5b4fc' }}>
+                              <span style={{ color: darkMode ? '#a5b4fc' : '#4f46e5' }}>
                                 {votingResults[index]?.displayAddress}
                               </span>
                             )}
@@ -994,69 +1124,75 @@ const KetQuaBauCu = () => {
                     </div>
                   </div>
 
-                  {/* Bảng chi tiết với thiết kế mới */}
-                  <div className="overflow-hidden rounded-xl shadow-2xl border border-indigo-900/50">
+                  {/* Bảng chi tiết với thiết kế responsive */}
+                  <div className="overflow-hidden rounded-xl shadow-xl border border-gray-200 dark:border-indigo-900/50">
                     <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-700">
-                        <thead className="bg-indigo-900/50">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-indigo-50 dark:bg-indigo-900/50">
                           <tr>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-300 uppercase tracking-wider">
+                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
                               Thứ tự
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-300 uppercase tracking-wider">
+                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
                               Địa chỉ
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-300 uppercase tracking-wider">
+                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
                               Số phiếu
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-300 uppercase tracking-wider">
+                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
                               Tỷ lệ
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-300 uppercase tracking-wider">
+                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
                               Trạng thái
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-800">
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                           {votingResults.map((result, index) => (
                             <tr
                               key={result.address}
-                              className={`${result.isElected ? 'bg-emerald-900/30' : 'odd:bg-gray-800/30 even:bg-gray-800/10'} hover:bg-indigo-900/30 transition-colors duration-150`}
+                              className={`${
+                                result.isElected
+                                  ? 'bg-emerald-50 dark:bg-emerald-900/30'
+                                  : 'odd:bg-white even:bg-gray-50 dark:odd:bg-gray-800/30 dark:even:bg-gray-800/10'
+                              } hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors duration-150`}
                             >
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span
                                   className={`inline-flex items-center justify-center rounded-full h-7 w-7 text-sm 
                                   ${
                                     result.isElected
-                                      ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-600/50'
-                                      : 'bg-gray-800/70 text-gray-300 border border-gray-700'
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-600/50'
+                                      : 'bg-gray-100 text-gray-700 border border-gray-300 dark:bg-gray-800/70 dark:text-gray-300 dark:border-gray-700'
                                   }`}
                                 >
                                   {index + 1}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap font-mono text-indigo-300">
+                              <td className="px-6 py-4 whitespace-nowrap font-mono text-gray-800 dark:text-indigo-300">
                                 {result.displayAddress}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="text-xl font-semibold text-white">
+                                <span className="text-xl font-semibold text-gray-900 dark:text-white">
                                   {result.votes}
                                 </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
-                                  <div className="w-16 bg-gray-700 rounded-full h-2 mr-3">
+                                  <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-3">
                                     <div
                                       className={`h-2 rounded-full ${result.isElected ? 'bg-emerald-500' : 'bg-indigo-500'}`}
                                       style={{ width: `${result.percentage}%` }}
                                     ></div>
                                   </div>
-                                  <span className="text-indigo-200">{result.percentage}%</span>
+                                  <span className="text-gray-700 dark:text-indigo-200">
+                                    {result.percentage}%
+                                  </span>
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 {sessionInfo.isActive ? (
-                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-800/50 text-amber-300 border border-amber-700/50">
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-800/50 dark:text-amber-300 dark:border-amber-700/50">
                                     <svg className="w-3 h-3 mr-1 animate-spin" viewBox="0 0 24 24">
                                       <circle
                                         className="opacity-25"
@@ -1076,7 +1212,7 @@ const KetQuaBauCu = () => {
                                     Đang kiểm phiếu
                                   </span>
                                 ) : result.isElected ? (
-                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-800/50 text-emerald-300 border border-emerald-700/50">
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-800/50 dark:text-emerald-300 dark:border-emerald-700/50">
                                     <svg
                                       xmlns="http://www.w3.org/2000/svg"
                                       className="h-3 w-3 mr-1"
@@ -1094,7 +1230,7 @@ const KetQuaBauCu = () => {
                                     Trúng cử
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-800/50 text-gray-300 border border-gray-700/50">
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700/50">
                                     Chưa trúng cử
                                   </span>
                                 )}
@@ -1113,11 +1249,11 @@ const KetQuaBauCu = () => {
             {!sessionInfo.isActive &&
               sessionInfo.electedCandidates &&
               sessionInfo.electedCandidates.length > 0 && (
-                <div className="backdrop-blur-lg bg-white/5 rounded-xl shadow-2xl p-6 mb-8 border border-white/10 transition-all duration-300 hover:bg-white/10">
-                  <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-purple-200 flex items-center">
+                <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
+                  <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-indigo-500 dark:from-indigo-200 dark:to-purple-200 flex items-center">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6 mr-2 text-emerald-400"
+                      className="h-6 w-6 mr-2 text-emerald-600 dark:text-emerald-400"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -1132,11 +1268,11 @@ const KetQuaBauCu = () => {
                     Danh sách trúng cử
                   </h2>
 
-                  <div className="bg-emerald-900/30 backdrop-blur-md p-5 rounded-lg mb-8 text-emerald-100 border border-emerald-700/50">
+                  <div className="bg-emerald-50 dark:bg-emerald-900/30 backdrop-blur-md p-5 rounded-lg mb-8 text-emerald-800 dark:text-emerald-100 border border-emerald-200 dark:border-emerald-700/50">
                     <div className="flex">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-8 w-8 mr-4 text-emerald-400"
+                        className="h-8 w-8 mr-4 text-emerald-600 dark:text-emerald-400"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -1149,12 +1285,12 @@ const KetQuaBauCu = () => {
                         />
                       </svg>
                       <div>
-                        <h3 className="font-bold text-lg text-emerald-200">
+                        <h3 className="font-bold text-lg text-emerald-800 dark:text-emerald-200">
                           Kết quả bầu cử đã được ghi nhận trên blockchain
                         </h3>
-                        <p className="mt-2 leading-relaxed text-emerald-300">
+                        <p className="mt-2 leading-relaxed text-emerald-700 dark:text-emerald-300">
                           Phiên bầu cử #{selectedPhien} đã kết thúc với{' '}
-                          <span className="font-semibold text-white">
+                          <span className="font-semibold text-emerald-900 dark:text-white">
                             {sessionInfo.electedCandidates.length}
                           </span>{' '}
                           ứng viên trúng cử.
@@ -1171,26 +1307,26 @@ const KetQuaBauCu = () => {
                       return (
                         <div
                           key={address}
-                          className="bg-gradient-to-br from-emerald-900/30 to-teal-900/30 backdrop-blur-md border border-emerald-700/50 rounded-lg p-5 shadow-lg transition-all duration-300 hover:bg-emerald-900/40 hover:shadow-emerald-900/40 group"
+                          className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-teal-900/30 backdrop-blur-md border border-emerald-200 dark:border-emerald-700/50 rounded-lg p-5 shadow-lg transition-all duration-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:shadow-emerald-300/20 dark:hover:shadow-emerald-900/40 group"
                         >
                           <div className="flex items-center">
-                            <div className="bg-emerald-800/70 rounded-full w-12 h-12 flex items-center justify-center mr-4 border border-emerald-600/50 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                              <span className="text-emerald-300 font-bold text-lg">
+                            <div className="bg-emerald-200 dark:bg-emerald-800/70 rounded-full w-12 h-12 flex items-center justify-center mr-4 border border-emerald-300 dark:border-emerald-600/50 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                              <span className="text-emerald-800 dark:text-emerald-300 font-bold text-lg">
                                 {index + 1}
                               </span>
                             </div>
                             <div>
-                              <h3 className="font-bold text-lg text-emerald-200">
+                              <h3 className="font-bold text-lg text-emerald-800 dark:text-emerald-200">
                                 {address.substring(0, 6)}...{address.substring(address.length - 4)}
                               </h3>
                               {candidateInfo && (
-                                <p className="text-sm text-emerald-400 mt-1">
+                                <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">
                                   {candidateInfo.votes} phiếu ({candidateInfo.percentage}%)
                                 </p>
                               )}
                             </div>
                           </div>
-                          <div className="mt-4 bg-emerald-900/30 h-1.5 rounded-full">
+                          <div className="mt-4 bg-emerald-200/50 dark:bg-emerald-900/30 h-1.5 rounded-full">
                             <div
                               className="h-1.5 bg-emerald-500 rounded-full"
                               style={{ width: `${candidateInfo?.percentage || 0}%` }}
@@ -1204,11 +1340,12 @@ const KetQuaBauCu = () => {
               )}
           </>
         ) : selectedPhien ? (
-          <div className="backdrop-blur-lg bg-white/5 rounded-xl shadow-2xl p-8 mb-8 text-center border border-white/10">
-            <div className="py-16">
+          <EmptyStatePrompt
+            message="Không thể tải thông tin phiên bầu cử"
+            icon={
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-20 w-20 mx-auto text-gray-600 mb-6 opacity-50"
+                className="h-20 w-20 mx-auto text-gray-400 dark:text-gray-600 mb-6 opacity-50"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1220,61 +1357,58 @@ const KetQuaBauCu = () => {
                   d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <h3 className="text-xl font-medium text-indigo-200 mb-3">
-                Không thể tải thông tin phiên bầu cử
-              </h3>
-              <p className="text-gray-400 mb-8">
-                Có lỗi xảy ra khi tải dữ liệu từ blockchain. Vui lòng thử lại sau.
-              </p>
-              <button
-                onClick={refreshData}
-                className="px-6 py-3 bg-indigo-700 text-white rounded-lg hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-900/50"
-              >
-                <span className="flex items-center justify-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-2"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  Thử lại
-                </span>
-              </button>
-            </div>
-          </div>
+            }
+            actionButton={{
+              description: 'Có lỗi xảy ra khi tải dữ liệu từ blockchain. Vui lòng thử lại sau.',
+              button: (
+                <button
+                  onClick={refreshData}
+                  className="px-6 py-3 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-600/20 dark:shadow-indigo-900/50"
+                >
+                  <span className="flex items-center justify-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                    Thử lại
+                  </span>
+                </button>
+              ),
+            }}
+          />
         ) : (
-          <div className="backdrop-blur-lg bg-white/5 rounded-xl shadow-2xl p-8 mb-8 text-center border border-white/10">
-            <div className="py-16">
+          <EmptyStatePrompt
+            message="Vui lòng chọn phiên bầu cử"
+            icon={
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-20 w-20 mx-auto text-gray-600 mb-6 opacity-50"
+                className="h-20 w-20 mx-auto text-gray-400 dark:text-gray-600 mb-6 opacity-50"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
               </svg>
-              <h3 className="text-xl font-medium text-indigo-200 mb-3">
-                Vui lòng chọn phiên bầu cử
-              </h3>
-              <p className="text-gray-400">
-                Hãy chọn một phiên bầu cử từ danh sách trên để xem kết quả.
-              </p>
-            </div>
-          </div>
+            }
+            actionButton={{
+              description: 'Hãy chọn một phiên bầu cử từ danh sách trên để xem kết quả.',
+            }}
+          />
         )}
 
         {/* Thông tin kết nối blockchain */}
-        <div className="backdrop-blur-lg bg-white/5 rounded-xl shadow-2xl p-6 mb-8 border border-white/10 transition-all duration-300 hover:bg-white/10">
-          <h3 className="font-medium mb-4 text-lg text-indigo-300 flex items-center">
+        <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
+          <h3 className="font-medium mb-4 text-lg text-indigo-700 dark:text-indigo-300 flex items-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-5 w-5 mr-2"
@@ -1294,38 +1428,40 @@ const KetQuaBauCu = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <p className="flex items-center">
-                <span className="text-gray-400 w-32">RPC:</span>
-                <span className="text-indigo-300 font-mono text-sm">
+                <span className="text-gray-500 dark:text-gray-400 w-32">RPC:</span>
+                <span className="text-indigo-700 dark:text-indigo-300 font-mono text-sm">
                   https://geth.holihu.online/rpc
                 </span>
               </p>
               <p className="flex items-center">
-                <span className="text-gray-400 w-32">Địa chỉ Contract:</span>
-                <span className="text-indigo-300 font-mono text-sm truncate">
+                <span className="text-gray-500 dark:text-gray-400 w-32">Địa chỉ Contract:</span>
+                <span className="text-indigo-700 dark:text-indigo-300 font-mono text-sm truncate">
                   {contractAddress}
                 </span>
               </p>
               <p className="flex items-center">
-                <span className="text-gray-400 w-32">Server ID:</span>
-                <span className="text-indigo-300">{serverId}</span>
+                <span className="text-gray-500 dark:text-gray-400 w-32">Server ID:</span>
+                <span className="text-indigo-700 dark:text-indigo-300">{serverId}</span>
               </p>
             </div>
             <div className="space-y-2">
               <p className="flex items-center">
-                <span className="text-gray-400 w-32">Cuộc bầu cử ID:</span>
-                <span className="text-indigo-300">{cuocBauCuId}</span>
+                <span className="text-gray-500 dark:text-gray-400 w-32">Cuộc bầu cử ID:</span>
+                <span className="text-indigo-700 dark:text-indigo-300">{cuocBauCuId}</span>
               </p>
               <p className="flex items-center">
-                <span className="text-gray-400 w-32">Phiên bầu cử ID:</span>
-                <span className="text-indigo-300">{selectedPhien || 'Chưa chọn'}</span>
+                <span className="text-gray-500 dark:text-gray-400 w-32">Phiên bầu cử ID:</span>
+                <span className="text-indigo-700 dark:text-indigo-300">
+                  {selectedPhien || 'Chưa chọn'}
+                </span>
               </p>
               <p className="flex items-center">
-                <span className="text-gray-400 w-32">Trạng thái:</span>
+                <span className="text-gray-500 dark:text-gray-400 w-32">Trạng thái:</span>
                 <span
-                  className={`${isMonitoring ? 'text-emerald-400' : 'text-gray-400'} flex items-center`}
+                  className={`${isMonitoring ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'} flex items-center`}
                 >
                   <span
-                    className={`inline-block w-2 h-2 rounded-full mr-2 ${isMonitoring ? 'bg-emerald-400' : 'bg-gray-400'}`}
+                    className={`inline-block w-2 h-2 rounded-full mr-2 ${isMonitoring ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-gray-400'}`}
                   ></span>
                   {isMonitoring ? 'Đang theo dõi' : 'Không theo dõi'}
                 </span>
@@ -1337,14 +1473,16 @@ const KetQuaBauCu = () => {
 
       {/* Thông báo real-time */}
       {isMonitoring && (
-        <div className="fixed bottom-6 right-6 backdrop-blur-md bg-emerald-900/60 border border-emerald-500/50 text-emerald-300 px-5 py-3 rounded-lg shadow-2xl flex items-center transition-all duration-300 animate-pulse">
+        <div className="fixed bottom-6 right-6 backdrop-blur-md bg-emerald-100/90 dark:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-500/50 text-emerald-800 dark:text-emerald-300 px-5 py-3 rounded-lg shadow-2xl flex items-center transition-all duration-300 animate-pulse">
           <div className="relative mr-3">
             <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
             <div className="w-3 h-3 bg-emerald-400 rounded-full absolute top-0 animate-ping"></div>
           </div>
           <div>
             <p className="font-medium">Đang theo dõi phiên #{selectedPhien}</p>
-            <p className="text-xs text-emerald-400/80 mt-1">Cập nhật tự động mỗi 15 giây</p>
+            <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80 mt-1">
+              Cập nhật tự động mỗi 15 giây
+            </p>
           </div>
         </div>
       )}
