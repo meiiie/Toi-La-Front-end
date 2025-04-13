@@ -553,8 +553,6 @@ const KetQuaBauCu = () => {
     <div
       className={`min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-gray-800 dark:text-white transition-colors duration-500`}
     >
-      <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-
       <div className="container mx-auto px-4 py-8">
         {/* Header kết quả */}
         <div className="relative overflow-hidden backdrop-blur-xl bg-gradient-to-r from-indigo-100/80 via-indigo-200/80 to-indigo-100/80 dark:from-indigo-900/80 dark:via-purple-900/80 dark:to-indigo-900/80 rounded-2xl shadow-xl border border-indigo-200/50 dark:border-indigo-800/50 p-8 mb-8">
