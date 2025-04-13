@@ -825,7 +825,7 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
                   {txHash}
                 </p>
                 <a
-                  href={`https://explorer.holihu.online/tx/${txHash}`}
+                  href={`https://explorer.holihu.online/transactions/${txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="ml-2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#1A2942] text-blue-500 dark:text-[#4F8BFF]"
