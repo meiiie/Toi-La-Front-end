@@ -155,24 +155,24 @@ const EnhancedQRCode: React.FC<EnhancedQRCodeProps> = ({ result, electionName })
 
       if (ctx) {
         // Vẽ nền tối cho chế độ tối
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, downloadCanvas.width, downloadCanvas.height);
+        // ctx.fillStyle = '#0f172a';
+        // ctx.fillRect(0, 0, downloadCanvas.width, downloadCanvas.height);
 
-        // Vẽ nội dung từ canvas gốc với màu đảo ngược
-        ctx.drawImage(canvas, 0, 0);
+        // // Vẽ nội dung từ canvas gốc với màu đảo ngược
+        // ctx.drawImage(canvas, 0, 0);
 
-        // Đảo ngược màu sắc cho chế độ tối
-        const imageData = ctx.getImageData(0, 0, downloadCanvas.width, downloadCanvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-          // Đảo ngược màu cho tất cả các pixel trừ logo
-          if (!(data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 0 && data[i + 3] === 0)) {
-            data[i] = 255 - data[i]; // red
-            data[i + 1] = 255 - data[i + 1]; // green
-            data[i + 2] = 255 - data[i + 2]; // blue
-          }
-        }
-        ctx.putImageData(imageData, 0, 0);
+        // // Đảo ngược màu sắc cho chế độ tối
+        // const imageData = ctx.getImageData(0, 0, downloadCanvas.width, downloadCanvas.height);
+        // const data = imageData.data;
+        // for (let i = 0; i < data.length; i += 4) {
+        //   // Đảo ngược màu cho tất cả các pixel trừ logo
+        //   if (!(data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 0 && data[i + 3] === 0)) {
+        //     data[i] = 255 - data[i]; // red
+        //     data[i + 1] = 255 - data[i + 1]; // green
+        //     data[i + 2] = 255 - data[i + 2]; // blue
+        //   }
+        // }
+        // ctx.putImageData(imageData, 0, 0);
 
         // Tạo URL và tải xuống
         const image = downloadCanvas.toDataURL('image/png');
@@ -203,24 +203,24 @@ const EnhancedQRCode: React.FC<EnhancedQRCodeProps> = ({ result, electionName })
 
         if (ctx) {
           // Vẽ nền tối cho chế độ tối
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(0, 0, shareCanvas.width, shareCanvas.height);
+          // ctx.fillStyle = '#0f172a';
+          // ctx.fillRect(0, 0, shareCanvas.width, shareCanvas.height);
 
-          // Vẽ nội dung từ canvas gốc với màu đảo ngược
-          ctx.drawImage(canvas, 0, 0);
+          // // Vẽ nội dung từ canvas gốc với màu đảo ngược
+          // ctx.drawImage(canvas, 0, 0);
 
-          // Đảo ngược màu sắc cho chế độ tối
-          const imageData = ctx.getImageData(0, 0, shareCanvas.width, shareCanvas.height);
-          const data = imageData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            // Đảo ngược màu cho tất cả các pixel trừ logo
-            if (!(data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 0 && data[i + 3] === 0)) {
-              data[i] = 255 - data[i]; // red
-              data[i + 1] = 255 - data[i + 1]; // green
-              data[i + 2] = 255 - data[i + 2]; // blue
-            }
-          }
-          ctx.putImageData(imageData, 0, 0);
+          // // Đảo ngược màu sắc cho chế độ tối
+          // const imageData = ctx.getImageData(0, 0, shareCanvas.width, shareCanvas.height);
+          // const data = imageData.data;
+          // for (let i = 0; i < data.length; i += 4) {
+          //   // Đảo ngược màu cho tất cả các pixel trừ logo
+          //   if (!(data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 0 && data[i + 3] === 0)) {
+          //     data[i] = 255 - data[i]; // red
+          //     data[i + 1] = 255 - data[i + 1]; // green
+          //     data[i + 2] = 255 - data[i + 2]; // blue
+          //   }
+          // }
+          // ctx.putImageData(imageData, 0, 0);
 
           // Tạo blob và chia sẻ
           const blob = await new Promise<Blob>((resolve) => {

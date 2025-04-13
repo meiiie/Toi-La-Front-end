@@ -313,8 +313,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
                 {session.tenPhienBauCu}
               </CardTitle>
               <CardDescription>
-                {new Date(session.ngayBatDau).toLocaleDateString('vi-VN')} -{' '}
-                {new Date(session.ngayKetThuc).toLocaleDateString('vi-VN')}
+                {formatDate(session.ngayBatDau)} - {formatDate(session.ngayKetThuc)}
               </CardDescription>
             </CardHeader>
             <CardContent className="pb-2">
@@ -397,8 +396,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
                           {session.tenPhienBauCu}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {new Date(session.ngayBatDau).toLocaleDateString('vi-VN')} -{' '}
-                          {new Date(session.ngayKetThuc).toLocaleDateString('vi-VN')}
+                          {formatDate(session.ngayBatDau)} - {formatDate(session.ngayKetThuc)}
                         </p>
                       </div>
                       <Badge
@@ -674,7 +672,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
                               </h3>
                               <p className="text-gray-900 dark:text-white mt-1 flex items-center">
                                 <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-1" />
-                                {new Date(cuocBauCu?.ngayBatDau).toLocaleDateString('vi-VN')}
+                                {formatDate(cuocBauCu?.ngayBatDau)}
                               </p>
                             </div>
 
@@ -684,7 +682,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
                               </h3>
                               <p className="text-gray-900 dark:text-white mt-1 flex items-center">
                                 <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-1" />
-                                {new Date(cuocBauCu?.ngayKetThuc).toLocaleDateString('vi-VN')}
+                                {formatDate(cuocBauCu?.ngayKetThuc)}
                               </p>
                             </div>
                           </div>
@@ -769,7 +767,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
                                       {session.tenPhienBauCu}
                                     </h3>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                                      {new Date(session.ngayBatDau).toLocaleDateString('vi-VN')}
+                                      {formatDate(session.ngayBatDau)}
                                     </p>
                                   </div>
                                   <Badge
@@ -1000,8 +998,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
 
                         <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                           <span>
-                            Cập nhật lần cuối:{' '}
-                            {new Date(dieuLeCuocBauCu.thoiGianCapNhat).toLocaleDateString('vi-VN')}
+                            Cập nhật lần cuối: {formatDate(dieuLeCuocBauCu.thoiGianCapNhat)}
                           </span>
                           <span className="mx-2">•</span>
                           <span>Phiên bản: v{dieuLeCuocBauCu.phienBan}.0</span>

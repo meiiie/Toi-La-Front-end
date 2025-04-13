@@ -100,7 +100,7 @@ const QuetMaQRPage: React.FC = () => {
               processQRData(code.data);
               setError(null); // Reset error when file upload is successful
             } else {
-              setError('Không thể đọc mã QR từ ảnh. Vui lòng thử lại với ảnh khác.', code.data);
+              setError('Không thể đọc mã QR từ ảnh. Vui lòng thử lại với ảnh khác.');
               setIsValidating(true); // Ẩn ô input khi có lỗi
             }
           }
