@@ -10,6 +10,7 @@ import {
   CheckCircle,
   Calendar,
   RefreshCw,
+  InfoIcon,
   AlertTriangle,
   Info,
   Copy,
@@ -1114,15 +1115,26 @@ const TrangKetQua: React.FC = () => {
         const [candidateAddresses, voteAmounts] = result;
 
         // Validate candidateAddresses is an array
-        if (!Array.isArray(candidateAddresses) || candidateAddresses.length === 0) {
+        if (!Array.isArray(candidateAddresses)) {
+          console.error('Candidate addresses is not an array:', candidateAddresses);
+          throw new Error('Invalid candidate data from blockchain');
+        }
+
+        if (candidateAddresses.length === 0) {
           console.error('No candidate addresses returned');
-          setElectionResults(null);
+          setElectionResults({
+            candidates: [],
+            totalVotes: 0,
+            winnerId: undefined,
+            timestamp: Date.now(),
+            isFinalized: false,
+          });
           return;
         }
 
         // Validate voteAmounts is an array
         if (!Array.isArray(voteAmounts)) {
-          console.error('Vote amounts is not an array');
+          console.error('Vote amounts is not an array:', voteAmounts);
           throw new Error('Invalid vote amounts data from blockchain');
         }
 
@@ -1210,12 +1222,21 @@ const TrangKetQua: React.FC = () => {
             timestamp: Date.now(),
             isFinalized: false, // Mark as not from blockchain
           });
+        } else {
+          // If no candidates data available at all, set empty results
+          setElectionResults({
+            candidates: [],
+            totalVotes: 0,
+            winnerId: undefined,
+            timestamp: Date.now(),
+            isFinalized: false,
+          });
         }
       } finally {
         setIsLoadingResults(false);
       }
     },
-    [contractInstance, danhSachUngVien],
+    [contractInstance, danhSachUngVien, fetchBlockchainSessionDetails],
   );
 
   // Fetch blockchain session details
@@ -2403,7 +2424,7 @@ const TrangKetQua: React.FC = () => {
                     <div className="md:col-span-2">
                       <div className="space-y-4">
                         <div className="bg-gray-50/70 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
-                          <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                          <h4 className="font-medium text-gray-900 dark:text:white mb-2 flex items-center">
                             <TrendingUp className="h-4 w-4 text-blue-500 mr-1.5" />
                             Kết quả bầu cử
                           </h4>
