@@ -1,60 +1,4 @@
-// Các màu dùng cho biểu đồ
-const CHART_COLORS = [
-  '#3B82F6', // blue-500
-  '#10B981', // emerald-500
-  '#F59E0B', // amber-500
-  '#6366F1', // indigo-500
-  '#EC4899', // pink-500
-  '#8B5CF6', // violet-500
-  '#14B8A6', // teal-500
-  '#F97316', // orange-500
-  '#06B6D4', // cyan-500
-  '#EF4444', // red-500
-];
-
-// Gradient colors for elected candidates
-const ELECTED_GRADIENTS = [
-  ['#3B82F6', '#2563EB'], // blue-500 to blue-600
-  ['#10B981', '#059669'], // emerald-500 to emerald-600
-  ['#8B5CF6', '#7C3AED'], // violet-500 to violet-600
-  ['#EC4899', '#DB2777'], // pink-500 to pink-600
-];
-
-const CHART_TYPES = {
-  BAR: 'bar',
-  PIE: 'pie',
-  RADAR: 'radar',
-  RADIALBAR: 'radialbar',
-};
-
-// ABI tối thiểu cho các contract
-const factoryAbi = [
-  'function layThongTinServer(uint128) view returns (address quanLyCuocBauCu, string tenCuocBauCu, string moTa, uint8 trangThai, uint64 soLuongBaoCao, uint64 soLuongViPhamXacNhan, address nguoiTao)',
-  'function idCuocBauCuTiepTheo() view returns (uint128)',
-  'function layServerCuaNguoiDung(address) view returns (uint256[])',
-  'function tonTaiServer(address) view returns (bool)',
-  'function danhSachServerTonTai(uint256) view returns (uint128)',
-  'function layTongSoServer() view returns (uint256)',
-  'function layDanhSachServerID(uint256, uint256) view returns (uint256[] memory)',
-];
-
-const cuocBauCuAbi = [
-  'function layKetQuaPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (address[] memory ungVien, uint256[] memory soPhieu)',
-  'function layThongTinPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (bool dangHoatDongNe, uint256 thoiGianBatDau, uint256 thoiGianKetThuc, uint256 soCuTriToiDa, uint256 soUngVienHienTai, uint256 soCuTriHienTai, address[] memory ungVienDacCu, bool taiBauCu, uint256 soLuongXacNhan, uint256 thoiGianHetHanXacNhan)',
-  'function layThongTinCoBan(uint256 idCuocBauCu) external view returns (address nguoiSoHuu, bool dangHoatDongDay, uint256 thoiGianBatDau, uint256 thoiGianKetThuc, string memory tenCuocBauCu, uint256 phiHLU)',
-  'function laySoPhieuUngVien(uint256 idCuocBauCu, uint256 idPhienBauCu, address ungVien) external view returns (uint256)',
-  'function layDanhSachUngVien(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (address[] memory)',
-  'function layDanhSachPhienBauCu(uint256 idCuocBauCu, uint256 chiSoBatDau, uint256 gioiHan) external view returns (uint256[] memory)',
-  'function laySoCuocBauCu() external view returns (uint256)',
-  'function laPhienHoatDong(uint256 idCuocBauCu, uint256 idPhienBauCu) view returns (bool)',
-];
-
-const FALLBACK_RPC_URL = 'https://geth.holihu.online/rpc';
-const FALLBACK_WSS_URL = 'wss://geth.holihu.online/ws';
-
-// Thời gian cập nhật dữ liệu tự động (15 giây)
-const AUTO_REFRESH_INTERVAL = 15000;
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import {
   BarChart,
@@ -67,114 +11,20 @@ import {
   Pie,
   Cell,
   Legend,
-  CartesianGrid,
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  RadialBarChart,
-  RadialBar,
 } from 'recharts';
-import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  Database,
-  RefreshCw,
-  Award,
-  User,
-  Activity,
-  CheckCircle,
-  AlertTriangle,
-  Search,
-  Calendar,
-  ArrowRight,
-  X,
-  Zap,
-  Eye,
-  FileText,
-  ExternalLink,
-  Layers,
-  BarChart2,
-  PieChart as PieChartIcon,
-  TrendingUp,
-  Info,
-  Loader,
-  Check,
-  Server,
-  Cpu,
-  HelpCircle,
-} from 'lucide-react';
+import apiClient from '../api/apiClient';
 
-// UI components
-import { Button } from '../components/ui/Button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
-import { Separator } from '../components/ui/Separator';
-import { Progress } from '../components/ui/Progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/Tabs';
-import { Alert, AlertTitle, AlertDescription } from '../components/ui/Alter';
-import { Input } from '../components/ui/Input';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-} from '../components/ui/Select';
-import { Skeleton } from '../components/ui/Skeleton';
-import {
-  Tooltip as UITooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '../components/ui/Tooltip';
-import { ScrollArea } from '../components/ui/ScrollArea';
-import { useToast } from '../test/components/use-toast';
-
-// Các màu dùng cho biểu đồ
-const CHART_COLORS = [
-  '#3B82F6', // blue-500
-  '#10B981', // emerald-500
-  '#F59E0B', // amber-500
-  '#6366F1', // indigo-500
-  '#EC4899', // pink-500
-  '#8B5CF6', // violet-500
-  '#14B8A6', // teal-500
-  '#F97316', // orange-500
-  '#06B6D4', // cyan-500
-  '#EF4444', // red-500
+// Các icons cần thiết
+const COLORS = [
+  '#0088FE',
+  '#00C49F',
+  '#FFBB28',
+  '#FF8042',
+  '#8884d8',
+  '#83a6ed',
+  '#8dd1e1',
+  '#82ca9d',
 ];
-
-// Gradient colors for elected candidates
-const ELECTED_GRADIENTS = [
-  ['#3B82F6', '#2563EB'], // blue-500 to blue-600
-  ['#10B981', '#059669'], // emerald-500 to emerald-600
-  ['#8B5CF6', '#7C3AED'], // violet-500 to violet-600
-  ['#EC4899', '#DB2777'], // pink-500 to pink-600
-];
-
-const CHART_TYPES = {
-  BAR: 'bar',
-  PIE: 'pie',
-  RADAR: 'radar',
-  RADIALBAR: 'radialbar',
-};
 
 // ABI tối thiểu cho các contract
 const cuocBauCuAbi = [
@@ -184,91 +34,26 @@ const cuocBauCuAbi = [
   'function laySoPhieuUngVien(uint256 idCuocBauCu, uint256 idPhienBauCu, address ungVien) external view returns (uint256)',
   'function layDanhSachUngVien(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (address[] memory)',
   'function layDanhSachPhienBauCu(uint256 idCuocBauCu, uint256 chiSoBatDau, uint256 gioiHan) external view returns (uint256[] memory)',
-  'function layDanhSachCuocBauCu(uint256 chiSoBatDau, uint256 gioiHan) external view returns (uint256[] memory)',
-  'function laySoCuocBauCu() external view returns (uint256)',
 ];
 
-const FALLBACK_RPC_URL = 'https://geth.holihu.online/rpc';
-const FALLBACK_WSS_URL = 'wss://geth.holihu.online/ws';
+const KetQuaBauCu = () => {
+  // Thông tin cố định
+  const cuocBauCuId = 1; // Fix cứng ID cuộc bầu cử
+  const [contractAddresses, setContractAddresses] = useState({});
+  const [contractAddress, setContractAddress] = useState('');
+  const [serverId, setServerId] = useState(null);
 
-// Thời gian cập nhật dữ liệu tự động (15 giây)
-const AUTO_REFRESH_INTERVAL = 15000;
-
-// Fallback contract addresses
-const CONTRACT_ADDRESSES = {
-  QuanLyCuocBauCu: '0x9d8cB9C2eD2EFedae3F7C660ceDCBBc90BA48dd8',
-  QuanLyPhieuBauProxy: '0x9c244B5E1F168510B9b812573b1B667bd1E654c8',
-  CuocBauCuFactory: '0x93e3b7720CAf68Fb4E4E0A9ca0152f61529D9900',
-};
-
-// Kết quả bầu cử Component
-const TrangKetQua = () => {
-  const { id: cuocBauCuIdParam, idPhien: phienBauCuIdParam } = useParams<{
-    id?: string;
-    idPhien?: string;
-  }>();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  // State cho các thông tin cơ bản
-  const [cuocBauCuList, setCuocBauCuList] = useState<
-    Array<{
-      id: number;
-      ten: string;
-      isActive: boolean;
-      startTime: Date;
-      endTime: Date;
-      blockchainAddress: string;
-    }>
-  >([]);
-  const [cuocBauCuId, setCuocBauCuId] = useState<number>(Number(cuocBauCuIdParam) || 0);
-  const [danhSachPhien, setDanhSachPhien] = useState<
-    Array<{
-      id: number;
-      isActive: boolean;
-      startTime: Date;
-      endTime: Date;
-      candidateCount: number;
-      voterCount: number;
-    }>
-  >([]);
-  const [selectedPhien, setSelectedPhien] = useState<number | null>(
-    phienBauCuIdParam ? Number(phienBauCuIdParam) : null,
-  );
+  // States cho phiên bầu cử
+  const [danhSachPhien, setDanhSachPhien] = useState([]);
+  const [selectedPhien, setSelectedPhien] = useState(null);
 
   // States cho dữ liệu
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [loadingStage, setLoadingStage] = useState<
-    'initial' | 'elections' | 'sessions' | 'results'
-  >('initial');
-  const [isChangingSession, setIsChangingSession] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [electionInfo, setElectionInfo] = useState<{
-    name: string;
-    owner: string;
-    isActive: boolean;
-    startTime: string;
-    endTime: string;
-  } | null>(null);
-  const [sessionInfo, setSessionInfo] = useState<{
-    isActive: boolean;
-    startTime: string;
-    endTime: string;
-    maxVoters: number;
-    candidateCount: number;
-    voterCount: number;
-    electedCandidates: string[];
-    reElection: boolean;
-  } | null>(null);
-  const [votingResults, setVotingResults] = useState<
-    Array<{
-      address: string;
-      displayAddress: string;
-      votes: number;
-      percentage: number;
-      isElected: boolean;
-    }>
-  >([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isChangingSession, setIsChangingSession] = useState(false);
+  const [error, setError] = useState(null);
+  const [electionInfo, setElectionInfo] = useState(null);
+  const [sessionInfo, setSessionInfo] = useState(null);
+  const [votingResults, setVotingResults] = useState([]);
   const [progress, setProgress] = useState({
     total: 0,
     voted: 0,
@@ -276,377 +61,142 @@ const TrangKetQua = () => {
   });
 
   // State cho theo dõi real-time
-  const [isMonitoring, setIsMonitoring] = useState<boolean>(false);
+  const [isMonitoring, setIsMonitoring] = useState(false);
 
-  // UI States
-  const [activeChartType, setActiveChartType] = useState<string>(CHART_TYPES.BAR);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-
-  // Determines if data is loaded successfully
-  const hasData = useMemo(() => {
-    return electionInfo && sessionInfo && votingResults.length > 0;
-  }, [electionInfo, sessionInfo, votingResults]);
-
-  // Check if the current mode is dark
+  // Lấy thông tin contract addresses
   useEffect(() => {
-    const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setIsDarkMode(isDark);
-
-    const handleThemeChange = (e: MediaQueryListEvent) => {
-      setIsDarkMode(e.matches);
-    };
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', handleThemeChange);
-
-    return () => {
-      mediaQuery.removeEventListener('change', handleThemeChange);
-    };
-  }, []);
-
-  // Lấy danh sách các cuộc bầu cử từ Factory Contract
-  useEffect(() => {
-    const fetchElectionList = async () => {
+    const fetchContractAddresses = async () => {
       try {
-        setIsLoading(true);
-        setLoadingStage('elections');
-        const provider = new ethers.JsonRpcProvider(FALLBACK_RPC_URL);
-
-        // Sử dụng Factory Contract
-        const factoryContract = new ethers.Contract(
-          CONTRACT_ADDRESSES.CuocBauCuFactory,
-          factoryAbi,
-          provider,
-        );
-
-        // Lấy tổng số server (cuộc bầu cử) từ idCuocBauCuTiepTheo
-        const nextId = await factoryContract.idCuocBauCuTiepTheo();
-        console.log('ID tiếp theo từ Factory:', Number(nextId));
-
-        const electionIds: number[] = [];
-        if (Number(nextId) > 1) {
-          // Tạo mảng từ 1 đến nextId-1
-          for (let i = 1; i < Number(nextId); i++) {
-            try {
-              // Kiểm tra trạng thái của từng cuộc bầu cử
-              const serverInfo = await factoryContract.layThongTinServer(i);
-              // Chỉ lấy những server đang hoạt động (trangThai = 0)
-              if (serverInfo && serverInfo[3] === 0) {
-                electionIds.push(i);
-              }
-            } catch (err) {
-              console.warn(`Không thể lấy thông tin cho server ID ${i}:`, err);
-            }
-          }
-          console.log(`Đã tìm thấy ${electionIds.length} cuộc bầu cử đang hoạt động`);
+        const response = await apiClient.get('/api/Blockchain/contract-addresses');
+        if (response.data) {
+          setContractAddresses(response.data);
         }
-
-        if (electionIds.length === 0) {
-          toast({
-            variant: 'warning',
-            title: 'Không tìm thấy cuộc bầu cử',
-            description: 'Không có cuộc bầu cử nào đang hoạt động trên blockchain.',
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        // Lấy thông tin chi tiết cho mỗi cuộc bầu cử
-        const electionDataPromises = electionIds.map(async (id: number) => {
-          try {
-            // Lấy thông tin từ Factory
-            const serverInfo = await factoryContract.layThongTinServer(id);
-
-            if (serverInfo && serverInfo[0] !== ethers.ZeroAddress) {
-              const contractAddress = serverInfo[0]; // Địa chỉ contract quản lý cuộc bầu cử
-              const tenCuocBauCu = serverInfo[1]; // Tên cuộc bầu cử từ Factory
-
-              return {
-                id: Number(id),
-                ten: tenCuocBauCu || `Cuộc bầu cử #${id}`,
-                isActive: true,
-                startTime: new Date(),
-                endTime: new Date(Date.now() + 86400000),
-                blockchainAddress: contractAddress,
-              };
-            } else {
-              throw new Error(`Server ID ${id} không tồn tại hoặc không hoạt động`);
-            }
-          } catch (err) {
-            console.warn(`Không thể lấy thông tin cho cuộc bầu cử ${id}:`, err);
-            return {
-              id: Number(id),
-              ten: `Cuộc bầu cử #${id}`,
-              isActive: false,
-              startTime: new Date(),
-              endTime: new Date(),
-              blockchainAddress: '',
-            };
-          }
-        });
-
-        const electionsData = (await Promise.all(electionDataPromises)).filter(
-          (election) => election.isActive && election.blockchainAddress,
-        );
-
-        setCuocBauCuList(electionsData);
-
-        // Nếu không có ID cuộc bầu cử được chọn hoặc ID không hợp lệ, chọn ID cuộc bầu cử đầu tiên
-        if (
-          (!cuocBauCuId || !electionsData.some((e) => e.id === cuocBauCuId)) &&
-          electionsData.length > 0
-        ) {
-          setCuocBauCuId(electionsData[0].id);
-        }
-
-        setIsLoading(false);
       } catch (error) {
-        console.error('Lỗi khi lấy danh sách cuộc bầu cử từ blockchain:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Lỗi kết nối blockchain',
-          description: 'Không thể kết nối đến blockchain để lấy danh sách cuộc bầu cử.',
-        });
-        setIsLoading(false);
+        console.error('Lỗi khi lấy địa chỉ contract:', error);
+        setError('Không thể kết nối với hệ thống để lấy thông tin contracts');
       }
     };
 
-    fetchElectionList();
-  }, [cuocBauCuId, toast]);
+    fetchContractAddresses();
+  }, []);
 
-  // Lấy danh sách phiên bầu cử khi có cuocBauCuId
+  // Lấy thông tin cuộc bầu cử và serverId
   useEffect(() => {
-    if (!cuocBauCuId) return;
+    const fetchElectionInfo = async () => {
+      try {
+        // Lấy thông tin cuộc bầu cử từ API
+        const response = await apiClient.get(`/api/CuocBauCu/${cuocBauCuId}`);
+        if (response.data) {
+          // Lấy địa chỉ blockchain từ cuộc bầu cử
+          setContractAddress(
+            response.data.blockchainAddress || '0x83d076026Cb9fea8694e9cBED3D30116C1DE5f74',
+          );
+          setServerId(response.data.blockchainServerId || 4);
+        }
+      } catch (error) {
+        console.error('Lỗi khi lấy thông tin cuộc bầu cử:', error);
+
+        // Fallback: Nếu API không hoạt động, sử dụng giá trị mặc định
+        setContractAddress('0x83d076026Cb9fea8694e9cBED3D30116C1DE5f74');
+        setServerId(4);
+      }
+    };
+
+    fetchElectionInfo();
+  }, []);
+
+  // Lấy danh sách phiên bầu cử khi có contractAddress
+  useEffect(() => {
+    if (!contractAddress) return;
 
     const fetchPhienBauCu = async () => {
       try {
         setIsLoading(true);
-        setLoadingStage('sessions');
 
-        // Lấy thông tin từ blockchain - ưu tiên sử dụng blockchain thay vì SQL
-        const provider = new ethers.JsonRpcProvider(FALLBACK_RPC_URL);
+        // Kết nối với blockchain
+        const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
+        const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
 
-        // Trước tiên, thử lấy thông tin cuộc bầu cử trực tiếp từ blockchain
-        // Nếu có lỗi, sẽ sử dụng thông tin từ Redux (SQL) như một backup
-        let contractAddress = contractAddresses.QuanLyCuocBauCu;
-        let blockchainContractAddress = '';
+        // Lấy thông tin cuộc bầu cử
+        const electionData = await contract.layThongTinCoBan(cuocBauCuId);
 
-        try {
-          // Với Factory contract, chúng ta có thể lấy địa chỉ hợp đồng dựa trên ID
-          const factoryContract = new ethers.Contract(
-            contractAddresses.CuocBauCuFactory || '0x93e3b7720CAf68Fb4E4E0A9ca0152f61529D9900',
-            ['function danhSachServer(uint256) view returns (address)'],
-            provider,
+        setElectionInfo({
+          name: electionData[4], // tenCuocBauCu
+          owner: electionData[0], // nguoiSoHuu
+          isActive: electionData[1], // dangHoatDongDay
+          startTime: new Date(Number(electionData[2]) * 1000).toLocaleString(), // thoiGianBatDau
+          endTime: new Date(Number(electionData[3]) * 1000).toLocaleString(), // thoiGianKetThuc
+        });
+
+        // Lấy danh sách phiên bầu cử
+        const phienIds = await contract.layDanhSachPhienBauCu(cuocBauCuId, 0, 10);
+
+        if (phienIds && phienIds.length > 0) {
+          // Lấy thông tin chi tiết cho từng phiên
+          const phienDetails = await Promise.all(
+            phienIds.map(async (id) => {
+              try {
+                const phienData = await contract.layThongTinPhienBauCu(cuocBauCuId, id);
+                return {
+                  id: Number(id),
+                  isActive: phienData[0],
+                  startTime: new Date(Number(phienData[1]) * 1000),
+                  endTime: new Date(Number(phienData[2]) * 1000),
+                  candidateCount: Number(phienData[4]),
+                  voterCount: Number(phienData[5]),
+                };
+              } catch (error) {
+                console.warn(`Không thể lấy thông tin chi tiết cho phiên ${id}:`, error);
+                return { id: Number(id), error: true };
+              }
+            }),
           );
 
-          // Thử lấy địa chỉ từ factory
-          blockchainContractAddress = await factoryContract.danhSachServer(cuocBauCuId);
+          setDanhSachPhien(phienDetails.filter((p) => !p.error));
 
-          if (blockchainContractAddress && blockchainContractAddress !== ethers.ZeroAddress) {
-            contractAddress = blockchainContractAddress;
-            console.log(`Đã lấy địa chỉ hợp đồng từ blockchain: ${contractAddress}`);
-          }
-        } catch (factoryError) {
-          console.warn('Không thể lấy địa chỉ hợp đồng từ Factory:', factoryError);
-          // Thử sử dụng địa chỉ từ Redux nếu có
-          if (cuocBauCu?.blockchainAddress) {
-            contractAddress = cuocBauCu.blockchainAddress;
-            console.log(`Sử dụng địa chỉ từ SQL/Redux: ${contractAddress}`);
-          }
-        }
-
-        {
-          /* Bây giờ sử dụng địa chỉ contract đã xác định để lấy dữ liệu */
-        }
-        try {
-          console.log(`Kết nối đến contract tại địa chỉ: ${contractAddress}`);
-          const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
-
-          // Lấy thông tin cuộc bầu cử từ blockchain
-          const electionData = await contract.layThongTinCoBan(cuocBauCuId);
-
-          setElectionInfo({
-            name: electionData[4],
-            owner: electionData[0],
-            isActive: electionData[1],
-            startTime: new Date(Number(electionData[2]) * 1000).toLocaleString('vi-VN'),
-            endTime: new Date(Number(electionData[3]) * 1000).toLocaleString('vi-VN'),
-          });
-
-          // Lấy danh sách phiên bầu cử từ blockchain
-          const phienIds = await contract.layDanhSachPhienBauCu(cuocBauCuId, 0, 20);
-
-          if (phienIds && phienIds.length > 0) {
-            // Lấy thông tin chi tiết cho từng phiên
-            const phienDetails = await Promise.all(
-              phienIds.map(async (id: any) => {
-                try {
-                  const phienData = await contract.layThongTinPhienBauCu(cuocBauCuId, id);
-                  return {
-                    id: Number(id),
-                    isActive: phienData[0],
-                    startTime: new Date(Number(phienData[1]) * 1000),
-                    endTime: new Date(Number(phienData[2]) * 1000),
-                    candidateCount: Number(phienData[4]),
-                    voterCount: Number(phienData[5]),
-                  };
-                } catch (error) {
-                  console.warn(`Không thể lấy thông tin chi tiết cho phiên ${id}:`, error);
-                  return { id: Number(id), error: true };
-                }
-              }),
-            );
-
-            setDanhSachPhien(phienDetails.filter((p) => !p.error));
-
-            // Chọn phiên đầu tiên hoặc phiên được chỉ định
-            if (!selectedPhien) {
-              if (phienBauCuIdParam) {
-                setSelectedPhien(Number(phienBauCuIdParam));
-              } else if (phienDetails.length > 0) {
-                const validPhien = phienDetails.find((p) => !p.error);
-                if (validPhien) {
-                  setSelectedPhien(validPhien.id);
-                }
-              }
+          // Chọn phiên đầu tiên
+          if (phienDetails.length > 0 && !selectedPhien) {
+            const validPhien = phienDetails.find((p) => !p.error);
+            if (validPhien) {
+              setSelectedPhien(validPhien.id);
             }
           }
-        } catch (contractError) {
-          console.error('Lỗi khi gọi contract:', contractError);
-          throw contractError; // Ném lỗi để xử lý ở catch bên ngoài
-        }
-
-        // Cập nhật dữ liệu SQL nếu cần để đồng bộ
-        if (
-          !cuocBauCu ||
-          (blockchainContractAddress && blockchainContractAddress !== cuocBauCu.blockchainAddress)
-        ) {
-          // Cập nhật thông tin SQL nhưng không phụ thuộc vào nó cho dữ liệu hiển thị
-          dispatch(fetchCuocBauCuById(cuocBauCuId));
         }
 
         setIsLoading(false);
       } catch (error) {
-        console.error('Lỗi khi lấy danh sách phiên bầu cử từ blockchain:', error);
-        setError(
-          `Không thể lấy danh sách phiên bầu cử: ${error instanceof Error ? error.message : String(error)}`,
-        );
-
-        // Thử sử dụng dữ liệu từ SQL/Redux như phương án dự phòng
-        try {
-          if (!cuocBauCu) {
-            await dispatch(fetchCuocBauCuById(cuocBauCuId));
-          }
-
-          if (cuocBauCu && cacPhienBauCu.length > 0) {
-            toast({
-              variant: 'warning',
-              title: 'Chuyển sang dữ liệu dự phòng',
-              description: 'Đang sử dụng dữ liệu từ cơ sở dữ liệu do không thể kết nối blockchain.',
-            });
-
-            // Sử dụng dữ liệu từ SQL/Redux
-            setDanhSachPhien(
-              cacPhienBauCu.map((p) => ({
-                id: p.id,
-                isActive: p.trangThai === 1,
-                startTime: new Date(p.ngayBatDau),
-                endTime: new Date(p.ngayKetThuc),
-                candidateCount: 0, // SQL không có thông tin này
-                voterCount: 0, // SQL không có thông tin này
-              })),
-            );
-
-            if (!selectedPhien && phienBauCuIdParam) {
-              setSelectedPhien(Number(phienBauCuIdParam));
-            } else if (!selectedPhien && cacPhienBauCu.length > 0) {
-              setSelectedPhien(cacPhienBauCu[0].id);
-            }
-          }
-        } catch (sqlError) {
-          console.error('Không thể sử dụng dữ liệu dự phòng từ SQL:', sqlError);
-        }
-
+        console.error('Lỗi khi lấy danh sách phiên bầu cử:', error);
+        setError(`Không thể lấy danh sách phiên bầu cử: ${error.message}`);
         setIsLoading(false);
-        toast({
-          variant: 'destructive',
-          title: 'Lỗi kết nối blockchain',
-          description: 'Không thể kết nối đến blockchain để lấy danh sách phiên bầu cử.',
-        });
       }
     };
 
     fetchPhienBauCu();
-  }, [
-    cuocBauCuId,
-    cuocBauCu,
-    dispatch,
-    contractAddresses.QuanLyCuocBauCu,
-    contractAddresses.CuocBauCuFactory,
-    phienBauCuIdParam,
-    selectedPhien,
-    toast,
-    cacPhienBauCu,
-  ]);
+  }, [contractAddress]);
 
   // Lấy kết quả cho phiên bầu cử được chọn
   const fetchSessionResults = useCallback(async () => {
-    if (!cuocBauCuId || !selectedPhien) return;
+    if (!contractAddress || !selectedPhien) return;
 
     try {
       setIsChangingSession(true);
-      setLoadingStage('results');
 
-      // Lấy địa chỉ contract từ danh sách cuộc bầu cử đã tải trước đó
-      let contractAddress = null;
-      const election = cuocBauCuList.find((e) => e.id === cuocBauCuId);
-
-      if (election && election.blockchainAddress) {
-        contractAddress = election.blockchainAddress;
-        console.log(`Sử dụng địa chỉ contract từ danh sách: ${contractAddress}`);
-      } else {
-        // Nếu không có trong danh sách, lấy từ Factory
-        try {
-          const provider = new ethers.JsonRpcProvider(FALLBACK_RPC_URL);
-          const factoryContract = new ethers.Contract(
-            contractAddresses.CuocBauCuFactory || CONTRACT_ADDRESSES.CuocBauCuFactory,
-            factoryAbi,
-            provider,
-          );
-
-          const serverInfo = await factoryContract.layThongTinServer(cuocBauCuId);
-          if (serverInfo && serverInfo[0] !== ethers.ZeroAddress) {
-            contractAddress = serverInfo[0];
-            console.log(`Đã lấy địa chỉ contract từ Factory: ${contractAddress}`);
-          }
-        } catch (factoryError) {
-          console.warn('Không thể lấy địa chỉ từ Factory:', factoryError);
-        }
-
-        // Sử dụng địa chỉ mặc định nếu vẫn không có
-        if (!contractAddress) {
-          contractAddress = contractAddresses.QuanLyCuocBauCu || CONTRACT_ADDRESSES.QuanLyCuocBauCu;
-          console.log(`Sử dụng địa chỉ contract mặc định: ${contractAddress}`);
-        }
-      }
-
-      // Kết nối với contract
-      const provider = new ethers.JsonRpcProvider(FALLBACK_RPC_URL);
+      // Kết nối với blockchain
+      const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
       const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
 
       // Lấy thông tin phiên bầu cử
       const sessionData = await contract.layThongTinPhienBauCu(cuocBauCuId, selectedPhien);
 
       setSessionInfo({
-        isActive: sessionData[0],
-        startTime: new Date(Number(sessionData[1]) * 1000).toLocaleString('vi-VN'),
-        endTime: new Date(Number(sessionData[2]) * 1000).toLocaleString('vi-VN'),
-        maxVoters: Number(sessionData[3]),
-        candidateCount: Number(sessionData[4]),
-        voterCount: Number(sessionData[5]),
-        electedCandidates: sessionData[6],
-        reElection: sessionData[7],
+        isActive: sessionData[0], // dangHoatDongNe
+        startTime: new Date(Number(sessionData[1]) * 1000).toLocaleString(), // thoiGianBatDau
+        endTime: new Date(Number(sessionData[2]) * 1000).toLocaleString(), // thoiGianKetThuc
+        maxVoters: Number(sessionData[3]), // soCuTriToiDa
+        candidateCount: Number(sessionData[4]), // soUngVienHienTai
+        voterCount: Number(sessionData[5]), // soCuTriHienTai
+        electedCandidates: sessionData[6], // ungVienDacCu
+        reElection: sessionData[7], // taiBauCu
       });
 
       // Cách xử lý khác nhau tùy theo trạng thái phiên
@@ -707,10 +257,10 @@ const TrangKetQua = () => {
           const results = await contract.layKetQuaPhienBauCu(cuocBauCuId, selectedPhien);
 
           // Tính tổng số phiếu
-          const totalVotes = results[1].reduce((sum: number, votes: any) => sum + Number(votes), 0);
+          const totalVotes = results[1].reduce((sum, votes) => sum + Number(votes), 0);
 
           // Xử lý kết quả bỏ phiếu cho biểu đồ
-          const formattedResults = results[0].map((address: string, index: number) => {
+          const formattedResults = results[0].map((address, index) => {
             const voteCount = Number(results[1][index]);
             const percentage = totalVotes > 0 ? ((voteCount / totalVotes) * 100).toFixed(2) : 0;
             const isElected = sessionData[6].includes(address);
@@ -740,25 +290,17 @@ const TrangKetQua = () => {
           }
         } catch (error) {
           console.error('Lỗi khi lấy kết quả:', error);
-          setError(
-            'Không thể lấy kết quả bầu cử: ' +
-              (error instanceof Error ? error.message : String(error)),
-          );
+          setError('Không thể lấy kết quả bầu cử: ' + error.message);
         }
       }
 
       setIsChangingSession(false);
     } catch (error) {
       console.error('Lỗi khi lấy kết quả phiên bầu cử:', error);
-      setError(`Lỗi khi lấy kết quả: ${error instanceof Error ? error.message : String(error)}`);
+      setError(`Lỗi khi lấy kết quả: ${error.message}`);
       setIsChangingSession(false);
-      toast({
-        variant: 'destructive',
-        title: 'Lỗi kết nối',
-        description: 'Không thể kết nối đến blockchain để lấy kết quả bầu cử.',
-      });
     }
-  }, [cuocBauCuId, selectedPhien, contractAddresses, cuocBauCuList, toast]);
+  }, [contractAddress, selectedPhien]);
 
   useEffect(() => {
     if (selectedPhien) {
@@ -768,23 +310,35 @@ const TrangKetQua = () => {
 
   // Theo dõi real-time
   useEffect(() => {
-    if (!isMonitoring || !cuocBauCuId || !selectedPhien) return;
+    if (!isMonitoring || !contractAddress || !selectedPhien) return;
 
     let provider;
+    let contract;
     let interval;
 
-    const setupMonitoring = () => {
+    const setupMonitoring = async () => {
       try {
-        // Fallback to HTTP polling
-        provider = new ethers.JsonRpcProvider(FALLBACK_RPC_URL);
-        interval = setInterval(fetchSessionResults, AUTO_REFRESH_INTERVAL);
+        // Thiết lập kết nối WebSocket nếu có
+        try {
+          provider = new ethers.WebSocketProvider('wss://geth.holihu.online/ws');
+          console.log('WebSocket kết nối thành công');
+        } catch (wsError) {
+          // Fallback to HTTP polling
+          console.warn('Không thể kết nối WebSocket, sử dụng HTTP polling:', wsError);
+          provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
+          interval = setInterval(fetchSessionResults, 30000); // Cập nhật mỗi 30 giây
+          return;
+        }
 
-        toast({
-          title: 'Đang theo dõi',
-          description: `Kết quả sẽ được cập nhật mỗi ${AUTO_REFRESH_INTERVAL / 1000} giây`,
-        });
+        contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
+
+        // Chỉ dùng polling thay vì WebSocket listener (để tránh lỗi event)
+        console.log('Thiết lập polling cho cập nhật dữ liệu');
+        interval = setInterval(fetchSessionResults, 15000); // Cập nhật mỗi 15 giây
       } catch (error) {
         console.error('Lỗi khi thiết lập theo dõi:', error);
+        // Fallback nếu có lỗi
+        interval = setInterval(fetchSessionResults, 30000);
       }
     };
 
@@ -792,50 +346,49 @@ const TrangKetQua = () => {
 
     return () => {
       if (interval) clearInterval(interval);
-      if (provider && typeof provider.destroy === 'function') {
-        provider.destroy();
+      if (provider) {
+        if (provider.destroy) provider.destroy();
+        provider.removeAllListeners();
       }
     };
-  }, [isMonitoring, cuocBauCuId, selectedPhien, fetchSessionResults, toast]);
+  }, [isMonitoring, contractAddress, selectedPhien, fetchSessionResults, sessionInfo]);
 
-  // Xử lý khi thay đổi cuộc bầu cử
-  const handleElectionChange = (value: string) => {
-    if (isMonitoring) setIsMonitoring(false);
-    const newId = Number(value);
-    setCuocBauCuId(newId);
-    setSelectedPhien(null);
-    navigate(`/ket-qua/${newId}`);
-  };
-
-  // Xử lý khi thay đổi phiên bầu cử
-  const handleSessionChange = (value: string) => {
-    if (isMonitoring) setIsMonitoring(false);
-    setSelectedPhien(Number(value));
-    navigate(`/ket-qua/${cuocBauCuId}/${value}`);
-  };
-
-  // Hàm làm mới dữ liệu
-  const refreshData = () => {
-    toast({
-      title: 'Đang cập nhật',
-      description: 'Đang tải dữ liệu bầu cử mới nhất từ blockchain',
-    });
-    fetchSessionResults();
-  };
-
-  // Toggle theo dõi
-  const toggleMonitoring = () => {
-    setIsMonitoring(!isMonitoring);
-    if (isMonitoring) {
-      toast({
-        title: 'Đã dừng theo dõi',
-        description: 'Đã dừng cập nhật dữ liệu tự động',
-      });
+  // Custom tooltip cho biểu đồ
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-bold">{data.displayAddress}</p>
+          <p className="text-blue-600">{data.votes} phiếu</p>
+          <p className="text-gray-600">{data.percentage}% tổng phiếu</p>
+          {data.isElected && (
+            <p className="text-green-600 flex items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Trúng cử
+            </p>
+          )}
+        </div>
+      );
     }
+    return null;
   };
 
   // Tính thời gian còn lại
-  const calculateTimeRemaining = useCallback(() => {
+  const calculateTimeRemaining = () => {
     if (!sessionInfo) return null;
 
     const endTime = new Date(sessionInfo.endTime);
@@ -849,590 +402,276 @@ const TrangKetQua = () => {
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     return `${days > 0 ? `${days} ngày ` : ''}${hours} giờ ${minutes} phút`;
-  }, [sessionInfo]);
-
-  // Custom tooltip cho biểu đồ
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="p-3 border rounded-lg shadow-lg dark:shadow-gray-900 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <p className="font-medium text-gray-900 dark:text-gray-100">{data.displayAddress}</p>
-          <p className="text-blue-600 dark:text-blue-400">{data.votes} phiếu</p>
-          <p className="text-gray-600 dark:text-gray-400">{data.percentage}% tổng phiếu</p>
-          {data.isElected && (
-            <p className="text-green-600 dark:text-green-400 flex items-center">
-              <CheckCircle className="h-4 w-4 mr-1" />
-              Trúng cử
-            </p>
-          )}
-        </div>
-      );
-    }
-    return null;
   };
 
-  // Custom legend formatter cho biểu đồ
-  const renderLegend = (props: any) => {
-    const { payload } = props;
-
-    return (
-      <div className="flex flex-wrap justify-center gap-2 mt-2">
-        {payload.map((entry: any, index: number) => (
-          <div
-            key={`item-${index}`}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-gray-100 dark:bg-gray-800"
-          >
-            <div
-              style={{
-                backgroundColor: entry.color,
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-              }}
-            />
-            <span className="text-gray-800 dark:text-gray-200">{entry.value}</span>
-          </div>
-        ))}
-      </div>
-    );
+  // Xử lý khi thay đổi phiên bầu cử
+  const handleSessionChange = (e) => {
+    setSelectedPhien(Number(e.target.value));
   };
 
-  // Render biểu đồ cột
-  const renderBarChart = () => (
-    <ResponsiveContainer width="100%" height={350}>
-      <BarChart data={votingResults} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#374151' : '#e5e7eb'} />
-        <XAxis
-          dataKey="displayAddress"
-          angle={-45}
-          textAnchor="end"
-          height={70}
-          tick={{ fill: isDarkMode ? '#9ca3af' : '#4b5563' }}
-        />
-        <YAxis tick={{ fill: isDarkMode ? '#9ca3af' : '#4b5563' }} />
-        <Tooltip content={<CustomTooltip />} />
-        <Legend />
-        <Bar dataKey="votes" name="Số phiếu" radius={[8, 8, 0, 0]}>
-          {votingResults.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={
-                entry.isElected
-                  ? CHART_COLORS[index % CHART_COLORS.length]
-                  : `${CHART_COLORS[index % CHART_COLORS.length]}90`
-              }
-              stroke={entry.isElected ? CHART_COLORS[index % CHART_COLORS.length] : 'none'}
-              strokeWidth={2}
-            />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-
-  // Render biểu đồ tròn
-  const renderPieChart = () => (
-    <ResponsiveContainer width="100%" height={350}>
-      <PieChart>
-        <Pie
-          data={votingResults}
-          dataKey="votes"
-          nameKey="displayAddress"
-          cx="50%"
-          cy="50%"
-          outerRadius={130}
-          innerRadius={60}
-          paddingAngle={2}
-          labelLine={false}
-          label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, displayAddress }) => {
-            const RADIAN = Math.PI / 180;
-            const radius = innerRadius + (outerRadius - innerRadius) * 1.1;
-            const x = cx + radius * Math.cos(-midAngle * RADIAN);
-            const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-            return percent > 0.05 ? (
-              <text
-                x={x}
-                y={y}
-                fill={isDarkMode ? '#d1d5db' : '#4b5563'}
-                textAnchor={x > cx ? 'start' : 'end'}
-                dominantBaseline="central"
-                fontSize={12}
-              >
-                {displayAddress} ({(percent * 100).toFixed(0)}%)
-              </text>
-            ) : null;
-          }}
-        >
-          {votingResults.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={
-                entry.isElected
-                  ? CHART_COLORS[index % CHART_COLORS.length]
-                  : `${CHART_COLORS[index % CHART_COLORS.length]}90`
-              }
-              stroke={isDarkMode ? '#1f2937' : '#f3f4f6'}
-              strokeWidth={2}
-            />
-          ))}
-        </Pie>
-        <Tooltip content={<CustomTooltip />} />
-        <Legend content={renderLegend} />
-      </PieChart>
-    </ResponsiveContainer>
-  );
-
-  // Render biểu đồ radar
-  const renderRadarChart = () => (
-    <ResponsiveContainer width="100%" height={350}>
-      <RadarChart cx="50%" cy="50%" outerRadius={150} data={votingResults}>
-        <PolarGrid stroke={isDarkMode ? '#374151' : '#e5e7eb'} />
-        <PolarAngleAxis
-          dataKey="displayAddress"
-          tick={{ fill: isDarkMode ? '#9ca3af' : '#4b5563', fontSize: 12 }}
-        />
-        <PolarRadiusAxis
-          angle={90}
-          domain={[0, 'auto']}
-          tick={{ fill: isDarkMode ? '#9ca3af' : '#4b5563' }}
-        />
-        <Radar
-          name="Số phiếu"
-          dataKey="votes"
-          stroke="#3B82F6"
-          fill="#3B82F680"
-          fillOpacity={0.6}
-        />
-        <Tooltip content={<CustomTooltip />} />
-        <Legend />
-      </RadarChart>
-    </ResponsiveContainer>
-  );
-
-  // Render biểu đồ radial bar
-  const renderRadialBarChart = () => (
-    <ResponsiveContainer width="100%" height={350}>
-      <RadialBarChart
-        cx="50%"
-        cy="50%"
-        innerRadius={30}
-        outerRadius={150}
-        barSize={20}
-        data={votingResults.map((item, index) => ({
-          ...item,
-          fill: CHART_COLORS[index % CHART_COLORS.length],
-        }))}
-      >
-        <RadialBar
-          minAngle={15}
-          label={{
-            position: 'insideStart',
-            fill: '#fff',
-            fontSize: 12,
-          }}
-          background={{ fill: isDarkMode ? '#374151' : '#e5e7eb' }}
-          clockWise
-          dataKey="votes"
-        />
-        <Tooltip content={<CustomTooltip />} />
-        <Legend
-          iconSize={10}
-          layout="vertical"
-          verticalAlign="middle"
-          align="right"
-          wrapperStyle={{ fontSize: 12 }}
-        />
-      </RadialBarChart>
-    </ResponsiveContainer>
-  );
-
-  const renderActiveChart = () => {
-    // Nếu không có dữ liệu, hiển thị thông báo
-    if (!votingResults || votingResults.length === 0) {
-      return (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center text-gray-500 dark:text-gray-400">
-            <Database className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>Không có dữ liệu kết quả để hiển thị</p>
-          </div>
-        </div>
-      );
-    }
-
-    // Hiển thị biểu đồ tương ứng với loại được chọn
-    switch (activeChartType) {
-      case CHART_TYPES.PIE:
-        return renderPieChart();
-      case CHART_TYPES.RADAR:
-        return renderRadarChart();
-      case CHART_TYPES.RADIALBAR:
-        return renderRadialBarChart();
-      case CHART_TYPES.BAR:
-      default:
-        return renderBarChart();
-    }
+  // Toggle theo dõi
+  const toggleMonitoring = () => {
+    setIsMonitoring(!isMonitoring);
   };
 
-  // Render loading skeleton
-  const renderLoadingSkeleton = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <Skeleton className="h-6 w-52" />
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-4 w-4/5" />
-            <Skeleton className="h-8 w-full" />
-          </CardContent>
-        </Card>
+  // Hàm làm mới dữ liệu
+  const refreshData = () => {
+    fetchSessionResults();
+  };
 
-        <Card>
-          <CardHeader className="pb-2">
-            <Skeleton className="h-6 w-48" />
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-8 w-full" />
-            <div className="grid grid-cols-2 gap-4 mt-6">
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <Skeleton className="h-6 w-64" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-[350px] w-full rounded-lg" />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <Skeleton className="h-6 w-56" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex justify-between items-center">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-20" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  // UI cho trạng thái loading
   if (isLoading) {
     return (
-      <div className="container px-4 py-8 mx-auto max-w-7xl">
-        <div className="flex flex-col space-y-3 mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent animate-pulse">
-            Đang tải dữ liệu bầu cử blockchain
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            {loadingStage === 'initial' && 'Đang khởi tạo kết nối blockchain...'}
-            {loadingStage === 'elections' && 'Đang tải danh sách cuộc bầu cử...'}
-            {loadingStage === 'sessions' && 'Đang tải danh sách phiên bầu cử...'}
-            {loadingStage === 'results' && 'Đang tải kết quả bầu cử...'}
-          </p>
+      <div className="flex h-96 items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <p className="mt-4">Đang tải dữ liệu từ blockchain...</p>
         </div>
-
-        <Card className="mb-6 border-2 border-dashed border-blue-200 dark:border-blue-900">
-          <CardContent className="flex items-center justify-center p-12">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Đang tải dữ liệu từ blockchain
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                Đang kết nối đến các hợp đồng thông minh để lấy dữ liệu cuộc bầu cử. Quá trình này
-                có thể mất vài giây.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {renderLoadingSkeleton()}
       </div>
     );
   }
 
   return (
-    <div className="container px-4 py-8 mx-auto max-w-7xl">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl shadow-xl p-6 mb-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-white/10 bg-[size:20px_20px] opacity-20"></div>
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="relative z-10"
-        >
-          <h1 className="text-3xl font-extrabold mb-2 flex items-center">
-            <BarChart2 className="w-8 h-8 mr-3" />
-            Kết Quả Bầu Cử Blockchain
-          </h1>
-          {electionInfo && <p className="text-xl opacity-90 font-medium">{electionInfo.name}</p>}
-
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <div className="flex-1">
-              <Select value={cuocBauCuId.toString()} onValueChange={handleElectionChange}>
-                <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
-                  <SelectValue placeholder="Chọn cuộc bầu cử" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {cuocBauCuList.map((cuoc) => (
-                      <SelectItem key={cuoc.id} value={cuoc.id.toString()}>
-                        <div className="flex items-center">
-                          <span>{cuoc.ten}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex-1">
-              <Select
-                value={selectedPhien ? selectedPhien.toString() : ''}
-                onValueChange={handleSessionChange}
-                disabled={danhSachPhien.length === 0}
-              >
-                <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
-                  <SelectValue placeholder="Chọn phiên bầu cử" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {danhSachPhien.map((phien) => (
-                      <SelectItem key={phien.id} value={phien.id.toString()}>
-                        <div className="flex items-center">
-                          <span>
-                            Phiên #{phien.id} -{' '}
-                            {phien.isActive ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc'}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Session badges */}
-          {sessionInfo && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              <Badge
-                className="bg-white/20 hover:bg-white/30 text-white border-none"
-                variant="outline"
-              >
-                <Calendar className="w-3.5 h-3.5 mr-1" />
-                {new Date(sessionInfo.startTime).toLocaleDateString('vi-VN')} -{' '}
-                {new Date(sessionInfo.endTime).toLocaleDateString('vi-VN')}
-              </Badge>
-
-              <Badge
-                className={`
-                  ${sessionInfo.isActive ? 'bg-green-500/80' : 'bg-red-500/80'} 
-                  hover:bg-opacity-100 text-white border-none
-                `}
-                variant="outline"
-              >
-                <span
-                  className={`w-2 h-2 rounded-full ${sessionInfo.isActive ? 'bg-green-300' : 'bg-red-300'} mr-1.5 animate-pulse`}
-                ></span>
-                {sessionInfo.isActive ? 'Đang diễn ra' : 'Đã kết thúc'}
-              </Badge>
-
-              <Badge
-                className="bg-white/20 hover:bg-white/30 text-white border-none"
-                variant="outline"
-              >
-                <User className="w-3.5 h-3.5 mr-1" />
-                {sessionInfo.voterCount} cử tri
-              </Badge>
-
-              <Badge
-                className="bg-white/20 hover:bg-white/30 text-white border-none"
-                variant="outline"
-              >
-                <Award className="w-3.5 h-3.5 mr-1" />
-                {sessionInfo.candidateCount} ứng viên
-              </Badge>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Decorative elements */}
-        <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-white/5 rounded-full blur-2xl"></div>
-        <div className="absolute right-1/4 -top-8 w-32 h-32 bg-purple-500/20 rounded-full blur-xl"></div>
+    <div className="container mx-auto p-4">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg shadow-lg p-6 mb-6">
+        <h1 className="text-2xl font-bold">Kết Quả Bầu Cử Blockchain</h1>
+        {electionInfo && <p className="mt-2 opacity-90">{electionInfo.name}</p>}
       </div>
 
-      {/* Error message */}
       {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Lỗi kết nối blockchain</AlertTitle>
-          <AlertDescription>
-            {error}
-            <div className="mt-2">
-              <Button
-                size="sm"
-                onClick={() => {
-                  setError(null);
-                  refreshData();
-                }}
-                className="mr-2"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Thử lại
-              </Button>
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </div>
-          </AlertDescription>
-        </Alert>
+            <div className="ml-3">
+              <p>{error}</p>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Control buttons */}
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={refreshData}
-            disabled={isChangingSession || !selectedPhien}
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            {isChangingSession ? (
-              <span className="flex items-center">
-                <Loader className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
-                Đang cập nhật...
-              </span>
-            ) : (
-              <span className="flex items-center">
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Làm mới
-              </span>
-            )}
-          </Button>
+      {/* Chọn phiên bầu cử */}
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <div className="flex-grow">
+            <label htmlFor="phien-select" className="block text-sm font-medium text-gray-700 mb-1">
+              Chọn phiên bầu cử:
+            </label>
+            <select
+              id="phien-select"
+              value={selectedPhien || ''}
+              onChange={handleSessionChange}
+              className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              disabled={isChangingSession}
+            >
+              <option value="">-- Chọn phiên bầu cử --</option>
+              {danhSachPhien.map((phien) => (
+                <option key={phien.id} value={phien.id}>
+                  Phiên #{phien.id} - {phien.isActive ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc'}
+                  {phien.isActive
+                    ? ` (${phien.candidateCount} ứng viên, ${phien.voterCount} cử tri)`
+                    : ''}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <Button
-            onClick={toggleMonitoring}
-            className={`${
-              isMonitoring
-                ? 'bg-red-500 hover:bg-red-600 text-white'
-                : 'bg-green-500 hover:bg-green-600 text-white'
-            }`}
-            disabled={!selectedPhien}
-            size="sm"
-          >
-            {isMonitoring ? (
-              <span className="flex items-center">
-                <X className="mr-2 h-4 w-4" />
-                Dừng theo dõi
-              </span>
-            ) : (
-              <span className="flex items-center">
-                <Zap className="mr-2 h-4 w-4" />
-                Theo dõi real-time
-              </span>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <button
+              onClick={refreshData}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={isChangingSession || !selectedPhien}
+            >
+              {isChangingSession ? (
+                <span className="flex items-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Đang cập nhật...
+                </span>
+              ) : (
+                <span className="flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  Làm mới
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={toggleMonitoring}
+              className={`px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                isMonitoring
+                  ? 'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500'
+                  : 'bg-green-500 text-white hover:bg-green-600 focus:ring-green-500'
+              }`}
+              disabled={!selectedPhien}
+            >
+              {isMonitoring ? (
+                <span className="flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                  Dừng theo dõi
+                </span>
+              ) : (
+                <span className="flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                  Theo dõi real-time
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {isMonitoring && (
-          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/30">
-            <span className="flex items-center">
-              <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-ping"></span>
-              Cập nhật mỗi {AUTO_REFRESH_INTERVAL / 1000}s
-            </span>
-          </Badge>
+          <div className="mt-2 bg-green-50 border border-green-200 rounded-md p-3 text-green-700 text-sm">
+            <div className="flex">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+              <div>
+                <p className="font-medium">Đang theo dõi phiên bầu cử #{selectedPhien}</p>
+                <p className="mt-1">
+                  Dữ liệu sẽ tự động cập nhật khi có phiếu bầu mới hoặc phiên kết thúc.
+                </p>
+              </div>
+            </div>
+          </div>
         )}
-
-        {/* Search field */}
-        <div className="relative w-full md:w-auto">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-          <Input
-            type="search"
-            placeholder="Tìm theo địa chỉ ví..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-4 w-full md:w-64 bg-white dark:bg-gray-800"
-          />
-        </div>
       </div>
 
-      {/* Main content grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Election information card */}
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-shadow overflow-hidden">
-          <CardHeader className="pb-2 border-b border-gray-100 dark:border-gray-700">
-            <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center">
-              <FileText className="h-5 w-5 text-blue-500 mr-2" />
-              Thông tin phiên bầu cử
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 p-6">
-            {sessionInfo ? (
+      {selectedPhien && sessionInfo ? (
+        <>
+          {/* Thông tin phiên bầu cử */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                Thông tin phiên bầu cử #{selectedPhien}
+              </h2>
               <div className="space-y-3">
-                <div className="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-2">
-                  <span className="text-gray-500 dark:text-gray-400">Trạng thái:</span>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500">Trạng thái:</span>
                   <span
-                    className={`font-medium ${sessionInfo.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                    className={`font-medium ${sessionInfo.isActive ? 'text-green-600' : 'text-red-600'}`}
                   >
                     {sessionInfo.isActive ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc'}
                   </span>
                 </div>
-                <div className="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-2">
-                  <span className="text-gray-500 dark:text-gray-400">Thời gian bắt đầu:</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {sessionInfo.startTime}
-                  </span>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500">Thời gian bắt đầu:</span>
+                  <span className="font-medium">{sessionInfo.startTime}</span>
                 </div>
-                <div className="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-2">
-                  <span className="text-gray-500 dark:text-gray-400">Thời gian kết thúc:</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {sessionInfo.endTime}
-                  </span>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500">Thời gian kết thúc:</span>
+                  <span className="font-medium">{sessionInfo.endTime}</span>
                 </div>
-                <div className="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-2">
-                  <span className="text-gray-500 dark:text-gray-400">Số cử tri:</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {sessionInfo.voterCount}
-                  </span>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500">Số cử tri:</span>
+                  <span className="font-medium">{sessionInfo.voterCount}</span>
                 </div>
-                <div className="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-2">
-                  <span className="text-gray-500 dark:text-gray-400">Số ứng viên:</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {sessionInfo.candidateCount}
-                  </span>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500">Số ứng viên:</span>
+                  <span className="font-medium">{sessionInfo.candidateCount}</span>
                 </div>
-                <div className="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-2">
-                  <span className="text-gray-500 dark:text-gray-400">Số ứng viên trúng cử:</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {sessionInfo.electedCandidates?.length || 0}
-                  </span>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500">Số ứng viên trúng cử:</span>
+                  <span className="font-medium">{sessionInfo.electedCandidates?.length || 0}</span>
                 </div>
 
                 {sessionInfo.isActive && (
-                  <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800/30">
-                    <p className="text-blue-800 dark:text-blue-300 flex items-center">
-                      <Clock className="h-5 w-5 mr-2 text-blue-500" />
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <p className="text-blue-800 flex items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
                       <span>
                         <strong>Thời gian còn lại:</strong> {calculateTimeRemaining()}
                       </span>
@@ -1440,324 +679,280 @@ const TrangKetQua = () => {
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <Database className="h-12 w-12 mx-auto mb-3 text-gray-400 dark:text-gray-600" />
-                <p>Chưa có thông tin phiên bầu cử.</p>
-                <p className="mt-2 text-sm">
-                  Vui lòng chọn một phiên bầu cử để xem thông tin chi tiết.
-                </p>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">Tiến trình bỏ phiếu</h2>
+              <div className="text-right mb-1">
+                <span className="font-medium">
+                  {progress.voted}/{progress.total} cử tri ({progress.percentage}%)
+                </span>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
+                <div
+                  className={`h-4 rounded-full transition-all duration-500 ${
+                    progress.percentage >= 80
+                      ? 'bg-green-500'
+                      : progress.percentage >= 50
+                        ? 'bg-blue-500'
+                        : 'bg-amber-500'
+                  }`}
+                  style={{ width: `${progress.percentage}%` }}
+                ></div>
+              </div>
 
-        {/* Voting progress card */}
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-shadow overflow-hidden">
-          <CardHeader className="pb-2 border-b border-gray-100 dark:border-gray-700">
-            <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center">
-              <Activity className="h-5 w-5 text-blue-500 mr-2" />
-              Tiến trình bỏ phiếu
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            {sessionInfo ? (
-              <div className="space-y-4">
-                <div className="text-right mb-1">
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {progress.voted}/{progress.total} cử tri ({progress.percentage}%)
-                  </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                <div className="bg-gray-50 p-4 rounded-lg text-center">
+                  <div className="text-3xl font-bold text-blue-600">{sessionInfo.voterCount}</div>
+                  <div className="text-sm text-gray-500 mt-1">Tổng số cử tri</div>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
-                  <motion.div
-                    initial={{ width: '0%' }}
-                    animate={{ width: `${progress.percentage}%` }}
-                    transition={{ duration: 1, delay: 0.2 }}
-                    className={`h-4 rounded-full ${
-                      progress.percentage >= 80
-                        ? 'bg-green-500'
-                        : progress.percentage >= 50
-                          ? 'bg-blue-500'
-                          : 'bg-amber-500'
-                    }`}
-                  ></motion.div>
+                <div className="bg-gray-50 p-4 rounded-lg text-center">
+                  <div className="text-3xl font-bold text-green-600">{progress.voted}</div>
+                  <div className="text-sm text-gray-500 mt-1">Số phiếu đã bỏ</div>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg text-center">
-                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                      {sessionInfo?.voterCount || 0}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      Tổng số cử tri
-                    </div>
+              <div className="mt-6 text-sm text-gray-500">
+                {progress.percentage >= 60 ? (
+                  <div className="flex items-start bg-green-50 p-3 rounded-lg border border-green-200">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-2 text-green-600 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span className="text-green-700">
+                      Đủ điều kiện kết thúc sớm (trên 60% tham gia). Ban tổ chức có thể kết thúc
+                      phiên bầu cử ngay bây giờ.
+                    </span>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg text-center">
-                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                      {progress.voted}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      Số phiếu đã bỏ
-                    </div>
+                ) : (
+                  <div className="flex items-start bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-2 text-blue-600 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span className="text-blue-700">
+                      Chưa đủ điều kiện kết thúc sớm (cần trên 60% cử tri tham gia). Phiên sẽ kết
+                      thúc theo thời gian đã định.
+                    </span>
                   </div>
-                </div>
-
-                <div className="mt-6">
-                  {progress.percentage >= 60 ? (
-                    <div className="flex items-start bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-100 dark:border-green-800/30">
-                      <CheckCircle className="h-5 w-5 mr-2 text-green-600 dark:text-green-400 flex-shrink-0" />
-                      <span className="text-green-700 dark:text-green-400">
-                        Đủ điều kiện kết thúc sớm (trên 60% tham gia). Ban tổ chức có thể kết thúc
-                        phiên bầu cử ngay bây giờ.
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-start bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800/30">
-                      <Info className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                      <span className="text-blue-700 dark:text-blue-400">
-                        Chưa đủ điều kiện kết thúc sớm (cần trên 60% cử tri tham gia). Phiên sẽ kết
-                        thúc theo thời gian đã định.
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <Activity className="h-12 w-12 mx-auto mb-3 text-gray-400 dark:text-gray-600" />
-                <p>Chưa có thông tin tiến trình bỏ phiếu.</p>
-                <p className="mt-2 text-sm">
-                  Vui lòng chọn một phiên bầu cử để xem thông tin chi tiết.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Voting results section */}
-      <div className="space-y-6">
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-shadow overflow-hidden">
-          <CardHeader className="pb-2 border-b border-gray-100 dark:border-gray-700">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-              <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center">
-                <Award className="h-5 w-5 text-blue-500 mr-2" />
-                {sessionInfo?.isActive
-                  ? 'Kết quả bỏ phiếu hiện tại (đang cập nhật)'
-                  : 'Kết quả bỏ phiếu cuối cùng'}
-              </CardTitle>
-
-              {/* Chart type selector */}
-              <div className="flex items-center space-x-2">
-                <Tabs
-                  defaultValue={CHART_TYPES.BAR}
-                  value={activeChartType}
-                  onValueChange={setActiveChartType}
-                >
-                  <TabsList>
-                    <TabsTrigger
-                      value={CHART_TYPES.BAR}
-                      className={
-                        activeChartType === CHART_TYPES.BAR
-                          ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
-                          : ''
-                      }
-                    >
-                      <BarChart2 className="h-4 w-4 mr-1.5" />
-                      <span className="hidden sm:inline">Cột</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value={CHART_TYPES.PIE}
-                      className={
-                        activeChartType === CHART_TYPES.PIE
-                          ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
-                          : ''
-                      }
-                    >
-                      <PieChartIcon className="h-4 w-4 mr-1.5" />
-                      <span className="hidden sm:inline">Tròn</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value={CHART_TYPES.RADAR}
-                      className={
-                        activeChartType === CHART_TYPES.RADAR
-                          ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
-                          : ''
-                      }
-                    >
-                      <Cpu className="h-4 w-4 mr-1.5" />
-                      <span className="hidden sm:inline">Radar</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value={CHART_TYPES.RADIALBAR}
-                      className={
-                        activeChartType === CHART_TYPES.RADIALBAR
-                          ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
-                          : ''
-                      }
-                    >
-                      <Server className="h-4 w-4 mr-1.5" />
-                      <span className="hidden sm:inline">Radial</span>
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-
-                <TooltipProvider>
-                  <UITooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full">
-                        <HelpCircle className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Chọn kiểu biểu đồ để hiển thị kết quả bầu cử theo cách khác nhau</p>
-                    </TooltipContent>
-                  </UITooltip>
-                </TooltipProvider>
+                )}
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="p-6">
+          </div>
+
+          {/* Kết quả bỏ phiếu */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">
+              {sessionInfo.isActive
+                ? 'Kết quả bỏ phiếu hiện tại (đang cập nhật)'
+                : 'Kết quả bỏ phiếu cuối cùng'}
+            </h2>
+
             {votingResults.length === 0 ? (
-              <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-                <Award className="h-12 w-12 mx-auto mb-3 text-gray-400 dark:text-gray-600" />
+              <div className="text-center py-16 text-gray-500">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-12 w-12 mx-auto mb-3 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
                 <p>Chưa có dữ liệu kết quả bỏ phiếu.</p>
-                {sessionInfo?.isActive && (
+                {sessionInfo.isActive && (
                   <p className="mt-2 text-sm">
                     Phiên bầu cử đang diễn ra, hãy chờ đến khi có cử tri bỏ phiếu.
                   </p>
                 )}
               </div>
             ) : (
-              <div className="space-y-6">
-                {/* Biểu đồ kết quả */}
-                <div className="rounded-lg overflow-hidden">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={activeChartType}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.5 }}
-                      className="pt-4"
-                    >
-                      {renderActiveChart()}
-                    </motion.div>
-                  </AnimatePresence>
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                  {/* Biểu đồ cột */}
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={votingResults}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
+                      >
+                        <XAxis dataKey="displayAddress" angle={-45} textAnchor="end" height={60} />
+                        <YAxis />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar
+                          dataKey="votes"
+                          name="Số phiếu"
+                          fill={(data) => (data.isElected ? '#10b981' : '#3b82f6')}
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Biểu đồ tròn */}
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={votingResults}
+                          dataKey="votes"
+                          nameKey="displayAddress"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          fill="#8884d8"
+                          label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                            const RADIAN = Math.PI / 180;
+                            const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+                            return (
+                              <text
+                                x={x}
+                                y={y}
+                                fill="#fff"
+                                textAnchor={x > cx ? 'start' : 'end'}
+                                dominantBaseline="central"
+                              >
+                                {`${(percent * 100).toFixed(0)}%`}
+                              </text>
+                            );
+                          }}
+                        >
+                          {votingResults.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={entry.isElected ? '#10b981' : COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Legend />
+                        <Tooltip content={<CustomTooltip />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
 
                 {/* Bảng chi tiết */}
-                <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-800">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Thứ tự
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Địa chỉ
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Số phiếu
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Tỷ lệ
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Trạng thái
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
-                      {votingResults
-                        .filter(
-                          (result) =>
-                            searchQuery.trim() === '' ||
-                            result.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            result.displayAddress.toLowerCase().includes(searchQuery.toLowerCase()),
-                        )
-                        .map((result, index) => (
-                          <motion.tr
-                            key={result.address}
-                            className={result.isElected ? 'bg-green-50 dark:bg-green-900/10' : ''}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: index * 0.05 }}
-                          >
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                              {index + 1}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900 dark:text-gray-100">
-                              <div className="flex items-center space-x-1">
-                                <span>{result.displayAddress}</span>
-                                <a
-                                  href={`https://explorer.holihu.online/address/${result.address}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {votingResults.map((result, index) => (
+                        <tr key={result.address} className={result.isElected ? 'bg-green-50' : ''}>
+                          <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
+                          <td className="px-6 py-4 whitespace-nowrap font-mono">
+                            {result.displayAddress}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap font-medium">
+                            {result.votes}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">{result.percentage}%</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {sessionInfo.isActive ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                Đang kiểm phiếu
+                              </span>
+                            ) : result.isElected ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-3 w-3 mr-1"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
                                 >
-                                  <ExternalLink className="h-3.5 w-3.5" />
-                                </a>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap font-medium text-sm text-gray-900 dark:text-gray-100">
-                              {result.votes}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                              <div className="flex items-center">
-                                <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mr-2">
-                                  <div
-                                    className="bg-blue-600 h-2.5 rounded-full"
-                                    style={{ width: `${result.percentage}%` }}
-                                  ></div>
-                                </div>
-                                <span>{result.percentage}%</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              {sessionInfo?.isActive ? (
-                                <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800/30">
-                                  <Loader className="mr-1 h-3 w-3 animate-spin" />
-                                  Đang kiểm phiếu
-                                </Badge>
-                              ) : result.isElected ? (
-                                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/30">
-                                  <CheckCircle className="mr-1 h-3 w-3" />
-                                  Trúng cử
-                                </Badge>
-                              ) : (
-                                <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700/50">
-                                  Chưa trúng cử
-                                </Badge>
-                              )}
-                            </td>
-                          </motion.tr>
-                        ))}
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                Trúng cử
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                Chưa trúng cử
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </>
             )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Thông tin người trúng cử */}
-        {sessionInfo &&
-          !sessionInfo.isActive &&
-          sessionInfo.electedCandidates &&
-          sessionInfo.electedCandidates.length > 0 && (
-            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-emerald-500"></div>
-              <CardHeader className="pb-2 border-b border-gray-100 dark:border-gray-700">
-                <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center">
-                  <Award className="h-5 w-5 text-green-500 mr-2" />
-                  Danh sách trúng cử
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-4">
-                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg mb-6 text-green-800 dark:text-green-300 border border-green-100 dark:border-green-800/30">
+          {/* Thông tin người trúng cử */}
+          {!sessionInfo.isActive &&
+            sessionInfo.electedCandidates &&
+            sessionInfo.electedCandidates.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 className="text-xl font-semibold mb-4">Danh sách trúng cử</h2>
+
+                <div className="bg-green-50 p-4 rounded-lg mb-6 text-green-800">
                   <div className="flex">
-                    <CheckCircle className="h-6 w-6 mr-3 text-green-600 dark:text-green-400" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 mr-3 text-green-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                      />
+                    </svg>
                     <div>
                       <h3 className="font-semibold">
                         Kết quả bầu cử đã được ghi nhận trên blockchain
@@ -1776,115 +971,125 @@ const TrangKetQua = () => {
                   {sessionInfo.electedCandidates.map((address, index) => {
                     const candidateInfo = votingResults.find((r) => r.address === address);
                     return (
-                      <motion.div
+                      <div
                         key={address}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.4, delay: index * 0.1 }}
-                        className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10 border border-green-100 dark:border-green-800/30 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+                        className="bg-green-50 border border-green-100 rounded-lg p-4 shadow-sm"
                       >
                         <div className="flex items-center">
-                          <div className="bg-green-100 dark:bg-green-800/50 rounded-full w-10 h-10 flex items-center justify-center mr-3 shadow-inner">
-                            <span className="text-green-800 dark:text-green-300 font-bold">
-                              #{index + 1}
-                            </span>
+                          <div className="bg-green-100 rounded-full w-10 h-10 flex items-center justify-center mr-3">
+                            <span className="text-green-800 font-bold">{index + 1}</span>
                           </div>
                           <div>
-                            <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                              {address.substring(0, 8)}...{address.substring(address.length - 6)}
+                            <h3 className="font-medium">
+                              {address.substring(0, 6)}...{address.substring(address.length - 4)}
                             </h3>
                             {candidateInfo && (
-                              <div className="flex items-center text-sm text-green-700 dark:text-green-400">
-                                <span className="mr-1">{candidateInfo.votes} phiếu</span>
-                                <span>({candidateInfo.percentage}%)</span>
-                              </div>
+                              <p className="text-sm text-green-700">
+                                {candidateInfo.votes} phiếu ({candidateInfo.percentage}%)
+                              </p>
                             )}
-                            <a
-                              href={`https://explorer.holihu.online/address/${address}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 text-xs flex items-center mt-1"
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              Xem trên blockchain
-                            </a>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     );
                   })}
                 </div>
-              </CardContent>
-            </Card>
-          )}
-      </div>
-
-      {/* Thông tin kết nối blockchain */}
-      <Card className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 mt-6">
-        <CardContent className="p-4 text-sm">
-          <h3 className="font-medium mb-2 text-gray-700 dark:text-gray-300">
-            Thông tin kết nối blockchain
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400">
-                <strong>RPC:</strong> {FALLBACK_RPC_URL}
-              </p>
-              <p className="text-gray-600 dark:text-gray-400">
-                <strong>Factory:</strong>{' '}
-                {contractAddresses.CuocBauCuFactory || CONTRACT_ADDRESSES.CuocBauCuFactory}
-              </p>
-              {electionInfo && (
-                <p className="text-gray-600 dark:text-gray-400">
-                  <strong>Contract:</strong>{' '}
-                  {cuocBauCuList.find((e) => e.id === cuocBauCuId)?.blockchainAddress ||
-                    'Không xác định'}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="text-gray-600 dark:text-gray-400">
-                <strong>Cuộc bầu cử ID:</strong> {cuocBauCuId}
-              </p>
-              <p className="text-gray-600 dark:text-gray-400">
-                <strong>Phiên bầu cử ID:</strong> {selectedPhien || 'Chưa chọn'}
-              </p>
-              <p className="text-gray-600 dark:text-gray-400">
-                <strong>Trạng thái theo dõi:</strong>{' '}
-                {isMonitoring ? (
-                  <span className="inline-flex items-center text-green-600 dark:text-green-400">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-ping"></span>
-                    Đang theo dõi
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center">
-                    <span className="w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full mr-1"></span>
-                    Không theo dõi
-                  </span>
-                )}
-              </p>
-            </div>
+              </div>
+            )}
+        </>
+      ) : selectedPhien ? (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6 text-center">
+          <div className="py-12">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-16 w-16 mx-auto text-gray-400 mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-700">
+              Không thể tải thông tin phiên bầu cử
+            </h3>
+            <p className="text-gray-500 mt-2">
+              Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.
+            </p>
+            <button
+              onClick={refreshData}
+              className="mt-6 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Thử lại
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="text-center py-16">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-16 w-16 mx-auto text-gray-400 mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-700">Vui lòng chọn phiên bầu cử</h3>
+            <p className="text-gray-500 mt-2">
+              Hãy chọn một phiên bầu cử từ danh sách trên để xem kết quả.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Thông tin cố định */}
+      <div className="bg-gray-100 p-4 rounded-lg text-sm">
+        <h3 className="font-medium mb-2">Thông tin kết nối blockchain</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p>
+              <strong>RPC:</strong> https://geth.holihu.online/rpc
+            </p>
+            <p>
+              <strong>Địa chỉ Contract:</strong> {contractAddress}
+            </p>
+            <p>
+              <strong>Server ID:</strong> {serverId}
+            </p>
+          </div>
+          <div>
+            <p>
+              <strong>Cuộc bầu cử ID:</strong> {cuocBauCuId}
+            </p>
+            <p>
+              <strong>Phiên bầu cử ID:</strong> {selectedPhien || 'Chưa chọn'}
+            </p>
+            <p>
+              <strong>Trạng thái theo dõi:</strong>{' '}
+              {isMonitoring ? '🟢 Đang theo dõi' : '⚪ Không theo dõi'}
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Thông báo real-time */}
       {isMonitoring && (
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 50 }}
-          className="fixed bottom-4 right-4 bg-green-100 dark:bg-green-900/80 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-2 rounded-lg shadow-lg flex items-center"
-        >
+        <div className="fixed bottom-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded-lg shadow-lg flex items-center">
           <div className="relative mr-2">
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
             <div className="w-3 h-3 bg-green-500 rounded-full absolute top-0 animate-ping"></div>
           </div>
           <div>Đang theo dõi phiên #{selectedPhien}</div>
-        </motion.div>
+        </div>
       )}
     </div>
   );
 };
 
-export default TrangKetQua;
+export default KetQuaBauCu;
