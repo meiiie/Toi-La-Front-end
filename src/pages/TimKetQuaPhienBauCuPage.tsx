@@ -274,73 +274,168 @@ const TrangKetQua = () => {
     fetchContractAddresses();
   }, []);
 
-  // Lấy danh sách các cuộc bầu cử
+  // Lấy danh sách các cuộc bầu cử - Ưu tiên từ blockchain
   useEffect(() => {
     const fetchElectionList = async () => {
       try {
         setLoadingStage('elections');
         const provider = new ethers.JsonRpcProvider(FALLBACK_RPC_URL);
-        const contract = new ethers.Contract(
-          contractAddresses.QuanLyCuocBauCu,
-          cuocBauCuAbi,
-          provider,
-        );
 
-        // Lấy tổng số cuộc bầu cử
-        const totalElections = await contract.laySoCuocBauCu();
+        // Ưu tiên sử dụng Factory contract để lấy danh sách cuộc bầu cử
+        let electionIds: number[] = [];
+        let factoryUsed = false;
 
-        if (Number(totalElections) > 0) {
-          // Lấy danh sách ID cuộc bầu cử
-          const electionIds = await contract.layDanhSachCuocBauCu(
-            0,
-            Math.min(Number(totalElections), 20),
+        try {
+          // Thử sử dụng Factory contract
+          const factoryContract = new ethers.Contract(
+            contractAddresses.CuocBauCuFactory || '0x93e3b7720CAf68Fb4E4E0A9ca0152f61529D9900',
+            [
+              'function danhSachServer(uint256) view returns (address)',
+              'function layTongSoServer() view returns (uint256)',
+              'function layDanhSachServerID(uint256, uint256) view returns (uint256[] memory)',
+            ],
+            provider,
           );
 
-          // Lấy thông tin cơ bản cho mỗi cuộc bầu cử
-          const electionDataPromises = electionIds.map(async (id: number) => {
-            try {
-              const basicInfo = await contract.layThongTinCoBan(id);
-              return {
-                id: Number(id),
-                ten: basicInfo[4] || `Cuộc bầu cử #${id}`,
-                isActive: basicInfo[1],
-                startTime: new Date(Number(basicInfo[2]) * 1000),
-                endTime: new Date(Number(basicInfo[3]) * 1000),
-              };
-            } catch (err) {
-              console.warn(`Không thể lấy thông tin cho cuộc bầu cử ${id}:`, err);
-              return {
-                id: Number(id),
-                ten: `Cuộc bầu cử #${id}`,
-                isActive: false,
-                startTime: new Date(),
-                endTime: new Date(),
-              };
+          // Lấy tổng số server (cuộc bầu cử) từ Factory
+          const totalServers = await factoryContract.layTongSoServer();
+
+          if (Number(totalServers) > 0) {
+            // Lấy danh sách ID từ Factory
+            const serverIds = await factoryContract.layDanhSachServerID(
+              0,
+              Math.min(Number(totalServers), 20),
+            );
+
+            if (serverIds && serverIds.length > 0) {
+              electionIds = serverIds.map((id) => Number(id));
+              factoryUsed = true;
+              console.log(`Đã lấy ${electionIds.length} ID cuộc bầu cử từ Factory Contract`);
             }
-          });
+          }
+        } catch (factoryError) {
+          console.warn('Không thể lấy danh sách cuộc bầu cử từ Factory:', factoryError);
+        }
 
-          const electionsData = await Promise.all(electionDataPromises);
-          setCuocBauCuList(electionsData);
+        // Nếu không lấy được từ Factory, thử từ QuanLyCuocBauCu contract
+        if (!factoryUsed) {
+          try {
+            const contract = new ethers.Contract(
+              contractAddresses.QuanLyCuocBauCu,
+              cuocBauCuAbi,
+              provider,
+            );
 
-          // Nếu không có ID cuộc bầu cử được chọn, chọn ID cuộc bầu cử đầu tiên
-          if (!cuocBauCuIdParam && electionsData.length > 0) {
-            setCuocBauCuId(electionsData[0].id);
+            // Lấy tổng số cuộc bầu cử
+            const totalElections = await contract.laySoCuocBauCu();
+
+            if (Number(totalElections) > 0) {
+              // Lấy danh sách ID cuộc bầu cử
+              const ids = await contract.layDanhSachCuocBauCu(
+                0,
+                Math.min(Number(totalElections), 20),
+              );
+              electionIds = ids.map((id) => Number(id));
+              console.log(
+                `Đã lấy ${electionIds.length} ID cuộc bầu cử từ QuanLyCuocBauCu Contract`,
+              );
+            }
+          } catch (contractError) {
+            console.error('Không thể lấy danh sách cuộc bầu cử từ QuanLyCuocBauCu:', contractError);
+            electionIds = []; // Reset nếu có lỗi
           }
         }
+
+        // Nếu vẫn không có ID nào, tạo một danh sách mặc định
+        if (electionIds.length === 0) {
+          console.warn(
+            'Không thể lấy danh sách cuộc bầu cử từ blockchain, đang tạo danh sách mặc định',
+          );
+          electionIds = [1, 2, 3, 4]; // Các ID mặc định để thử
+        }
+
+        // Lấy thông tin chi tiết cho mỗi cuộc bầu cử
+        const electionDataPromises = electionIds.map(async (id: number) => {
+          try {
+            // Lấy địa chỉ contract cho cuộc bầu cử này
+            let contractAddress = contractAddresses.QuanLyCuocBauCu;
+
+            if (factoryUsed) {
+              try {
+                const factoryContract = new ethers.Contract(
+                  contractAddresses.CuocBauCuFactory ||
+                    '0x93e3b7720CAf68Fb4E4E0A9ca0152f61529D9900',
+                  ['function danhSachServer(uint256) view returns (address)'],
+                  provider,
+                );
+
+                const serverAddress = await factoryContract.danhSachServer(id);
+
+                if (serverAddress && serverAddress !== ethers.ZeroAddress) {
+                  contractAddress = serverAddress;
+                }
+              } catch (addressError) {
+                console.warn(`Không thể lấy địa chỉ cho server ID ${id}:`, addressError);
+              }
+            }
+
+            const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
+
+            // Lấy thông tin cơ bản
+            const basicInfo = await contract.layThongTinCoBan(id);
+
+            return {
+              id: Number(id),
+              ten: basicInfo[4] || `Cuộc bầu cử #${id}`,
+              isActive: basicInfo[1],
+              startTime: new Date(Number(basicInfo[2]) * 1000),
+              endTime: new Date(Number(basicInfo[3]) * 1000),
+              blockchainAddress:
+                contractAddress !== contractAddresses.QuanLyCuocBauCu ? contractAddress : undefined,
+            };
+          } catch (err) {
+            console.warn(`Không thể lấy thông tin cho cuộc bầu cử ${id}:`, err);
+            return {
+              id: Number(id),
+              ten: `Cuộc bầu cử #${id}`,
+              isActive: false,
+              startTime: new Date(),
+              endTime: new Date(),
+            };
+          }
+        });
+
+        const electionsData = await Promise.all(electionDataPromises);
+        // Lọc bỏ các cuộc bầu cử không hợp lệ
+        const validElections = electionsData.filter(
+          (election) => election.ten !== `Cuộc bầu cử #${election.id}` || election.isActive,
+        );
+
+        setCuocBauCuList(validElections.length > 0 ? validElections : electionsData);
+
+        // Nếu không có ID cuộc bầu cử được chọn, chọn ID cuộc bầu cử đầu tiên
+        if (!cuocBauCuIdParam && electionsData.length > 0) {
+          setCuocBauCuId(electionsData[0].id);
+        }
       } catch (error) {
-        console.error('Lỗi khi lấy danh sách cuộc bầu cử:', error);
+        console.error('Lỗi khi lấy danh sách cuộc bầu cử từ blockchain:', error);
         toast({
           variant: 'destructive',
-          title: 'Lỗi kết nối',
+          title: 'Lỗi kết nối blockchain',
           description: 'Không thể kết nối đến blockchain để lấy danh sách cuộc bầu cử.',
         });
       }
     };
 
-    if (contractAddresses.QuanLyCuocBauCu) {
+    if (contractAddresses.QuanLyCuocBauCu || contractAddresses.CuocBauCuFactory) {
       fetchElectionList();
     }
-  }, [contractAddresses.QuanLyCuocBauCu, cuocBauCuIdParam, toast]);
+  }, [
+    contractAddresses.QuanLyCuocBauCu,
+    contractAddresses.CuocBauCuFactory,
+    cuocBauCuIdParam,
+    toast,
+  ]);
 
   // Lấy thông tin cuộc bầu cử và phiên bầu cử từ Redux
   useEffect(() => {
@@ -358,17 +453,43 @@ const TrangKetQua = () => {
         setIsLoading(true);
         setLoadingStage('sessions');
 
-        // Lấy thông tin cuộc bầu cử từ Redux
-        if (!cuocBauCu) {
-          await dispatch(fetchCuocBauCuById(cuocBauCuId));
+        // Lấy thông tin từ blockchain - ưu tiên sử dụng blockchain thay vì SQL
+        const provider = new ethers.JsonRpcProvider(FALLBACK_RPC_URL);
+
+        // Trước tiên, thử lấy thông tin cuộc bầu cử trực tiếp từ blockchain
+        // Nếu có lỗi, sẽ sử dụng thông tin từ Redux (SQL) như một backup
+        let contractAddress = contractAddresses.QuanLyCuocBauCu;
+        let blockchainContractAddress = '';
+
+        try {
+          // Với Factory contract, chúng ta có thể lấy địa chỉ hợp đồng dựa trên ID
+          const factoryContract = new ethers.Contract(
+            contractAddresses.CuocBauCuFactory || '0x93e3b7720CAf68Fb4E4E0A9ca0152f61529D9900',
+            ['function danhSachServer(uint256) view returns (address)'],
+            provider,
+          );
+
+          // Thử lấy địa chỉ từ factory
+          blockchainContractAddress = await factoryContract.danhSachServer(cuocBauCuId);
+
+          if (blockchainContractAddress && blockchainContractAddress !== ethers.ZeroAddress) {
+            contractAddress = blockchainContractAddress;
+            console.log(`Đã lấy địa chỉ hợp đồng từ blockchain: ${contractAddress}`);
+          }
+        } catch (factoryError) {
+          console.warn('Không thể lấy địa chỉ hợp đồng từ Factory:', factoryError);
+          // Thử sử dụng địa chỉ từ Redux nếu có
+          if (cuocBauCu?.blockchainAddress) {
+            contractAddress = cuocBauCu.blockchainAddress;
+            console.log(`Sử dụng địa chỉ từ SQL/Redux: ${contractAddress}`);
+          }
         }
 
-        // Kết nối với blockchain
-        const provider = new ethers.JsonRpcProvider(FALLBACK_RPC_URL);
-        const contractAddress = cuocBauCu?.blockchainAddress || contractAddresses.QuanLyCuocBauCu;
+        // Bây giờ sử dụng địa chỉ contract đã xác định để lấy dữ liệu
+        console.log(`Kết nối đến contract tại địa chỉ: ${contractAddress}`);
         const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
 
-        // Lấy thông tin cuộc bầu cử
+        // Lấy thông tin cuộc bầu cử từ blockchain
         const electionData = await contract.layThongTinCoBan(cuocBauCuId);
 
         setElectionInfo({
@@ -379,8 +500,8 @@ const TrangKetQua = () => {
           endTime: new Date(Number(electionData[3]) * 1000).toLocaleString('vi-VN'),
         });
 
-        // Lấy danh sách phiên bầu cử
-        const phienIds = await contract.layDanhSachPhienBauCu(cuocBauCuId, 0, 10);
+        // Lấy danh sách phiên bầu cử từ blockchain
+        const phienIds = await contract.layDanhSachPhienBauCu(cuocBauCuId, 0, 20);
 
         if (phienIds && phienIds.length > 0) {
           // Lấy thông tin chi tiết cho từng phiên
@@ -418,16 +539,61 @@ const TrangKetQua = () => {
           }
         }
 
+        // Cập nhật dữ liệu SQL nếu cần để đồng bộ
+        if (
+          !cuocBauCu ||
+          (blockchainContractAddress && blockchainContractAddress !== cuocBauCu.blockchainAddress)
+        ) {
+          // Cập nhật thông tin SQL nhưng không phụ thuộc vào nó cho dữ liệu hiển thị
+          dispatch(fetchCuocBauCuById(cuocBauCuId));
+        }
+
         setIsLoading(false);
       } catch (error) {
-        console.error('Lỗi khi lấy danh sách phiên bầu cử:', error);
+        console.error('Lỗi khi lấy danh sách phiên bầu cử từ blockchain:', error);
         setError(
           `Không thể lấy danh sách phiên bầu cử: ${error instanceof Error ? error.message : String(error)}`,
         );
+
+        // Thử sử dụng dữ liệu từ SQL/Redux như phương án dự phòng
+        try {
+          if (!cuocBauCu) {
+            await dispatch(fetchCuocBauCuById(cuocBauCuId));
+          }
+
+          if (cuocBauCu && cacPhienBauCu.length > 0) {
+            toast({
+              variant: 'warning',
+              title: 'Chuyển sang dữ liệu dự phòng',
+              description: 'Đang sử dụng dữ liệu từ cơ sở dữ liệu do không thể kết nối blockchain.',
+            });
+
+            // Sử dụng dữ liệu từ SQL/Redux
+            setDanhSachPhien(
+              cacPhienBauCu.map((p) => ({
+                id: p.id,
+                isActive: p.trangThai === 1,
+                startTime: new Date(p.ngayBatDau),
+                endTime: new Date(p.ngayKetThuc),
+                candidateCount: 0, // SQL không có thông tin này
+                voterCount: 0, // SQL không có thông tin này
+              })),
+            );
+
+            if (!selectedPhien && phienBauCuIdParam) {
+              setSelectedPhien(Number(phienBauCuIdParam));
+            } else if (!selectedPhien && cacPhienBauCu.length > 0) {
+              setSelectedPhien(cacPhienBauCu[0].id);
+            }
+          }
+        } catch (sqlError) {
+          console.error('Không thể sử dụng dữ liệu dự phòng từ SQL:', sqlError);
+        }
+
         setIsLoading(false);
         toast({
           variant: 'destructive',
-          title: 'Lỗi kết nối',
+          title: 'Lỗi kết nối blockchain',
           description: 'Không thể kết nối đến blockchain để lấy danh sách phiên bầu cử.',
         });
       }
@@ -439,9 +605,11 @@ const TrangKetQua = () => {
     cuocBauCu,
     dispatch,
     contractAddresses.QuanLyCuocBauCu,
+    contractAddresses.CuocBauCuFactory,
     phienBauCuIdParam,
     selectedPhien,
     toast,
+    cacPhienBauCu,
   ]);
 
   // Lấy kết quả cho phiên bầu cử được chọn
@@ -454,7 +622,35 @@ const TrangKetQua = () => {
 
       // Kết nối với blockchain
       const provider = new ethers.JsonRpcProvider(FALLBACK_RPC_URL);
-      const contractAddress = cuocBauCu?.blockchainAddress || contractAddresses.QuanLyCuocBauCu;
+
+      // Xác định địa chỉ hợp đồng từ blockchain trước
+      let contractAddress = contractAddresses.QuanLyCuocBauCu;
+
+      try {
+        // Với Factory contract, chúng ta có thể lấy địa chỉ hợp đồng dựa trên ID
+        const factoryContract = new ethers.Contract(
+          contractAddresses.CuocBauCuFactory || '0x93e3b7720CAf68Fb4E4E0A9ca0152f61529D9900',
+          ['function danhSachServer(uint256) view returns (address)'],
+          provider,
+        );
+
+        // Lấy địa chỉ từ factory contract
+        const blockchainAddress = await factoryContract.danhSachServer(cuocBauCuId);
+
+        if (blockchainAddress && blockchainAddress !== ethers.ZeroAddress) {
+          contractAddress = blockchainAddress;
+          console.log(`Sử dụng địa chỉ từ blockchain factory: ${contractAddress}`);
+        }
+      } catch (factoryError) {
+        console.warn('Không thể lấy địa chỉ từ Factory contract:', factoryError);
+        // Thử dùng địa chỉ từ Redux nếu có
+        if (cuocBauCu?.blockchainAddress) {
+          contractAddress = cuocBauCu.blockchainAddress;
+          console.log(`Sử dụng địa chỉ từ SQL/Redux: ${contractAddress}`);
+        }
+      }
+
+      console.log(`Kết nối đến contract tại địa chỉ: ${contractAddress} để lấy kết quả`);
       const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
 
       // Lấy thông tin phiên bầu cử
@@ -580,7 +776,14 @@ const TrangKetQua = () => {
         description: 'Không thể kết nối đến blockchain để lấy kết quả bầu cử.',
       });
     }
-  }, [cuocBauCuId, selectedPhien, cuocBauCu, contractAddresses.QuanLyCuocBauCu, toast]);
+  }, [
+    cuocBauCuId,
+    selectedPhien,
+    cuocBauCu,
+    contractAddresses.QuanLyCuocBauCu,
+    contractAddresses.CuocBauCuFactory,
+    toast,
+  ]);
 
   useEffect(() => {
     if (selectedPhien) {
