@@ -1,2573 +1,1095 @@
-'use client';
-
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import {
-  Award,
-  CheckCircle,
-  Calendar,
-  RefreshCw,
-  InfoIcon,
-  AlertTriangle,
-  Info,
-  Copy,
-  BarChart3,
-  PieChart,
-  ChevronDown,
-  Search,
-  Users,
-  TrendingUp,
-  User,
-  Clock,
-  List,
-  Star,
-  Share,
-  HelpCircle,
-  Download,
-  Hexagon,
-  Sparkles,
-  ArrowLeft,
-  Home,
-  Database,
-  Filter,
-  ChevronRight,
-  LucideActivity,
-  Trophy,
-  ExternalLink,
-  XCircle,
-  Layers,
-  FileText, // Added missing FileText icon
-} from 'lucide-react';
-import axios from 'axios';
-import { fetchCuocBauCuById } from '../store/slice/cuocBauCuByIdSlice';
-import { fetchPhienBauCuById } from '../store/slice/phienBauCuSlice';
-import { fetchUngCuVienByPhienBauCuId } from '../store/slice/ungCuVienSlice';
-import { RootState } from '../store/store';
-import { useToast } from '../test/components/use-toast';
-
-// Recharts imports
-import {
-  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
-  Cell,
-  LabelList,
-  LineChart,
-  Line,
-  CartesianGrid,
+  ResponsiveContainer,
+  PieChart,
   Pie,
-  PieChart as RechartsPieChart,
-  Sector,
-  RadialBarChart,
-  RadialBar,
-  Label,
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
+  Cell,
+  Legend,
 } from 'recharts';
+import apiClient from '../api/apiClient';
 
-// UI components
-import { Button } from '../components/ui/Button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '../components/ui/Select';
-import { Input } from '../components/ui/Input';
-import { Separator } from '../components/ui/Separator';
-import { Progress } from '../components/ui/Progress';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../components/ui/Table';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/Alter';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/Tabs';
-import { Skeleton } from '../components/ui/Skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '../components/ui/Dialog';
-import {
-  Tooltip as TooltipUI,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '../components/ui/Tooltip';
-import ParticleBackground from '../components/backgrounds/ParticleBackground';
-
-// Interfaces
-interface ElectionSession {
-  id: number;
-  tenPhienBauCu: string;
-  ngayBatDau: string;
-  ngayKetThuc: string;
-  moTa?: string;
-  trangThai: number;
-  cuocBauCuId: number;
-  blockchainSessionId?: number;
-}
-
-interface Election {
-  id: number;
-  tenCuocBauCu: string;
-  ngayBatDau: string;
-  ngayKetThuc: string;
-  moTa?: string;
-  trangThai: number;
-  blockchainServerId?: number;
-  blockchainAddress?: string;
-}
-
-interface Candidate {
-  id: number;
-  hoTen: string;
-  avatar?: string;
-  moTa?: string;
-  viTriUngCu?: {
-    id: number;
-    tenViTriUngCu: string;
-  };
-  blockchainAddress?: string;
-  votes?: number;
-  votePercentage?: number;
-  color?: string;
-}
-
-interface ElectionResult {
-  candidates: Candidate[];
-  totalVotes: number;
-  winnerId?: number;
-  timestamp: number;
-  isFinalized: boolean;
-}
-
-const BLOCKCHAIN_RPC_URL = 'https://geth.holihu.online/rpc';
-const CONTRACT_ADDRESSES = {
-  entryPoint: '0x5c1Ec052254B485A97eFeCdE6dEC5A7c3c171656',
-  hluToken: '0x0c69a0bF43618D8ba8465e095F78AdB3A15F2666',
-  quanLyCuocBauCu: '0x9d8cB9C2eD2EFedae3F7C660ceDCBBc90BA48dd8',
-  quanLyPhieuBau: '0xEc113165EedF505CF66D70c67d3216603B450e16',
-  quanLyThanhTuu: '0xB615f47022985A1abD686CFf2AC37dCEa78Dd1bF',
-  hluPaymaster: '0x68eD6525Fa00B2A0AF28311280b46f6E03C5EE4a',
-  quanLyPhieuBauProxy: '0x9c244B5E1F168510B9b812573b1B667bd1E654c8',
-  phieuBauInstance: '0x9c244B5E1F168510B9b812573b1B667bd1E654c8',
-  quanLyThanhTuuProxy: '0x93362A6A30570b1446843862c2c4150002557152',
-  factory: '0x93e3b7720CAf68Fb4E4E0A9ca0152f61529D9900',
-  thanhTuuInstance: '0x93362A6A30570b1446843862c2c4150002557152',
-};
-
-// Custom color palette for charts
-const CHART_COLORS = [
-  '#3b82f6', // blue-500
-  '#8b5cf6', // violet-500
-  '#ec4899', // pink-500
-  '#10b981', // emerald-500
-  '#f59e0b', // amber-500
-  '#ef4444', // red-500
-  '#6366f1', // indigo-500
-  '#14b8a6', // teal-500
-  '#f97316', // orange-500
-  '#8b5cf6', // violet-500
-  '#6d28d9', // violet-700
-  '#a855f7', // purple-500
-  '#ec4899', // pink-500
-  '#be185d', // pink-800
-  '#0ea5e9', // sky-500
+// Các icons cần thiết
+const COLORS = [
+  '#0088FE',
+  '#00C49F',
+  '#FFBB28',
+  '#FF8042',
+  '#8884d8',
+  '#83a6ed',
+  '#8dd1e1',
+  '#82ca9d',
 ];
 
-// Generate nice gradient colors for charts
-const generateGradientId = (index: number) => `colorGradient-${index}`;
-
-// Create reusable ABI for contracts
-const QUAN_LY_CUOC_BAU_CU_ABI = [
-  'function layThongTinCoBan(uint256 idCuocBauCu) view returns (address nguoiSoHuu, bool dangHoatDongDay, uint256 thoiGianBatDau, uint256 thoiGianKetThuc, string tenCuocBauCu, uint256 phiHLU)',
-  'function layThongTinPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) view returns (bool dangHoatDongNe, uint256 thoiGianBatDau, uint256 thoiGianKetThuc, uint256 soCuTriToiDa, uint256 soUngVienHienTai, uint256 soCuTriHienTai, address[] ungVienDacCu, bool taiBauCu, uint256 soLuongXacNhan, uint256 thoiGianHetHanXacNhan)',
-  'function layKetQuaPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) view returns (address[] ungVien, uint256[] soPhieu)',
-  'function laySoPhieuUngVien(uint256 idCuocBauCu, uint256 idPhienBauCu, address ungVien) view returns (uint256)',
-  'function layDanhSachUngVien(uint256 idCuocBauCu, uint256 idPhienBauCu) view returns (address[])',
-  'function layDanhSachPhienBauCu(uint256 idCuocBauCu, uint256 chiSoBatDau, uint256 gioiHan) view returns (uint256[])',
-  'function layDanhSachUngVienDacCu(uint256 idCuocBauCu, uint256 idPhienBauCu) view returns (address[])',
+// ABI tối thiểu cho các contract
+const cuocBauCuAbi = [
+  'function layKetQuaPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (address[] memory ungVien, uint256[] memory soPhieu)',
+  'function layThongTinPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (bool dangHoatDongNe, uint256 thoiGianBatDau, uint256 thoiGianKetThuc, uint256 soCuTriToiDa, uint256 soUngVienHienTai, uint256 soCuTriHienTai, address[] memory ungVienDacCu, bool taiBauCu, uint256 soLuongXacNhan, uint256 thoiGianHetHanXacNhan)',
+  'function layThongTinCoBan(uint256 idCuocBauCu) external view returns (address nguoiSoHuu, bool dangHoatDongDay, uint256 thoiGianBatDau, uint256 thoiGianKetThuc, string memory tenCuocBauCu, uint256 phiHLU)',
+  'function laySoPhieuUngVien(uint256 idCuocBauCu, uint256 idPhienBauCu, address ungVien) external view returns (uint256)',
+  'function layDanhSachUngVien(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (address[] memory)',
+  'function layDanhSachPhienBauCu(uint256 idCuocBauCu, uint256 chiSoBatDau, uint256 gioiHan) external view returns (uint256[] memory)',
 ];
 
-const FACTORY_ABI = [
-  'function layThongTinServer(uint128 id) view returns (address quanLyCuocBauCu, string tenCuocBauCu, string moTa, uint8 trangThai, uint64 soLuongBaoCao, uint64 soLuongViPhamXacNhan, address nguoiTao)',
-  'function layDanhSachServerDangHoatDong() view returns (uint256[])',
-  'function layServerCuaNguoiDung(address nguoiDung) view returns (uint256[])',
-];
+const KetQuaBauCu = () => {
+  // Thông tin cố định
+  const cuocBauCuId = 1; // Fix cứng ID cuộc bầu cử
+  const [contractAddresses, setContractAddresses] = useState({});
+  const [contractAddress, setContractAddress] = useState('');
+  const [serverId, setServerId] = useState(null);
 
-// Helper functions
-const formatDate = (dateString: string | number) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('vi-VN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-};
+  // States cho phiên bầu cử
+  const [danhSachPhien, setDanhSachPhien] = useState([]);
+  const [selectedPhien, setSelectedPhien] = useState(null);
 
-const truncateAddress = (address: string) => {
-  if (!address) return '';
-  return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-};
+  // States cho dữ liệu
+  const [isLoading, setIsLoading] = useState(true);
+  const [isChangingSession, setIsChangingSession] = useState(false);
+  const [error, setError] = useState(null);
+  const [electionInfo, setElectionInfo] = useState(null);
+  const [sessionInfo, setSessionInfo] = useState(null);
+  const [votingResults, setVotingResults] = useState([]);
+  const [progress, setProgress] = useState({
+    total: 0,
+    voted: 0,
+    percentage: 0,
+  });
 
-const getStatusColor = (status: number): { bg: string; text: string; border: string } => {
-  switch (status) {
-    case 0: // Hoạt động
-      return { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200' };
-    case 1: // Tạm dừng
-      return { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200' };
-    case 2: // Lưu trữ
-      return { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200' };
-    default:
-      return { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200' };
-  }
-};
+  // State cho theo dõi real-time
+  const [isMonitoring, setIsMonitoring] = useState(false);
 
-const getStatusText = (status: number): string => {
-  switch (status) {
-    case 0:
-      return 'Hoạt động';
-    case 1:
-      return 'Tạm dừng';
-    case 2:
-      return 'Lưu trữ';
-    default:
-      return 'Không xác định';
-  }
-};
-
-const ElectionResultChart: React.FC<{
-  data: Candidate[];
-  totalVotes: number;
-  chartType: 'bar' | 'pie' | 'radial' | 'radar';
-}> = ({ data, totalVotes, chartType }) => {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-  // Make sure data is an array before using it
-  const safeData = Array.isArray(data) ? data : [];
-
-  // For pie chart active sector
-  const onPieEnter = useCallback(
-    (_, index) => {
-      setActiveIndex(index);
-    },
-    [setActiveIndex],
-  );
-
-  const onPieLeave = useCallback(() => {
-    setActiveIndex(null);
-  }, [setActiveIndex]);
-
-  const renderActiveShape = (props: any) => {
-    const RADIAN = Math.PI / 180;
-    const {
-      cx,
-      cy,
-      midAngle,
-      innerRadius,
-      outerRadius,
-      startAngle,
-      endAngle,
-      fill,
-      payload,
-      percent,
-      value,
-    } = props;
-    const sin = Math.sin(-RADIAN * midAngle);
-    const cos = Math.cos(-RADIAN * midAngle);
-    const sx = cx + (outerRadius + 10) * cos;
-    const sy = cy + (outerRadius + 10) * sin;
-    const mx = cx + (outerRadius + 30) * cos;
-    const my = cy + (outerRadius + 30) * sin;
-    const ex = mx + (cos >= 0 ? 1 : -1) * 22;
-    const ey = my;
-    const textAnchor = cos >= 0 ? 'start' : 'end';
-
-    return (
-      <g>
-        <Sector
-          cx={cx}
-          cy={cy}
-          innerRadius={innerRadius}
-          outerRadius={outerRadius}
-          startAngle={startAngle}
-          endAngle={endAngle}
-          fill={fill}
-          stroke="#fff"
-          strokeWidth={2}
-        />
-        <Sector
-          cx={cx}
-          cy={cy}
-          startAngle={startAngle}
-          endAngle={endAngle}
-          innerRadius={outerRadius + 6}
-          outerRadius={outerRadius + 10}
-          fill={fill}
-        />
-        <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
-        <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-        <text
-          x={ex + (cos >= 0 ? 1 : -1) * 12}
-          y={ey}
-          textAnchor={textAnchor}
-          fill="#333"
-          className="text-xs"
-        >
-          {`${payload.hoTen} (${value} phiếu)`}
-        </text>
-        <text
-          x={ex + (cos >= 0 ? 1 : -1) * 12}
-          y={ey}
-          dy={18}
-          textAnchor={textAnchor}
-          fill="#999"
-          className="text-xs"
-        >
-          {`${(percent * 100).toFixed(2)}%`}
-        </text>
-      </g>
-    );
-  };
-
-  const getGradientColors = (index: number) => {
-    const baseColor = CHART_COLORS[index % CHART_COLORS.length];
-    let startColor = baseColor;
-    let endColor = baseColor;
-
-    // For certain colors, create custom gradients
-    switch (baseColor) {
-      case '#3b82f6': // blue
-        startColor = '#93c5fd';
-        endColor = '#1d4ed8';
-        break;
-      case '#8b5cf6': // violet
-        startColor = '#c4b5fd';
-        endColor = '#6d28d9';
-        break;
-      case '#ec4899': // pink
-        startColor = '#f9a8d4';
-        endColor = '#be185d';
-        break;
-      case '#10b981': // emerald
-        startColor = '#6ee7b7';
-        endColor = '#047857';
-        break;
-      case '#f59e0b': // amber
-        startColor = '#fcd34d';
-        endColor = '#b45309';
-        break;
-      default:
-        // Keep same color if not specified
-        break;
-    }
-
-    return { startColor, endColor };
-  };
-
-  // For radar chart - format data
-  const radarData = useMemo(() => {
-    if (!Array.isArray(data) || data.length === 0) return [];
-
-    return data.map((candidate) => ({
-      subject: candidate.hoTen?.split(' ')?.pop() || candidate.hoTen || 'Unknown',
-      A: candidate.votes || 0,
-      fullMark: totalVotes,
-    }));
-  }, [data, totalVotes]);
-
-  // Render different chart types
-  switch (chartType) {
-    case 'pie':
-      return (
-        <div className="w-full h-[380px] md:h-[450px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <RechartsPieChart>
-              <defs>
-                {safeData.map((entry, index) => (
-                  <linearGradient
-                    key={index}
-                    id={generateGradientId(index)}
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="0%"
-                      stopColor={getGradientColors(index).startColor}
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor={getGradientColors(index).endColor}
-                      stopOpacity={1}
-                    />
-                  </linearGradient>
-                ))}
-              </defs>
-              <Pie
-                activeIndex={activeIndex !== null ? activeIndex : undefined}
-                activeShape={renderActiveShape}
-                data={safeData}
-                cx="50%"
-                cy="50%"
-                innerRadius={80}
-                outerRadius={110}
-                paddingAngle={2}
-                dataKey="votes"
-                nameKey="hoTen"
-                onMouseEnter={onPieEnter}
-                onMouseLeave={onPieLeave}
-                animationDuration={1000}
-                animationBegin={200}
-              >
-                {safeData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={`url(#${generateGradientId(index)})`}
-                    stroke="#fff"
-                    strokeWidth={1.5}
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value, name, props) => [
-                  `${value} phiếu (${(((value as number) / totalVotes) * 100).toFixed(1)}%)`,
-                  props.payload.hoTen,
-                ]}
-                contentStyle={{
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid rgba(0, 0, 0, 0.05)',
-                  boxShadow:
-                    '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                }}
-                wrapperStyle={{ outline: 'none' }}
-              />
-              <Legend
-                layout="horizontal"
-                verticalAlign="bottom"
-                align="center"
-                formatter={(value, entry, index) => {
-                  const candidate = safeData[index];
-                  return candidate.hoTen;
-                }}
-                wrapperStyle={{ paddingTop: 20 }}
-              />
-              <Label
-                position="center"
-                value={`${totalVotes} phiếu`}
-                content={({ viewBox }) => {
-                  const { cx, cy } = viewBox as { cx: number; cy: number };
-                  return (
-                    <g>
-                      <text
-                        x={cx}
-                        y={cy - 5}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        className="fill-gray-700 dark:fill-gray-300 text-lg font-semibold"
-                      >
-                        {totalVotes}
-                      </text>
-                      <text
-                        x={cx}
-                        y={cy + 15}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        className="fill-gray-500 dark:fill-gray-400 text-xs"
-                      >
-                        phiếu bầu
-                      </text>
-                    </g>
-                  );
-                }}
-              />
-            </RechartsPieChart>
-          </ResponsiveContainer>
-        </div>
-      );
-
-    case 'radial':
-      return (
-        <div className="w-full h-[380px] md:h-[450px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadialBarChart
-              cx="50%"
-              cy="50%"
-              innerRadius="20%"
-              outerRadius="80%"
-              barSize={20}
-              data={safeData.map((item, index) => ({
-                ...item,
-                fill: `url(#${generateGradientId(index)})`,
-              }))}
-              startAngle={90}
-              endAngle={-270}
-            >
-              <defs>
-                {safeData.map((entry, index) => (
-                  <linearGradient
-                    key={index}
-                    id={generateGradientId(index)}
-                    x1="0"
-                    y1="0"
-                    x2="1"
-                    y2="0"
-                  >
-                    <stop
-                      offset="0%"
-                      stopColor={getGradientColors(index).startColor}
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor={getGradientColors(index).endColor}
-                      stopOpacity={1}
-                    />
-                  </linearGradient>
-                ))}
-              </defs>
-              <RadialBar
-                background
-                label={{ position: 'insideStart', fill: '#fff', fontSize: 12 }}
-                dataKey="votes"
-                nameKey="hoTen"
-                cornerRadius={8}
-                activeIndex={activeIndex}
-                onMouseEnter={(_, index) => setActiveIndex(index)}
-                onMouseLeave={() => setActiveIndex(null)}
-                animationDuration={1500}
-                animationBegin={300}
-              />
-              <Legend
-                iconSize={10}
-                layout="vertical"
-                verticalAlign="middle"
-                align="right"
-                formatter={(value, entry, index) => {
-                  const candidate = safeData[index];
-                  return `${candidate.hoTen} (${candidate.votes} phiếu)`;
-                }}
-              />
-              <Tooltip
-                formatter={(value) => [`${value} phiếu`, 'Số phiếu']}
-                contentStyle={{
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid rgba(0, 0, 0, 0.05)',
-                  boxShadow:
-                    '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                }}
-                labelStyle={{ fontWeight: 'bold' }}
-              />
-              <PolarAngleAxis
-                type="number"
-                domain={[0, Math.max(...safeData.map((d) => d.votes || 0)) + 2]}
-                tick={false}
-              />
-              <Label
-                position="center"
-                value={`${totalVotes} phiếu`}
-                content={({ viewBox }) => {
-                  const { cx, cy } = viewBox as { cx: number; cy: number };
-                  return (
-                    <g>
-                      <text
-                        x={cx}
-                        y={cy - 5}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        className="fill-gray-700 dark:fill-gray-300 text-lg font-semibold"
-                      >
-                        {totalVotes}
-                      </text>
-                      <text
-                        x={cx}
-                        y={cy + 15}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        className="fill-gray-500 dark:fill-gray-400 text-xs"
-                      >
-                        phiếu bầu
-                      </text>
-                    </g>
-                  );
-                }}
-              />
-            </RadialBarChart>
-          </ResponsiveContainer>
-        </div>
-      );
-
-    case 'radar':
-      return (
-        <div className="w-full h-[380px] md:h-[450px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-              <defs>
-                {safeData.map((entry, index) => (
-                  <linearGradient
-                    key={index}
-                    id={generateGradientId(index)}
-                    x1="0"
-                    y1="0"
-                    x2="1"
-                    y2="1"
-                  >
-                    <stop
-                      offset="0%"
-                      stopColor={getGradientColors(index).startColor}
-                      stopOpacity={0.7}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor={getGradientColors(index).endColor}
-                      stopOpacity={0.9}
-                    />
-                  </linearGradient>
-                ))}
-              </defs>
-              <PolarGrid strokeDasharray="3 3" stroke="rgba(120, 120, 120, 0.3)" />
-              <PolarAngleAxis dataKey="subject" tick={{ fill: 'currentColor', fontSize: 12 }} />
-              <PolarRadiusAxis
-                angle={30}
-                domain={[0, Math.max(...safeData.map((d) => d.votes || 0)) + 5]}
-                tick={{ fill: 'currentColor', fontSize: 10 }}
-              />
-              {safeData.map((entry, index) => (
-                <Radar
-                  key={`radar-${index}`}
-                  name={entry.hoTen}
-                  dataKey="A"
-                  stroke={CHART_COLORS[index % CHART_COLORS.length]}
-                  fill={`url(#${generateGradientId(index)})`}
-                  isAnimationActive={true}
-                  animationBegin={300 * index}
-                  animationDuration={1500}
-                  data={[
-                    {
-                      subject: entry.hoTen.split(' ').pop() || entry.hoTen,
-                      A: entry.votes,
-                      fullMark: totalVotes,
-                    },
-                  ]}
-                />
-              ))}
-              <Tooltip
-                formatter={(value) => [`${value} phiếu`, '']}
-                contentStyle={{
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid rgba(0, 0, 0, 0.05)',
-                  boxShadow:
-                    '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                }}
-              />
-              <Legend
-                formatter={(value, entry, index) => {
-                  const candidate = safeData[index];
-                  return `${candidate.hoTen} (${candidate.votes} phiếu)`;
-                }}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
-      );
-
-    case 'bar':
-    default:
-      return (
-        <div className="w-full h-[380px] md:h-[450px] pb-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={safeData}
-              margin={{
-                top: 20,
-                right: 30,
-                left: 20,
-                bottom: 60,
-              }}
-              barSize={36}
-            >
-              <defs>
-                {safeData.map((entry, index) => (
-                  <linearGradient
-                    key={index}
-                    id={generateGradientId(index)}
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="0%"
-                      stopColor={getGradientColors(index).startColor}
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor={getGradientColors(index).endColor}
-                      stopOpacity={1}
-                    />
-                  </linearGradient>
-                ))}
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
-              <XAxis
-                dataKey="hoTen"
-                tickFormatter={(value) =>
-                  value.length > 10 ? `${value.substring(0, 10)}...` : value
-                }
-                height={60}
-                tick={{ fontSize: 12, angle: -45, textAnchor: 'end' }}
-                interval={0}
-              />
-              <YAxis
-                allowDecimals={false}
-                tick={{ fontSize: 12 }}
-                label={{
-                  value: 'Số phiếu bầu',
-                  angle: -90,
-                  position: 'insideLeft',
-                  style: { fontSize: '12px', fill: 'currentColor', textAnchor: 'middle' },
-                }}
-              />
-              <Tooltip
-                formatter={(value, name, props) => [
-                  `${value} phiếu (${(((value as number) / totalVotes) * 100).toFixed(1)}%)`,
-                  props.payload.hoTen,
-                ]}
-                contentStyle={{
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid rgba(0, 0, 0, 0.05)',
-                  boxShadow:
-                    '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                }}
-              />
-              <Bar
-                dataKey="votes"
-                animationDuration={2000}
-                animationBegin={300}
-                radius={[4, 4, 0, 0]}
-              >
-                {safeData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={`url(#${generateGradientId(index)})`}
-                    stroke="rgba(255,255,255,0.3)"
-                    strokeWidth={1}
-                  />
-                ))}
-                <LabelList
-                  dataKey="votes"
-                  position="top"
-                  style={{ fontSize: '12px', fill: 'currentColor' }}
-                  formatter={(value) => `${value} phiếu`}
-                />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      );
-  }
-};
-
-const TrangKetQua: React.FC = () => {
-  const { id: cuocBauCuIdParam, idPhien: phienIdParam } = useParams<{
-    id: string;
-    idPhien: string;
-  }>();
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { toast } = useToast();
-
-  // State from Redux store
-  const { cuocBauCu } = useSelector((state: RootState) => state.cuocBauCuById);
-  const { cacPhienBauCu } = useSelector((state: RootState) => state.phienBauCu);
-  const { danhSachUngVien } = useSelector((state: RootState) => state.ungCuVien);
-
-  // Component state
-  const [elections, setElections] = useState<Election[]>([]);
-  const [selectedElectionId, setSelectedElectionId] = useState<number | null>(null);
-  const [sessions, setSessions] = useState<ElectionSession[]>([]);
-  const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
-  const [electionResults, setElectionResults] = useState<ElectionResult | null>(null);
-  const [isLoadingElections, setIsLoadingElections] = useState<boolean>(false);
-  const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(false);
-  const [isLoadingResults, setIsLoadingResults] = useState<boolean>(false);
-  const [blockchainError, setBlockchainError] = useState<string | null>(null);
-  const [contractInstance, setContractInstance] = useState<ethers.Contract | null>(null);
-  const [factoryInstance, setFactoryInstance] = useState<ethers.Contract | null>(null);
-  const [chartType, setChartType] = useState<'bar' | 'pie' | 'radial' | 'radar'>('bar');
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-  const [showBlockchainDetails, setShowBlockchainDetails] = useState<boolean>(false);
-  const [blockchainDetails, setBlockchainDetails] = useState<any>(null);
-  const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
-  const [showCandidateDetails, setShowCandidateDetails] = useState<boolean>(false);
-  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
-
-  // Initialize blockchain provider and contracts
+  // Lấy thông tin contract addresses
   useEffect(() => {
-    const initializeContracts = async () => {
+    const fetchContractAddresses = async () => {
       try {
-        const provider = new ethers.JsonRpcProvider(BLOCKCHAIN_RPC_URL);
-
-        // Initialize main contract
-        const quanLyCuocBauCuContract = new ethers.Contract(
-          CONTRACT_ADDRESSES.quanLyPhieuBauProxy,
-          QUAN_LY_CUOC_BAU_CU_ABI,
-          provider,
-        );
-        setContractInstance(quanLyCuocBauCuContract);
-
-        // Initialize factory contract
-        const factoryContract = new ethers.Contract(
-          CONTRACT_ADDRESSES.factory,
-          FACTORY_ABI,
-          provider,
-        );
-        setFactoryInstance(factoryContract);
+        const response = await apiClient.get('/api/Blockchain/contract-addresses');
+        if (response.data) {
+          setContractAddresses(response.data);
+        }
       } catch (error) {
-        console.error('Error initializing contracts:', error);
-        setBlockchainError('Không thể kết nối đến blockchain. Vui lòng thử lại sau.');
+        console.error('Lỗi khi lấy địa chỉ contract:', error);
+        setError('Không thể kết nối với hệ thống để lấy thông tin contracts');
       }
     };
 
-    initializeContracts();
+    fetchContractAddresses();
   }, []);
 
-  // Set initial election ID from params
+  // Lấy thông tin cuộc bầu cử và serverId
   useEffect(() => {
-    if (cuocBauCuIdParam) {
-      const id = parseInt(cuocBauCuIdParam);
-      setSelectedElectionId(id);
-      fetchElectionSessionsFromAPI(id);
-      dispatch(fetchCuocBauCuById(id));
-    }
-  }, [cuocBauCuIdParam, dispatch]);
-
-  // Set initial session ID from params
-  useEffect(() => {
-    if (phienIdParam && selectedElectionId) {
-      const id = parseInt(phienIdParam);
-      setSelectedSessionId(id);
-      dispatch(fetchPhienBauCuById(id));
-      dispatch(fetchUngCuVienByPhienBauCuId(id));
-      fetchElectionResultsFromBlockchain(selectedElectionId, id);
-    }
-  }, [phienIdParam, selectedElectionId, dispatch]);
-
-  // Check for dark mode
-  useEffect(() => {
-    const isDark =
-      localStorage.getItem('darkMode') === 'true' ||
-      window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setIsDarkMode(isDark);
-  }, []);
-
-  // Fetch elections from API
-  const fetchElectionsFromAPI = useCallback(async () => {
-    setIsLoadingElections(true);
-    setBlockchainError(null);
-
-    try {
-      // Fetch elections from your API
-      const response = await axios.get('/api/CuocBauCu');
-      setElections(response.data || []);
-    } catch (error) {
-      console.error('Error fetching elections:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Lỗi',
-        description: 'Không thể tải danh sách cuộc bầu cử. Vui lòng thử lại sau.',
-      });
-    } finally {
-      setIsLoadingElections(false);
-    }
-  }, [toast]);
-
-  // Fetch election sessions from API
-  const fetchElectionSessionsFromAPI = useCallback(
-    async (electionId: number) => {
-      if (!electionId) return;
-
-      setIsLoadingSessions(true);
-      setBlockchainError(null);
-
+    const fetchElectionInfo = async () => {
       try {
-        // Fetch sessions from your API
-        const response = await axios.get(`/api/PhienBauCu/cuocBauCu/${electionId}`);
-        setSessions(response.data || []);
-
-        // If there are sessions, select the first one by default
-        if (response.data && response.data.length > 0 && !phienIdParam) {
-          setSelectedSessionId(response.data[0].id);
-          dispatch(fetchPhienBauCuById(response.data[0].id));
-          dispatch(fetchUngCuVienByPhienBauCuId(response.data[0].id));
-          fetchElectionResultsFromBlockchain(electionId, response.data[0].id);
+        // Lấy thông tin cuộc bầu cử từ API
+        const response = await apiClient.get(`/api/CuocBauCu/${cuocBauCuId}`);
+        if (response.data) {
+          // Lấy địa chỉ blockchain từ cuộc bầu cử
+          setContractAddress(
+            response.data.blockchainAddress || '0x83d076026Cb9fea8694e9cBED3D30116C1DE5f74',
+          );
+          setServerId(response.data.blockchainServerId || 4);
         }
       } catch (error) {
-        console.error('Error fetching election sessions:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Lỗi',
-          description: 'Không thể tải danh sách phiên bầu cử. Vui lòng thử lại sau.',
-        });
-      } finally {
-        setIsLoadingSessions(false);
+        console.error('Lỗi khi lấy thông tin cuộc bầu cử:', error);
+
+        // Fallback: Nếu API không hoạt động, sử dụng giá trị mặc định
+        setContractAddress('0x83d076026Cb9fea8694e9cBED3D30116C1DE5f74');
+        setServerId(4);
       }
-    },
-    [dispatch, phienIdParam, toast],
-  );
+    };
 
-  // Fetch blockchain server list
-  const fetchBlockchainServers = useCallback(async () => {
-    if (!factoryInstance) return;
+    fetchElectionInfo();
+  }, []);
 
-    setIsLoadingElections(true);
-    setBlockchainError(null);
+  // Lấy danh sách phiên bầu cử khi có contractAddress
+  useEffect(() => {
+    if (!contractAddress) return;
+
+    const fetchPhienBauCu = async () => {
+      try {
+        setIsLoading(true);
+
+        // Kết nối với blockchain
+        const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
+        const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
+
+        // Lấy thông tin cuộc bầu cử
+        const electionData = await contract.layThongTinCoBan(cuocBauCuId);
+
+        setElectionInfo({
+          name: electionData[4], // tenCuocBauCu
+          owner: electionData[0], // nguoiSoHuu
+          isActive: electionData[1], // dangHoatDongDay
+          startTime: new Date(Number(electionData[2]) * 1000).toLocaleString(), // thoiGianBatDau
+          endTime: new Date(Number(electionData[3]) * 1000).toLocaleString(), // thoiGianKetThuc
+        });
+
+        // Lấy danh sách phiên bầu cử
+        const phienIds = await contract.layDanhSachPhienBauCu(cuocBauCuId, 0, 10);
+
+        if (phienIds && phienIds.length > 0) {
+          // Lấy thông tin chi tiết cho từng phiên
+          const phienDetails = await Promise.all(
+            phienIds.map(async (id) => {
+              try {
+                const phienData = await contract.layThongTinPhienBauCu(cuocBauCuId, id);
+                return {
+                  id: Number(id),
+                  isActive: phienData[0],
+                  startTime: new Date(Number(phienData[1]) * 1000),
+                  endTime: new Date(Number(phienData[2]) * 1000),
+                  candidateCount: Number(phienData[4]),
+                  voterCount: Number(phienData[5]),
+                };
+              } catch (error) {
+                console.warn(`Không thể lấy thông tin chi tiết cho phiên ${id}:`, error);
+                return { id: Number(id), error: true };
+              }
+            }),
+          );
+
+          setDanhSachPhien(phienDetails.filter((p) => !p.error));
+
+          // Chọn phiên đầu tiên
+          if (phienDetails.length > 0 && !selectedPhien) {
+            const validPhien = phienDetails.find((p) => !p.error);
+            if (validPhien) {
+              setSelectedPhien(validPhien.id);
+            }
+          }
+        }
+
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách phiên bầu cử:', error);
+        setError(`Không thể lấy danh sách phiên bầu cử: ${error.message}`);
+        setIsLoading(false);
+      }
+    };
+
+    fetchPhienBauCu();
+  }, [contractAddress]);
+
+  // Lấy kết quả cho phiên bầu cử được chọn
+  const fetchSessionResults = useCallback(async () => {
+    if (!contractAddress || !selectedPhien) return;
 
     try {
-      // Since the contract doesn't actually return the list directly,
-      // we'll simulate this by iterating through possible IDs
-      const servers = [];
+      setIsChangingSession(true);
 
-      for (let i = 1; i <= 50; i++) {
-        // Try first 50 potential servers
-        try {
-          const serverInfo = await factoryInstance.layThongTinServer(i);
-          if (serverInfo && serverInfo[0] !== ethers.ZeroAddress) {
-            servers.push({
-              id: i,
-              blockchainServerId: i,
-              tenCuocBauCu: serverInfo[1],
-              moTa: serverInfo[2],
-              trangThai: serverInfo[3],
-              blockchainAddress: serverInfo[0],
-              ngayBatDau: new Date().toISOString(), // These are placeholders
-              ngayKetThuc: new Date().toISOString(),
-            });
-          }
-        } catch (e) {
-          // Hit a non-existent server, break the loop
-          if (servers.length > 0) break;
-        }
-      }
+      // Kết nối với blockchain
+      const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
+      const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
 
-      setElections(servers);
+      // Lấy thông tin phiên bầu cử
+      const sessionData = await contract.layThongTinPhienBauCu(cuocBauCuId, selectedPhien);
 
-      if (servers.length > 0 && !selectedElectionId) {
-        setSelectedElectionId(servers[0].id);
-        fetchBlockchainSessions(servers[0].id, servers[0].blockchainAddress);
-      }
-    } catch (error) {
-      console.error('Error fetching blockchain servers:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Lỗi Blockchain',
-        description: 'Không thể tải danh sách server từ blockchain. Sử dụng dữ liệu từ API.',
+      setSessionInfo({
+        isActive: sessionData[0], // dangHoatDongNe
+        startTime: new Date(Number(sessionData[1]) * 1000).toLocaleString(), // thoiGianBatDau
+        endTime: new Date(Number(sessionData[2]) * 1000).toLocaleString(), // thoiGianKetThuc
+        maxVoters: Number(sessionData[3]), // soCuTriToiDa
+        candidateCount: Number(sessionData[4]), // soUngVienHienTai
+        voterCount: Number(sessionData[5]), // soCuTriHienTai
+        electedCandidates: sessionData[6], // ungVienDacCu
+        reElection: sessionData[7], // taiBauCu
       });
-      // Fall back to API
-      fetchElectionsFromAPI();
-    } finally {
-      setIsLoadingElections(false);
-    }
-  }, [factoryInstance, selectedElectionId, toast, fetchElectionsFromAPI]);
 
-  // Fetch blockchain sessions
-  const fetchBlockchainSessions = useCallback(
-    async (electionId: number, contractAddress?: string) => {
-      if (!electionId) return;
-      if (!contractInstance && !contractAddress) return;
+      // Cách xử lý khác nhau tùy theo trạng thái phiên
+      const isSessionActive = sessionData[0];
 
-      setIsLoadingSessions(true);
-      setBlockchainError(null);
+      if (isSessionActive) {
+        // Phiên đang hoạt động - lấy thông tin ứng viên và số phiếu hiện tại
+        const candidates = await contract.layDanhSachUngVien(cuocBauCuId, selectedPhien);
 
-      try {
-        let contract = contractInstance;
+        // Lấy số phiếu từng ứng viên
+        const tempResults = [];
+        let totalVotes = 0;
 
-        // If a specific contract address was provided, use it
-        if (contractAddress && contractAddress !== contract?.target) {
-          const provider = new ethers.JsonRpcProvider(BLOCKCHAIN_RPC_URL);
-          contract = new ethers.Contract(contractAddress, QUAN_LY_CUOC_BAU_CU_ABI, provider);
-        }
-
-        if (!contract) throw new Error('Contract not initialized');
-
-        // Get sessions from blockchain
-        const sessionIds = await contract.layDanhSachPhienBauCu(electionId, 0, 20);
-
-        if (!sessionIds || sessionIds.length === 0) {
-          setSessions([]);
-          return;
-        }
-
-        const blockchainSessions = [];
-
-        for (const sessionId of sessionIds) {
+        for (const candidate of candidates) {
           try {
-            const sessionInfo = await contract.layThongTinPhienBauCu(electionId, sessionId);
+            const votes = await contract.laySoPhieuUngVien(cuocBauCuId, selectedPhien, candidate);
+            totalVotes += Number(votes);
 
-            const thoiGianBatDau = sessionInfo[1]
-              ? new Date(Number(sessionInfo[1]) * 1000).toISOString()
-              : new Date().toISOString();
-            const thoiGianKetThuc = sessionInfo[2]
-              ? new Date(Number(sessionInfo[2]) * 1000).toISOString()
-              : new Date().toISOString();
-
-            blockchainSessions.push({
-              id: Number(sessionId),
-              tenPhienBauCu: `Phiên #${sessionId}`,
-              ngayBatDau: thoiGianBatDau,
-              ngayKetThuc: thoiGianKetThuc,
-              cuocBauCuId: electionId,
-              trangThai: sessionInfo[0] ? 0 : 2, // 0: active, 2: ended
-              blockchainSessionId: Number(sessionId),
+            tempResults.push({
+              address: candidate,
+              votes: Number(votes),
+              isElected: false, // Chưa có kết quả đắc cử
             });
-          } catch (e) {
-            console.error(`Error fetching session ${sessionId}:`, e);
+          } catch (err) {
+            console.warn(`Không thể lấy số phiếu cho ứng viên ${candidate}:`, err);
           }
         }
 
-        setSessions(blockchainSessions);
-
-        // Select first session by default
-        if (blockchainSessions.length > 0 && !phienIdParam) {
-          setSelectedSessionId(blockchainSessions[0].id);
-          fetchElectionResultsFromBlockchain(electionId, blockchainSessions[0].id);
-        }
-      } catch (error) {
-        console.error('Error fetching blockchain sessions:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Lỗi Blockchain',
-          description: 'Không thể tải phiên bầu cử từ blockchain. Sử dụng dữ liệu từ API.',
-        });
-        // Fall back to API if available
-        fetchElectionSessionsFromAPI(electionId);
-      } finally {
-        setIsLoadingSessions(false);
-      }
-    },
-    [contractInstance, phienIdParam, toast, fetchElectionSessionsFromAPI],
-  );
-
-  // Fetch blockchain session details - declare function before it's used
-  const fetchBlockchainSessionDetails = useCallback(
-    async (electionId: number, sessionId: number) => {
-      if (!electionId || !sessionId || !contractInstance) return;
-
-      try {
-        // Get session details
-        const sessionInfo = await contractInstance.layThongTinPhienBauCu(electionId, sessionId);
-
-        // Get winners
-        const winners = await contractInstance.layDanhSachUngVienDacCu(electionId, sessionId);
-
-        setBlockchainDetails({
-          sessionInfo: {
-            isActive: sessionInfo[0],
-            startTime: sessionInfo[1]
-              ? new Date(Number(sessionInfo[1]) * 1000).toISOString()
-              : null,
-            endTime: sessionInfo[2] ? new Date(Number(sessionInfo[2]) * 1000).toISOString() : null,
-            maxVoters: Number(sessionInfo[3]),
-            candidateCount: Number(sessionInfo[4]),
-            voterCount: Number(sessionInfo[5]),
-            electedCandidates: sessionInfo[6],
-            isReelection: sessionInfo[7],
-            confirmationCount: Number(sessionInfo[8]),
-            confirmationDeadline: sessionInfo[9]
-              ? new Date(Number(sessionInfo[9]) * 1000).toISOString()
-              : null,
-          },
-          winners: winners,
-        });
-      } catch (error) {
-        console.error('Error fetching blockchain session details:', error);
-      }
-    },
-    [contractInstance],
-  );
-
-  // Updated function to safely handle potential errors in blockchain data fetching
-  const fetchElectionResultsFromBlockchain = useCallback(
-    async (electionId: number, sessionId: number) => {
-      if (!electionId || !sessionId || !contractInstance) return;
-
-      setIsLoadingResults(true);
-      setBlockchainError(null);
-
-      try {
-        // Get detailed results from blockchain
-        const result = await contractInstance
-          .layKetQuaPhienBauCu(electionId, sessionId)
-          .catch((err: any) => {
-            console.error('Error calling blockchain contract:', err);
-            throw new Error(`Contract call failed: ${err.message}`);
-          });
-
-        // Ensure we got back proper data
-        if (!result || !Array.isArray(result) || result.length < 2) {
-          console.error('Invalid result format from blockchain:', result);
-          throw new Error('Invalid data format from blockchain');
+        // Tính phần trăm
+        for (const result of tempResults) {
+          result.percentage =
+            totalVotes > 0 ? Number(((result.votes / totalVotes) * 100).toFixed(2)) : 0;
         }
 
-        const [candidateAddresses, voteAmounts] = result;
+        // Sắp xếp theo số phiếu giảm dần
+        tempResults.sort((a, b) => b.votes - a.votes);
 
-        // Validate candidateAddresses is an array
-        if (!Array.isArray(candidateAddresses)) {
-          console.error('Candidate addresses is not an array:', candidateAddresses);
-          throw new Error('Invalid candidate data from blockchain');
-        }
-
-        if (candidateAddresses.length === 0) {
-          console.error('No candidate addresses returned');
-          setElectionResults({
-            candidates: [],
-            totalVotes: 0,
-            winnerId: undefined,
-            timestamp: Date.now(),
-            isFinalized: false,
-          });
-          return;
-        }
-
-        // Validate voteAmounts is an array
-        if (!Array.isArray(voteAmounts)) {
-          console.error('Vote amounts is not an array:', voteAmounts);
-          throw new Error('Invalid vote amounts data from blockchain');
-        }
-
-        // Calculate total votes from valid vote amounts
-        const totalVotes = voteAmounts.reduce((sum, votes) => sum + Number(votes || 0), 0);
-
-        // Map blockchain data to our candidate model
-        const candidatesWithVotes: Candidate[] = [];
-
-        for (let i = 0; i < candidateAddresses.length; i++) {
-          const address = candidateAddresses[i];
-          const votes = Number(voteAmounts[i] || 0);
-
-          // Find matching candidate in our Redux state - ensure danhSachUngVien is an array
-          const matchingCandidate = Array.isArray(danhSachUngVien)
-            ? danhSachUngVien.find(
-                (c) => c.blockchainAddress?.toLowerCase() === address?.toLowerCase(),
-              )
-            : undefined;
-
-          candidatesWithVotes.push({
-            id: matchingCandidate?.id || i,
-            hoTen: matchingCandidate?.hoTen || `Ứng viên ${truncateAddress(address || '')}`,
-            avatar: matchingCandidate?.avatar,
-            moTa: matchingCandidate?.moTa,
-            viTriUngCu: matchingCandidate?.viTriUngCu,
-            blockchainAddress: address,
-            votes: votes,
-            votePercentage: totalVotes > 0 ? (votes / totalVotes) * 100 : 0,
-            color: CHART_COLORS[i % CHART_COLORS.length],
-          });
-        }
-
-        // Sort candidates by votes (descending)
-        candidatesWithVotes.sort((a, b) => (b.votes || 0) - (a.votes || 0));
-
-        // Find winner ID (if any)
-        let winnerId = undefined;
-        if (candidatesWithVotes.length > 0 && (candidatesWithVotes[0]?.votes || 0) > 0) {
-          winnerId = candidatesWithVotes[0].id;
-        }
-
-        setElectionResults({
-          candidates: candidatesWithVotes,
-          totalVotes: totalVotes,
-          winnerId: winnerId,
-          timestamp: Date.now(),
-          isFinalized: true,
-        });
-
-        // Fetch additional blockchain details
-        fetchBlockchainSessionDetails(electionId, sessionId);
-      } catch (error) {
-        console.error('Error fetching election results from blockchain:', error);
-        setBlockchainError(
-          `Không thể tải kết quả bầu cử từ blockchain: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        // Cập nhật kết quả
+        setVotingResults(
+          tempResults.map((r) => ({
+            ...r,
+            displayAddress: `${r.address.substring(0, 6)}...${r.address.substring(r.address.length - 4)}`,
+          })),
         );
 
-        // Fall back to API data if available
-        if (Array.isArray(danhSachUngVien) && danhSachUngVien.length > 0) {
-          // Generate simulated results based on available candidates
-          const simulatedCandidates = danhSachUngVien.map((candidate, index) => {
-            const simulatedVotes = Math.floor(Math.random() * 100) + 1;
+        // Cập nhật tiến trình
+        if (Number(sessionData[5]) > 0) {
+          const percentage = ((totalVotes / Number(sessionData[5])) * 100).toFixed(2);
+          setProgress({
+            total: Number(sessionData[5]),
+            voted: totalVotes,
+            percentage: Number(percentage),
+          });
+        }
+      } else {
+        // Phiên đã kết thúc - lấy kết quả chính thức
+        try {
+          const results = await contract.layKetQuaPhienBauCu(cuocBauCuId, selectedPhien);
+
+          // Tính tổng số phiếu
+          const totalVotes = results[1].reduce((sum, votes) => sum + Number(votes), 0);
+
+          // Xử lý kết quả bỏ phiếu cho biểu đồ
+          const formattedResults = results[0].map((address, index) => {
+            const voteCount = Number(results[1][index]);
+            const percentage = totalVotes > 0 ? ((voteCount / totalVotes) * 100).toFixed(2) : 0;
+            const isElected = sessionData[6].includes(address);
+
             return {
-              ...candidate,
-              votes: simulatedVotes,
-              votePercentage: 0, // Will calculate after total
-              color: CHART_COLORS[index % CHART_COLORS.length],
+              address: address,
+              displayAddress:
+                address.substring(0, 6) + '...' + address.substring(address.length - 4),
+              votes: voteCount,
+              percentage: Number(percentage),
+              isElected: isElected,
             };
           });
 
-          // Calculate total and percentages
-          const totalVotes = simulatedCandidates.reduce((sum, c) => sum + (c.votes || 0), 0);
-          simulatedCandidates.forEach((c) => {
-            c.votePercentage = totalVotes > 0 ? ((c.votes || 0) / totalVotes) * 100 : 0;
-          });
+          // Sắp xếp theo số phiếu giảm dần
+          formattedResults.sort((a, b) => b.votes - a.votes);
+          setVotingResults(formattedResults);
 
-          // Sort by votes
-          simulatedCandidates.sort((a, b) => (b.votes || 0) - (a.votes || 0));
-
-          setElectionResults({
-            candidates: simulatedCandidates,
-            totalVotes: totalVotes,
-            winnerId: simulatedCandidates[0]?.id,
-            timestamp: Date.now(),
-            isFinalized: false, // Mark as not from blockchain
-          });
-        } else {
-          // If no candidates data available at all, set empty results
-          setElectionResults({
-            candidates: [],
-            totalVotes: 0,
-            winnerId: undefined,
-            timestamp: Date.now(),
-            isFinalized: false,
-          });
+          // Cập nhật tiến trình
+          if (Number(sessionData[5]) > 0) {
+            const percentage = ((totalVotes / Number(sessionData[5])) * 100).toFixed(2);
+            setProgress({
+              total: Number(sessionData[5]),
+              voted: totalVotes,
+              percentage: Number(percentage),
+            });
+          }
+        } catch (error) {
+          console.error('Lỗi khi lấy kết quả:', error);
+          setError('Không thể lấy kết quả bầu cử: ' + error.message);
         }
-      } finally {
-        setIsLoadingResults(false);
       }
-    },
-    [contractInstance, danhSachUngVien, fetchBlockchainSessionDetails],
-  );
 
-  // Load initial data
+      setIsChangingSession(false);
+    } catch (error) {
+      console.error('Lỗi khi lấy kết quả phiên bầu cử:', error);
+      setError(`Lỗi khi lấy kết quả: ${error.message}`);
+      setIsChangingSession(false);
+    }
+  }, [contractAddress, selectedPhien]);
+
   useEffect(() => {
-    if (!cuocBauCuIdParam) {
-      // If no election ID in URL, fetch all elections
-      if (factoryInstance) {
-        fetchBlockchainServers();
-      } else {
-        fetchElectionsFromAPI();
+    if (selectedPhien) {
+      fetchSessionResults();
+    }
+  }, [selectedPhien, fetchSessionResults]);
+
+  // Theo dõi real-time
+  useEffect(() => {
+    if (!isMonitoring || !contractAddress || !selectedPhien) return;
+
+    let provider;
+    let contract;
+    let interval;
+
+    const setupMonitoring = async () => {
+      try {
+        // Thiết lập kết nối WebSocket nếu có
+        try {
+          provider = new ethers.WebSocketProvider('wss://geth.holihu.online/ws');
+          console.log('WebSocket kết nối thành công');
+        } catch (wsError) {
+          // Fallback to HTTP polling
+          console.warn('Không thể kết nối WebSocket, sử dụng HTTP polling:', wsError);
+          provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
+          interval = setInterval(fetchSessionResults, 30000); // Cập nhật mỗi 30 giây
+          return;
+        }
+
+        contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
+
+        // Chỉ dùng polling thay vì WebSocket listener (để tránh lỗi event)
+        console.log('Thiết lập polling cho cập nhật dữ liệu');
+        interval = setInterval(fetchSessionResults, 15000); // Cập nhật mỗi 15 giây
+      } catch (error) {
+        console.error('Lỗi khi thiết lập theo dõi:', error);
+        // Fallback nếu có lỗi
+        interval = setInterval(fetchSessionResults, 30000);
       }
+    };
+
+    setupMonitoring();
+
+    return () => {
+      if (interval) clearInterval(interval);
+      if (provider) {
+        if (provider.destroy) provider.destroy();
+        provider.removeAllListeners();
+      }
+    };
+  }, [isMonitoring, contractAddress, selectedPhien, fetchSessionResults, sessionInfo]);
+
+  // Custom tooltip cho biểu đồ
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-bold">{data.displayAddress}</p>
+          <p className="text-blue-600">{data.votes} phiếu</p>
+          <p className="text-gray-600">{data.percentage}% tổng phiếu</p>
+          {data.isElected && (
+            <p className="text-green-600 flex items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Trúng cử
+            </p>
+          )}
+        </div>
+      );
     }
-  }, [cuocBauCuIdParam, fetchElectionsFromAPI, fetchBlockchainServers, factoryInstance]);
-
-  // Handle election selection
-  const handleElectionChange = (id: number) => {
-    setSelectedElectionId(id);
-    setSelectedSessionId(null);
-    setElectionResults(null);
-    setSessions([]);
-
-    // Find the selected election
-    const election = elections.find((e) => e.id === id);
-
-    // Update URL
-    navigate(`/app/election-results/${id}`);
-
-    if (election?.blockchainAddress) {
-      // If it has a blockchain address, fetch from blockchain
-      fetchBlockchainSessions(id, election.blockchainAddress);
-    } else {
-      // Otherwise fetch from API
-      fetchElectionSessionsFromAPI(id);
-    }
+    return null;
   };
 
-  // Handle session selection
-  const handleSessionChange = (id: number) => {
-    setSelectedSessionId(id);
-    setElectionResults(null);
+  // Tính thời gian còn lại
+  const calculateTimeRemaining = () => {
+    if (!sessionInfo) return null;
 
-    // Update URL
-    navigate(`/app/election-results/${selectedElectionId}/${id}`);
+    const endTime = new Date(sessionInfo.endTime);
+    const now = new Date();
 
-    // Fetch data
-    dispatch(fetchPhienBauCuById(id));
-    dispatch(fetchUngCuVienByPhienBauCuId(id));
+    if (now > endTime) return 'Phiên đã kết thúc';
 
-    if (selectedElectionId) {
-      fetchElectionResultsFromBlockchain(selectedElectionId, id);
-    }
+    const diff = endTime.getTime() - now.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `${days > 0 ? `${days} ngày ` : ''}${hours} giờ ${minutes} phút`;
   };
 
-  // Handle chart type change
-  const handleChartTypeChange = (type: 'bar' | 'pie' | 'radial' | 'radar') => {
-    setChartType(type);
+  // Xử lý khi thay đổi phiên bầu cử
+  const handleSessionChange = (e) => {
+    setSelectedPhien(Number(e.target.value));
   };
 
-  // Handle candidate click
-  const handleCandidateClick = (candidate: Candidate) => {
-    setSelectedCandidate(candidate);
-    setShowCandidateDetails(true);
+  // Toggle theo dõi
+  const toggleMonitoring = () => {
+    setIsMonitoring(!isMonitoring);
   };
 
-  // Filtered elections based on search
-  const filteredElections = useMemo(() => {
-    if (!searchTerm) return elections || [];
+  // Hàm làm mới dữ liệu
+  const refreshData = () => {
+    fetchSessionResults();
+  };
 
-    if (!Array.isArray(elections)) {
-      console.warn('Elections is not an array:', elections);
-      return [];
-    }
-
-    return elections.filter((election) =>
-      election?.tenCuocBauCu?.toLowerCase().includes(searchTerm.toLowerCase()),
+  if (isLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <p className="mt-4">Đang tải dữ liệu từ blockchain...</p>
+        </div>
+      </div>
     );
-  }, [elections, searchTerm]);
-
-  // Get current session - add array check
-  const currentSession = useMemo(() => {
-    if (!Array.isArray(sessions)) {
-      return undefined;
-    }
-    return sessions.find((s) => s.id === selectedSessionId);
-  }, [sessions, selectedSessionId]);
-
-  // Get current election - add array check
-  const currentElection = useMemo(() => {
-    const foundElection = Array.isArray(elections)
-      ? elections.find((e) => e.id === selectedElectionId)
-      : undefined;
-
-    return foundElection || cuocBauCu;
-  }, [elections, selectedElectionId, cuocBauCu]);
+  }
 
   return (
-    <div className={`min-h-screen pb-12 ${isDarkMode ? 'dark' : ''}`}>
-      <ParticleBackground isDarkMode={isDarkMode} />
+    <div className="container mx-auto p-4">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg shadow-lg p-6 mb-6">
+        <h1 className="text-2xl font-bold">Kết Quả Bầu Cử Blockchain</h1>
+        {electionInfo && <p className="mt-2 opacity-90">{electionInfo.name}</p>}
+      </div>
 
-      <div className="container mx-auto px-4 relative z-10">
-        {/* Header section */}
-        <div className="py-8 mb-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
-                Kết Quả Bầu Cử Blockchain
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-2 max-w-2xl">
-                Tra cứu và xem kết quả các cuộc bầu cử được lưu trữ an toàn trên nền tảng blockchain
-                bất biến
-              </p>
+      {error && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                variant="outline"
-                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
-                onClick={() => navigate('/app')}
-              >
-                <Home className="mr-2 h-4 w-4" />
-                Trang chủ
-              </Button>
-
-              <Button
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                onClick={() => setIsExportOpen(true)}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Xuất kết quả
-              </Button>
+            <div className="ml-3">
+              <p>{error}</p>
             </div>
           </div>
-
-          {/* Search and filter section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="relative">
-              <Input
-                placeholder="Tìm kiếm cuộc bầu cử..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg"
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            </div>
-
-            <Select
-              value={selectedElectionId?.toString() || ''}
-              onValueChange={(value) => handleElectionChange(parseInt(value))}
-              disabled={isLoadingElections}
-            >
-              <SelectTrigger className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg">
-                <SelectValue placeholder="Chọn cuộc bầu cử" />
-              </SelectTrigger>
-              <SelectContent>
-                {isLoadingElections ? (
-                  <div className="flex items-center justify-center p-4">
-                    <RefreshCw className="h-5 w-5 animate-spin text-gray-400" />
-                    <span className="ml-2">Đang tải...</span>
-                  </div>
-                ) : filteredElections.length === 0 ? (
-                  <div className="text-center p-4 text-gray-500">
-                    Không tìm thấy cuộc bầu cử nào
-                  </div>
-                ) : (
-                  filteredElections.map((election) => (
-                    <SelectItem key={election.id} value={election.id.toString()}>
-                      {election.tenCuocBauCu}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={selectedSessionId?.toString() || ''}
-              onValueChange={(value) => handleSessionChange(parseInt(value))}
-              disabled={isLoadingSessions || !selectedElectionId}
-            >
-              <SelectTrigger className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg">
-                <SelectValue placeholder="Chọn phiên bầu cử" />
-              </SelectTrigger>
-              <SelectContent>
-                {isLoadingSessions ? (
-                  <div className="flex items-center justify-center p-4">
-                    <RefreshCw className="h-5 w-5 animate-spin text-gray-400" />
-                    <span className="ml-2">Đang tải...</span>
-                  </div>
-                ) : sessions.length === 0 ? (
-                  <div className="text-center p-4 text-gray-500">
-                    Không tìm thấy phiên bầu cử nào
-                  </div>
-                ) : (
-                  sessions.map((session) => (
-                    <SelectItem key={session.id} value={session.id.toString()}>
-                      {session.tenPhienBauCu || `Phiên #${session.id}`}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Current election/session info card */}
-          {(currentElection || currentSession) && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl shadow-xl overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {currentElection && (
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center mb-3">
-                          <Calendar className="h-5 w-5 text-blue-500 mr-2" />
-                          Thông tin cuộc bầu cử
-                        </h3>
-                        <div className="space-y-4">
-                          <div className="flex justify-between">
-                            <span className="text-gray-500 dark:text-gray-400">Tên:</span>
-                            <span className="text-gray-900 dark:text-white font-medium">
-                              {currentElection.tenCuocBauCu}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between">
-                            <span className="text-gray-500 dark:text-gray-400">ID:</span>
-                            <span className="text-gray-900 dark:text-white font-medium">
-                              {currentElection.id}
-                              {currentElection.blockchainServerId &&
-                                currentElection.blockchainServerId !== currentElection.id && (
-                                  <span className="ml-2 text-blue-600 dark:text-blue-400">
-                                    (Server ID: {currentElection.blockchainServerId})
-                                  </span>
-                                )}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between">
-                            <span className="text-gray-500 dark:text-gray-400">Ngày bắt đầu:</span>
-                            <span className="text-gray-900 dark:text-white">
-                              {formatDate(currentElection.ngayBatDau)}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between">
-                            <span className="text-gray-500 dark:text-gray-400">Ngày kết thúc:</span>
-                            <span className="text-gray-900 dark:text-white">
-                              {formatDate(currentElection.ngayKetThuc)}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between">
-                            <span className="text-gray-500 dark:text-gray-400">Trạng thái:</span>
-                            <Badge
-                              className={`${getStatusColor(currentElection.trangThai).bg} ${getStatusColor(currentElection.trangThai).text} ${getStatusColor(currentElection.trangThai).border}`}
-                            >
-                              {getStatusText(currentElection.trangThai)}
-                            </Badge>
-                          </div>
-
-                          {currentElection.blockchainAddress && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Địa chỉ hợp đồng:
-                              </span>
-                              <div className="flex items-center">
-                                <span className="text-blue-600 dark:text-blue-400 font-mono text-sm">
-                                  {truncateAddress(currentElection.blockchainAddress)}
-                                </span>
-                                <TooltipProvider>
-                                  <TooltipUI>
-                                    <TooltipTrigger asChild>
-                                      <button
-                                        className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                        onClick={() =>
-                                          navigator.clipboard.writeText(
-                                            currentElection.blockchainAddress || '',
-                                          )
-                                        }
-                                      >
-                                        <Copy className="h-4 w-4" />
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p className="text-xs">Sao chép địa chỉ</p>
-                                    </TooltipContent>
-                                  </TooltipUI>
-                                </TooltipProvider>
-                                <TooltipProvider>
-                                  <TooltipUI>
-                                    <TooltipTrigger asChild>
-                                      <a
-                                        href={`https://explorer.holihu.online/address/${currentElection.blockchainAddress}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="ml-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                      >
-                                        <ExternalLink className="h-4 w-4" />
-                                      </a>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p className="text-xs">Xem trên Explorer</p>
-                                    </TooltipContent>
-                                  </TooltipUI>
-                                </TooltipProvider>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {currentSession && (
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center mb-3">
-                          <Users className="h-5 w-5 text-purple-500 mr-2" />
-                          Thông tin phiên bầu cử
-                        </h3>
-                        <div className="space-y-4">
-                          <div className="flex justify-between">
-                            <span className="text-gray-500 dark:text-gray-400">Tên:</span>
-                            <span className="text-gray-900 dark:text-white font-medium">
-                              {currentSession.tenPhienBauCu || `Phiên #${currentSession.id}`}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between">
-                            <span className="text-gray-500 dark:text-gray-400">ID:</span>
-                            <span className="text-gray-900 dark:text-white font-medium">
-                              {currentSession.id}
-                              {currentSession.blockchainSessionId &&
-                                currentSession.blockchainSessionId !== currentSession.id && (
-                                  <span className="ml-2 text-blue-600 dark:text-blue-400">
-                                    (Session ID: {currentSession.blockchainSessionId})
-                                  </span>
-                                )}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between">
-                            <span className="text-gray-500 dark:text-gray-400">Ngày bắt đầu:</span>
-                            <span className="text-gray-900 dark:text-white">
-                              {formatDate(currentSession.ngayBatDau)}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between">
-                            <span className="text-gray-500 dark:text-gray-400">Ngày kết thúc:</span>
-                            <span className="text-gray-900 dark:text-white">
-                              {formatDate(currentSession.ngayKetThuc)}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between">
-                            <span className="text-gray-500 dark:text-gray-400">Trạng thái:</span>
-                            <Badge
-                              className={`${getStatusColor(currentSession.trangThai).bg} ${getStatusColor(currentSession.trangThai).text} ${getStatusColor(currentSession.trangThai).border}`}
-                            >
-                              {getStatusText(currentSession.trangThai)}
-                            </Badge>
-                          </div>
-
-                          {blockchainDetails && blockchainDetails.sessionInfo && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500 dark:text-gray-400">Số cử tri:</span>
-                              <Badge
-                                variant="outline"
-                                className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                              >
-                                {blockchainDetails.sessionInfo.voterCount} cử tri
-                              </Badge>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Show blockchain details toggle */}
-                  {blockchainDetails && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <button
-                        type="button"
-                        onClick={() => setShowBlockchainDetails(!showBlockchainDetails)}
-                        className="flex items-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-                      >
-                        <Database className="h-4 w-4 mr-1.5" />
-                        {showBlockchainDetails
-                          ? 'Ẩn thông tin blockchain'
-                          : 'Hiện thông tin blockchain'}
-                        <ChevronDown
-                          className={`ml-1 h-4 w-4 transition-transform ${showBlockchainDetails ? 'rotate-180' : ''}`}
-                        />
-                      </button>
-
-                      {showBlockchainDetails && (
-                        <div className="mt-3 p-3 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-lg text-sm">
-                          <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">
-                            Chi tiết blockchain
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-blue-700 dark:text-blue-400">
-                                Phiên hoạt động:
-                              </span>
-                              <span className="text-blue-800 dark:text-blue-300">
-                                {blockchainDetails.sessionInfo.isActive ? 'Có' : 'Không'}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-blue-700 dark:text-blue-400">Số ứng viên:</span>
-                              <span className="text-blue-800 dark:text-blue-300">
-                                {blockchainDetails.sessionInfo.candidateCount}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-blue-700 dark:text-blue-400">
-                                Số cử tri tối đa:
-                              </span>
-                              <span className="text-blue-800 dark:text-blue-300">
-                                {blockchainDetails.sessionInfo.maxVoters}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-blue-700 dark:text-blue-400">
-                                Yêu cầu tái bầu:
-                              </span>
-                              <span className="text-blue-800 dark:text-blue-300">
-                                {blockchainDetails.sessionInfo.isReelection ? 'Có' : 'Không'}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-blue-700 dark:text-blue-400">
-                                Số lượng xác nhận:
-                              </span>
-                              <span className="text-blue-800 dark:text-blue-300">
-                                {blockchainDetails.sessionInfo.confirmationCount}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Winners section */}
-                          {blockchainDetails.winners && blockchainDetails.winners.length > 0 && (
-                            <div className="mt-3">
-                              <h5 className="font-medium text-blue-800 dark:text-blue-300 mb-1">
-                                Ứng viên đắc cử:
-                              </h5>
-                              <div className="flex flex-wrap gap-2">
-                                {blockchainDetails.winners.map((winner, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/30"
-                                  >
-                                    <CheckCircle className="mr-1 h-3 w-3" />
-                                    {truncateAddress(winner)}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
         </div>
+      )}
 
-        {/* Results section */}
-        <div className="mb-8">
-          {blockchainError && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Lỗi Blockchain</AlertTitle>
-              <AlertDescription>
-                {blockchainError}
-                <div className="mt-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setBlockchainError(null);
-                      if (selectedElectionId && selectedSessionId) {
-                        fetchElectionResultsFromBlockchain(selectedElectionId, selectedSessionId);
-                      }
-                    }}
-                    className="bg-white"
+      {/* Chọn phiên bầu cử */}
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <div className="flex-grow">
+            <label htmlFor="phien-select" className="block text-sm font-medium text-gray-700 mb-1">
+              Chọn phiên bầu cử:
+            </label>
+            <select
+              id="phien-select"
+              value={selectedPhien || ''}
+              onChange={handleSessionChange}
+              className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              disabled={isChangingSession}
+            >
+              <option value="">-- Chọn phiên bầu cử --</option>
+              {danhSachPhien.map((phien) => (
+                <option key={phien.id} value={phien.id}>
+                  Phiên #{phien.id} - {phien.isActive ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc'}
+                  {phien.isActive
+                    ? ` (${phien.candidateCount} ứng viên, ${phien.voterCount} cử tri)`
+                    : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={refreshData}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={isChangingSession || !selectedPhien}
+            >
+              {isChangingSession ? (
+                <span className="flex items-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
                   >
-                    <RefreshCw className="mr-2 h-3" />
-                    Thử lại
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {isLoadingResults ? (
-            <div className="grid gap-6">
-              <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl shadow-lg overflow-hidden">
-                <CardHeader>
-                  <Skeleton className="h-8 w-2/3" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <Skeleton className="h-[300px] w-full" />
-                    <div className="flex justify-center gap-2">
-                      <Skeleton className="h-9 w-20" />
-                      <Skeleton className="h-9 w-20" />
-                      <Skeleton className="h-9 w-20" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl shadow-lg overflow-hidden">
-                <CardHeader>
-                  <Skeleton className="h-8 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          ) : electionResults &&
-            Array.isArray(electionResults.candidates) &&
-            electionResults.candidates.length > 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              className="grid gap-6"
-            >
-              <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl shadow-xl overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
-                <CardHeader className="pb-0">
-                  <CardTitle className="text-xl text-gray-900 dark:text-white flex items-center">
-                    <BarChart3 className="h-5 w-5 text-blue-500 mr-2" />
-                    Biểu đồ kết quả bầu cử
-                  </CardTitle>
-                  <CardDescription>
-                    Tổng số phiếu bầu: <strong>{electionResults.totalVotes}</strong> | Cập nhật:{' '}
-                    <strong>{formatDate(electionResults.timestamp)}</strong>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap justify-center mb-4 bg-gray-50/50 dark:bg-gray-900/30 p-2 rounded-lg">
-                    <TooltipProvider>
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        <TooltipUI>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant={chartType === 'bar' ? 'default' : 'outline'}
-                              className={`${chartType === 'bar' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-white/80 dark:bg-gray-800/80'}`}
-                              onClick={() => handleChartTypeChange('bar')}
-                            >
-                              <BarChart3 className="h-4 w-4 mr-1" />
-                              Cột
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">
-                              Biểu đồ cột thể hiện số phiếu của từng ứng viên
-                            </p>
-                          </TooltipContent>
-                        </TooltipUI>
-
-                        <TooltipUI>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant={chartType === 'pie' ? 'default' : 'outline'}
-                              className={`${chartType === 'pie' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-white/80 dark:bg-gray-800/80'}`}
-                              onClick={() => handleChartTypeChange('pie')}
-                            >
-                              <PieChart className="h-4 w-4 mr-1" />
-                              Tròn
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">Biểu đồ tròn thể hiện tỉ lệ phần trăm</p>
-                          </TooltipContent>
-                        </TooltipUI>
-
-                        <TooltipUI>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant={chartType === 'radial' ? 'default' : 'outline'}
-                              className={`${chartType === 'radial' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-white/80 dark:bg-gray-800/80'}`}
-                              onClick={() => handleChartTypeChange('radial')}
-                            >
-                              <Hexagon className="h-4 w-4 mr-1" />
-                              Xuyên tâm
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">Biểu đồ xuyên tâm thể hiện phân bố phiếu bầu</p>
-                          </TooltipContent>
-                        </TooltipUI>
-
-                        <TooltipUI>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant={chartType === 'radar' ? 'default' : 'outline'}
-                              className={`${chartType === 'radar' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-white/80 dark:bg-gray-800/80'}`}
-                              onClick={() => handleChartTypeChange('radar')}
-                            >
-                              <LucideActivity className="h-4 w-4 mr-1" />
-                              Radar
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">Biểu đồ radar thể hiện sự phân bố phiếu bầu</p>
-                          </TooltipContent>
-                        </TooltipUI>
-                      </div>
-                    </TooltipProvider>
-                  </div>
-
-                  <ElectionResultChart
-                    data={electionResults.candidates || []}
-                    totalVotes={electionResults.totalVotes}
-                    chartType={chartType}
-                  />
-
-                  {electionResults.isFinalized ? (
-                    <Alert className="bg-green-50/70 dark:bg-green-900/20 border border-green-100/50 dark:border-green-800/30 backdrop-blur-sm mt-4">
-                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      <AlertTitle className="text-green-800 dark:text-green-300">
-                        Kết quả chính thức
-                      </AlertTitle>
-                      <AlertDescription className="text-green-700 dark:text-green-400">
-                        Kết quả này đã được xác thực và lưu trữ trên blockchain, đảm bảo tính minh
-                        bạch và không thể thay đổi.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <Alert className="bg-amber-50/70 dark:bg-amber-900/20 border border-amber-100/50 dark:border-amber-800/30 backdrop-blur-sm mt-4">
-                      <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                      <AlertTitle className="text-amber-800 dark:text-amber-300">
-                        Kết quả dự kiến
-                      </AlertTitle>
-                      <AlertDescription className="text-amber-700 dark:text-amber-400">
-                        Đây là kết quả dự kiến, đang chờ xác thực cuối cùng trên blockchain.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Detailed results table */}
-              <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl shadow-xl overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-600"></div>
-                <CardHeader className="pb-0">
-                  <CardTitle className="text-xl text-gray-900 dark:text-white flex items-center">
-                    <List className="h-5 w-5 text-purple-500 mr-2" />
-                    Chi tiết kết quả bầu cử
-                  </CardTitle>
-                  <CardDescription>Danh sách ứng viên và số phiếu bầu tương ứng</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12 text-center">#</TableHead>
-                          <TableHead>Ứng viên</TableHead>
-                          <TableHead className="text-right">Số phiếu</TableHead>
-                          <TableHead className="text-right">Tỉ lệ</TableHead>
-                          <TableHead className="text-center">Kết quả</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {Array.isArray(electionResults.candidates) &&
-                          electionResults.candidates.map((candidate, index) => (
-                            <TableRow
-                              key={candidate.id || index}
-                              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                              onClick={() => handleCandidateClick(candidate)}
-                            >
-                              <TableCell className="font-medium text-center">{index + 1}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center">
-                                  <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden mr-2">
-                                    {candidate.avatar ? (
-                                      <img
-                                        src={candidate.avatar}
-                                        alt={candidate.hoTen}
-                                        className="h-full w-full object-cover"
-                                      />
-                                    ) : (
-                                      <User className="h-4 w-4 text-gray-500" />
-                                    )}
-                                  </div>
-                                  <div>
-                                    <div className="font-medium">{candidate.hoTen}</div>
-                                    {candidate.viTriUngCu && (
-                                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                                        {candidate.viTriUngCu.tenViTriUngCu}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">{candidate.votes}</TableCell>
-                              <TableCell className="text-right">
-                                {(candidate.votePercentage || 0).toFixed(2)}%
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {electionResults.winnerId === candidate.id ? (
-                                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                    <Trophy className="h-3 w-3 mr-1" />
-                                    Đắc cử
-                                  </Badge>
-                                ) : index === 0 && !electionResults.winnerId ? (
-                                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                    <Star className="h-3 w-3 mr-1" />
-                                    Dẫn đầu
-                                  </Badge>
-                                ) : (
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
-                                  >
-                                    Ứng viên
-                                  </Badge>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-                <CardFooter className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30">
-                  <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      <InfoIcon className="inline-block h-4 w-4 mr-1" />
-                      Nhấp vào hàng để xem thông tin chi tiết về ứng viên
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="bg-white/80 dark:bg-gray-800/80"
-                        onClick={() => {
-                          if (selectedElectionId && selectedSessionId) {
-                            fetchElectionResultsFromBlockchain(
-                              selectedElectionId,
-                              selectedSessionId,
-                            );
-                          }
-                        }}
-                      >
-                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                        Cập nhật
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-purple-600 hover:bg-purple-700 text-white"
-                        onClick={() => setIsExportOpen(true)}
-                      >
-                        <Download className="h-3.5 w-3.5 mr-1.5" />
-                        Xuất kết quả
-                      </Button>
-                    </div>
-                  </div>
-                </CardFooter>
-              </Card>
-
-              {/* Winner card - only show if there's a declared winner */}
-              {electionResults.winnerId && Array.isArray(electionResults.candidates) && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}
-                >
-                  <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/30 rounded-xl shadow-xl overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
-                    <CardContent className="p-6">
-                      <div className="flex flex-col md:flex-row items-center gap-6">
-                        <div className="relative">
-                          <div className="h-32 w-32 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-800/30 dark:to-purple-800/30 flex items-center justify-center overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg">
-                            {electionResults.candidates.find(
-                              (c) => c.id === electionResults.winnerId,
-                            )?.avatar ? (
-                              <img
-                                src={
-                                  electionResults.candidates.find(
-                                    (c) => c.id === electionResults.winnerId,
-                                  )?.avatar
-                                }
-                                alt="Ứng viên đắc cử"
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <User className="h-16 w-16 text-blue-500" />
-                            )}
-                          </div>
-                          <div className="absolute -right-2 -top-2 h-10 w-10 bg-amber-400 dark:bg-amber-500 rounded-full flex items-center justify-center text-white shadow-md">
-                            <Trophy className="h-6 w-6" />
-                          </div>
-
-                          <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white py-1 px-3 rounded-full text-xs font-medium shadow-md">
-                            Đắc cử
-                          </div>
-                        </div>
-
-                        <div className="text-center md:text-left flex-1">
-                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                            {
-                              electionResults.candidates.find(
-                                (c) => c.id === electionResults.winnerId,
-                              )?.hoTen
-                            }
-                          </h3>
-
-                          <p className="text-gray-600 dark:text-gray-300 mb-3">
-                            {electionResults.candidates.find(
-                              (c) => c.id === electionResults.winnerId,
-                            )?.viTriUngCu?.tenViTriUngCu || 'Ứng viên'}
-                          </p>
-
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-2 max-w-md">
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400 text-sm">
-                                Số phiếu:
-                              </span>
-                              <div className="font-semibold text-lg text-gray-900 dark:text-white">
-                                {electionResults.candidates.find(
-                                  (c) => c.id === electionResults.winnerId,
-                                )?.votes || 0}
-                              </div>
-                            </div>
-
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400 text-sm">
-                                Tỉ lệ:
-                              </span>
-                              <div className="font-semibold text-lg text-gray-900 dark:text-white">
-                                {(
-                                  electionResults.candidates.find(
-                                    (c) => c.id === electionResults.winnerId,
-                                  )?.votePercentage || 0
-                                ).toFixed(2)}
-                                %
-                              </div>
-                            </div>
-
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400 text-sm">
-                                Blockchain Address:
-                              </span>
-                              <div className="font-mono text-xs text-blue-600 dark:text-blue-400 truncate">
-                                {truncateAddress(
-                                  electionResults.candidates.find(
-                                    (c) => c.id === electionResults.winnerId,
-                                  )?.blockchainAddress || '',
-                                )}
-                              </div>
-                            </div>
-
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400 text-sm">
-                                Trạng thái:
-                              </span>
-                              <div>
-                                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                  Đắc cử
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="hidden lg:block">
-                          <div className="bg-white/70 dark:bg-gray-900/50 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50 dark:border-gray-700/50 shadow-md">
-                            <div className="flex items-center text-gray-700 dark:text-gray-300 mb-1">
-                              <Sparkles className="h-4 w-4 text-amber-500 mr-1.5" />
-                              <span className="text-sm font-medium">Thành tích bầu cử</span>
-                            </div>
-                            <div className="space-y-3">
-                              <div>
-                                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                                  <span>Tỉ lệ phiếu bầu</span>
-                                  <span>
-                                    {(
-                                      electionResults.candidates.find(
-                                        (c) => c.id === electionResults.winnerId,
-                                      )?.votePercentage || 0
-                                    ).toFixed(2)}
-                                    %
-                                  </span>
-                                </div>
-                                <Progress
-                                  value={
-                                    electionResults.candidates.find(
-                                      (c) => c.id === electionResults.winnerId,
-                                    )?.votePercentage || 0
-                                  }
-                                  className="h-2 bg-gray-100 dark:bg-gray-700"
-                                />
-                              </div>
-
-                              <div>
-                                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                                  <span>Vượt ứng viên #2</span>
-                                  <span>
-                                    {electionResults.candidates.length > 1
-                                      ? (electionResults.candidates[0]?.votes || 0) -
-                                        (electionResults.candidates[1]?.votes || 0)
-                                      : 0}{' '}
-                                    phiếu
-                                  </span>
-                                </div>
-                                <Progress
-                                  value={
-                                    electionResults.candidates.length > 1
-                                      ? (((electionResults.candidates[0]?.votes || 0) -
-                                          (electionResults.candidates[1]?.votes || 0)) /
-                                          (electionResults.candidates[0]?.votes || 1)) *
-                                        100
-                                      : 100
-                                  }
-                                  className="h-2 bg-gray-100 dark:bg-gray-700"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Đang cập nhật...
+                </span>
+              ) : (
+                <span className="flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  Làm mới
+                </span>
               )}
-            </motion.div>
-          ) : !isLoadingResults && selectedSessionId ? (
-            <div className="text-center py-16">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 mb-4">
-                <Search className="h-8 w-8" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                Không tìm thấy kết quả
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-6">
-                Không tìm thấy kết quả bầu cử cho phiên bầu cử này. Có thể phiên bầu cử chưa kết
-                thúc hoặc chưa có kết quả nào được ghi nhận trên blockchain.
-              </p>
-              <Button
-                variant="outline"
-                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50"
-                onClick={() => {
-                  if (selectedElectionId && selectedSessionId) {
-                    fetchElectionResultsFromBlockchain(selectedElectionId, selectedSessionId);
-                  }
-                }}
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Thử lại
-              </Button>
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 mb-4">
-                <Info className="h-8 w-8" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                Chọn phiên bầu cử
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                Vui lòng chọn một cuộc bầu cử và phiên bầu cử từ danh sách phía trên để xem kết quả
-                chi tiết.
-              </p>
-            </div>
-          )}
+            </button>
+
+            <button
+              onClick={toggleMonitoring}
+              className={`px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                isMonitoring
+                  ? 'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500'
+                  : 'bg-green-500 text-white hover:bg-green-600 focus:ring-green-500'
+              }`}
+              disabled={!selectedPhien}
+            >
+              {isMonitoring ? (
+                <span className="flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                  Dừng theo dõi
+                </span>
+              ) : (
+                <span className="flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                  Theo dõi real-time
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
-        {/* Export dialog */}
-        <Dialog open={isExportOpen} onOpenChange={setIsExportOpen}>
-          <DialogContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200/50 dark:border-gray-700/50 rounded-xl shadow-xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center">
-                <Download className="h-5 w-5 text-blue-500 mr-2" />
-                Xuất kết quả bầu cử
-              </DialogTitle>
-              <DialogDescription>Chọn định dạng và tùy chọn xuất kết quả bầu cử</DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                  className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 cursor-pointer bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm transition-all duration-200 hover:shadow-md"
-                  onClick={() => {
-                    // Generate PDF export logic would go here
-                    toast({
-                      title: 'Xuất PDF',
-                      description: 'Đang chuẩn bị tệp PDF của bạn...',
-                    });
-                    setIsExportOpen(false);
-                  }}
-                >
-                  <div className="flex items-center mb-2">
-                    <div className="h-10 w-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-600 dark:text-red-400 mr-3">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white">PDF Document</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Tệp PDF có thể in</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Xuất báo cáo kết quả bầu cử dạng tệp PDF đầy đủ với biểu đồ và thông tin chi
-                    tiết.
-                  </p>
-                </div>
-
-                <div
-                  className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 cursor-pointer bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm transition-all duration-200 hover:shadow-md"
-                  onClick={() => {
-                    // Generate Excel export logic would go here
-                    toast({
-                      title: 'Xuất Excel',
-                      description: 'Đang chuẩn bị tệp Excel của bạn...',
-                    });
-                    setIsExportOpen(false);
-                  }}
-                >
-                  <div className="flex items-center mb-2">
-                    <div className="h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 mr-3">
-                      <Layers className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white">
-                        Excel Spreadsheet
-                      </h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Tệp .xlsx có thể chỉnh sửa
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Xuất dữ liệu chi tiết dưới dạng bảng tính Excel cho phép phân tích nâng cao.
-                  </p>
-                </div>
-              </div>
-
-              <div
-                className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 cursor-pointer bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm transition-all duration-200 hover:shadow-md"
-                onClick={() => {
-                  // Generate blockchain verification proof
-                  toast({
-                    title: 'Xuất chứng minh blockchain',
-                    description: 'Đang chuẩn bị dữ liệu xác thực blockchain...',
-                  });
-                  setIsExportOpen(false);
-                }}
+        {isMonitoring && (
+          <div className="mt-2 bg-green-50 border border-green-200 rounded-md p-3 text-green-700 text-sm">
+            <div className="flex">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                <div className="flex items-center mb-2">
-                  <div className="h-10 w-10 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400 mr-3">
-                    <Database className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white">
-                      Chứng minh blockchain
-                    </h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Dữ liệu xác thực dành cho kiểm tra
-                    </p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Xuất dữ liệu mật mã và chứng minh blockchain để xác minh tính toàn vẹn của kết quả
-                  bầu cử.
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+              <div>
+                <p className="font-medium">Đang theo dõi phiên bầu cử #{selectedPhien}</p>
+                <p className="mt-1">
+                  Dữ liệu sẽ tự động cập nhật khi có phiếu bầu mới hoặc phiên kết thúc.
                 </p>
               </div>
             </div>
+          </div>
+        )}
+      </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsExportOpen(false)}>
-                Hủy
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      {selectedPhien && sessionInfo ? (
+        <>
+          {/* Thông tin phiên bầu cử */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                Thông tin phiên bầu cử #{selectedPhien}
+              </h2>
+              <div className="space-y-3">
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500">Trạng thái:</span>
+                  <span
+                    className={`font-medium ${sessionInfo.isActive ? 'text-green-600' : 'text-red-600'}`}
+                  >
+                    {sessionInfo.isActive ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc'}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500">Thời gian bắt đầu:</span>
+                  <span className="font-medium">{sessionInfo.startTime}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500">Thời gian kết thúc:</span>
+                  <span className="font-medium">{sessionInfo.endTime}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500">Số cử tri:</span>
+                  <span className="font-medium">{sessionInfo.voterCount}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500">Số ứng viên:</span>
+                  <span className="font-medium">{sessionInfo.candidateCount}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500">Số ứng viên trúng cử:</span>
+                  <span className="font-medium">{sessionInfo.electedCandidates?.length || 0}</span>
+                </div>
 
-        {/* Candidate details dialog */}
-        <Dialog open={showCandidateDetails} onOpenChange={setShowCandidateDetails}>
-          <DialogContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200/50 dark:border-gray-700/50 rounded-xl shadow-xl max-w-2xl">
-            {selectedCandidate &&
-              electionResults?.candidates &&
-              Array.isArray(electionResults.candidates) && (
-                <>
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center">
-                      <User className="h-5 w-5 text-blue-500 mr-2" />
-                      Thông tin chi tiết ứng viên
-                    </DialogTitle>
-                    <DialogDescription>Chi tiết về ứng viên và kết quả bầu cử</DialogDescription>
-                  </DialogHeader>
+                {sessionInfo.isActive && (
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <p className="text-blue-800 flex items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span>
+                        <strong>Thời gian còn lại:</strong> {calculateTimeRemaining()}
+                      </span>
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-2">
-                    <div className="md:col-span-1 flex flex-col items-center">
-                      <div className="h-40 w-40 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg">
-                        {selectedCandidate.avatar ? (
-                          <img
-                            src={selectedCandidate.avatar}
-                            alt={selectedCandidate.hoTen}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <User className="h-20 w-20 text-blue-500" />
-                        )}
-                      </div>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">Tiến trình bỏ phiếu</h2>
+              <div className="text-right mb-1">
+                <span className="font-medium">
+                  {progress.voted}/{progress.total} cử tri ({progress.percentage}%)
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
+                <div
+                  className={`h-4 rounded-full transition-all duration-500 ${
+                    progress.percentage >= 80
+                      ? 'bg-green-500'
+                      : progress.percentage >= 50
+                        ? 'bg-blue-500'
+                        : 'bg-amber-500'
+                  }`}
+                  style={{ width: `${progress.percentage}%` }}
+                ></div>
+              </div>
 
-                      {selectedCandidate.id === electionResults?.winnerId && (
-                        <div className="mt-4">
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 px-4 py-1.5">
-                            <Trophy className="h-4 w-4 mr-1.5" />
-                            Đắc cử
-                          </Badge>
-                        </div>
-                      )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                <div className="bg-gray-50 p-4 rounded-lg text-center">
+                  <div className="text-3xl font-bold text-blue-600">{sessionInfo.voterCount}</div>
+                  <div className="text-sm text-gray-500 mt-1">Tổng số cử tri</div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg text-center">
+                  <div className="text-3xl font-bold text-green-600">{progress.voted}</div>
+                  <div className="text-sm text-gray-500 mt-1">Số phiếu đã bỏ</div>
+                </div>
+              </div>
 
-                      <div className="mt-4 text-center">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text:white">
-                          {selectedCandidate.hoTen}
-                        </h3>
-                        <p className="text-gray-500 dark:text-gray-400">
-                          {selectedCandidate.viTriUngCu?.tenViTriUngCu || 'Ứng viên'}
-                        </p>
-                      </div>
-                    </div>
+              <div className="mt-6 text-sm text-gray-500">
+                {progress.percentage >= 60 ? (
+                  <div className="flex items-start bg-green-50 p-3 rounded-lg border border-green-200">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-2 text-green-600 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span className="text-green-700">
+                      Đủ điều kiện kết thúc sớm (trên 60% tham gia). Ban tổ chức có thể kết thúc
+                      phiên bầu cử ngay bây giờ.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-start bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-2 text-blue-600 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span className="text-blue-700">
+                      Chưa đủ điều kiện kết thúc sớm (cần trên 60% cử tri tham gia). Phiên sẽ kết
+                      thúc theo thời gian đã định.
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-                    <div className="md:col-span-2">
-                      <div className="space-y-4">
-                        <div className="bg-gray-50/70 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
-                          <h4 className="font-medium text-gray-900 dark:text:white mb-2 flex items-center">
-                            <TrendingUp className="h-4 w-4 text-blue-500 mr-1.5" />
-                            Kết quả bầu cử
-                          </h4>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400 text-sm">
-                                Số phiếu:
-                              </span>
-                              <div className="font-semibold text-lg text-gray-900 dark:text:white">
-                                {selectedCandidate.votes || 0}
-                              </div>
-                            </div>
+          {/* Kết quả bỏ phiếu */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">
+              {sessionInfo.isActive
+                ? 'Kết quả bỏ phiếu hiện tại (đang cập nhật)'
+                : 'Kết quả bỏ phiếu cuối cùng'}
+            </h2>
 
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400 text-sm">
-                                Tỉ lệ:
-                              </span>
-                              <div className="font-semibold text-lg text-gray-900 dark:text:white">
-                                {(selectedCandidate.votePercentage || 0).toFixed(2)}%
-                              </div>
-                            </div>
-
-                            <div className="col-span-2">
-                              <span className="text-gray-500 dark:text-gray-400 text-sm">
-                                Thứ hạng:
-                              </span>
-                              <div className="font-semibold text-lg text-gray-900 dark:text:white">
-                                {electionResults?.candidates.findIndex(
-                                  (c) => c.id === selectedCandidate.id,
-                                ) !== undefined
-                                  ? `${electionResults?.candidates.findIndex((c) => c.id === selectedCandidate.id) + 1}/${electionResults?.candidates.length}`
-                                  : '-'}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mt-4">
-                            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                              <span>Tỉ lệ phiếu bầu</span>
-                              <span>{(selectedCandidate.votePercentage || 0).toFixed(2)}%</span>
-                            </div>
-                            <Progress
-                              value={selectedCandidate.votePercentage || 0}
-                              className="h-2.5 bg-gray-100 dark:bg-gray-700"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="bg-gray-50/70 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
-                          <h4 className="font-medium text-gray-900 dark:text:white mb-2 flex items-center">
-                            <Info className="h-4 w-4 text-blue-500 mr-1.5" />
-                            Thông tin cá nhân
-                          </h4>
-                          {selectedCandidate.moTa ? (
-                            <p className="text-gray-700 dark:text-gray-300 text-sm">
-                              {selectedCandidate.moTa}
-                            </p>
-                          ) : (
-                            <p className="text-gray-500 dark:text-gray-400 text-sm italic">
-                              Không có thông tin chi tiết.
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="bg-blue-50/50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100/50 dark:border-blue-800/30">
-                          <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2 flex items-center">
-                            <Database className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-1.5" />
-                            Thông tin blockchain
-                          </h4>
-                          {selectedCandidate.blockchainAddress ? (
-                            <div className="space-y-1">
-                              <div className="flex flex-wrap items-center">
-                                <span className="text-blue-700 dark:text-blue-400 text-sm mr-2">
-                                  Địa chỉ:
-                                </span>
-                                <code className="font-mono text-xs bg-blue-100/70 dark:bg-blue-800/50 p-1 rounded text-blue-800 dark:text-blue-300">
-                                  {selectedCandidate.blockchainAddress}
-                                </code>
-                                <button
-                                  className="ml-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                                  onClick={() =>
-                                    navigator.clipboard.writeText(
-                                      selectedCandidate.blockchainAddress || '',
-                                    )
-                                  }
-                                  title="Sao chép địa chỉ"
-                                >
-                                  <Copy className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                              <div className="flex items-center">
-                                <a
-                                  href={`https://explorer.holihu.online/address/${selectedCandidate.blockchainAddress}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
-                                >
-                                  Xem trên Blockchain Explorer
-                                  <ExternalLink className="h-3 w-3 ml-1" />
-                                </a>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-blue-700 dark:text-blue-400 text-sm italic">
-                              Không có thông tin blockchain cho ứng viên này.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+            {votingResults.length === 0 ? (
+              <div className="text-center py-16 text-gray-500">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-12 w-12 mx-auto mb-3 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p>Chưa có dữ liệu kết quả bỏ phiếu.</p>
+                {sessionInfo.isActive && (
+                  <p className="mt-2 text-sm">
+                    Phiên bầu cử đang diễn ra, hãy chờ đến khi có cử tri bỏ phiếu.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                  {/* Biểu đồ cột */}
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={votingResults}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
+                      >
+                        <XAxis dataKey="displayAddress" angle={-45} textAnchor="end" height={60} />
+                        <YAxis />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar
+                          dataKey="votes"
+                          name="Số phiếu"
+                          fill={(data) => (data.isElected ? '#10b981' : '#3b82f6')}
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
 
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowCandidateDetails(false)}
-                      className="mr-2"
+                  {/* Biểu đồ tròn */}
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={votingResults}
+                          dataKey="votes"
+                          nameKey="displayAddress"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          fill="#8884d8"
+                          label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                            const RADIAN = Math.PI / 180;
+                            const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+                            return (
+                              <text
+                                x={x}
+                                y={y}
+                                fill="#fff"
+                                textAnchor={x > cx ? 'start' : 'end'}
+                                dominantBaseline="central"
+                              >
+                                {`${(percent * 100).toFixed(0)}%`}
+                              </text>
+                            );
+                          }}
+                        >
+                          {votingResults.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={entry.isElected ? '#10b981' : COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Legend />
+                        <Tooltip content={<CustomTooltip />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Bảng chi tiết */}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Thứ tự
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Địa chỉ
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Số phiếu
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tỷ lệ
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Trạng thái
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {votingResults.map((result, index) => (
+                        <tr key={result.address} className={result.isElected ? 'bg-green-50' : ''}>
+                          <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
+                          <td className="px-6 py-4 whitespace-nowrap font-mono">
+                            {result.displayAddress}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap font-medium">
+                            {result.votes}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">{result.percentage}%</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {sessionInfo.isActive ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                Đang kiểm phiếu
+                              </span>
+                            ) : result.isElected ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-3 w-3 mr-1"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                Trúng cử
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                Chưa trúng cử
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Thông tin người trúng cử */}
+          {!sessionInfo.isActive &&
+            sessionInfo.electedCandidates &&
+            sessionInfo.electedCandidates.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 className="text-xl font-semibold mb-4">Danh sách trúng cử</h2>
+
+                <div className="bg-green-50 p-4 rounded-lg mb-6 text-green-800">
+                  <div className="flex">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 mr-3 text-green-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                      Đóng
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        // Share candidate information
-                        navigator.clipboard.writeText(
-                          `Thông tin ứng viên: ${selectedCandidate.hoTen}\nSố phiếu: ${selectedCandidate.votes}\nTỉ lệ: ${(selectedCandidate.votePercentage || 0).toFixed(2)}%`,
-                        );
-                        toast({
-                          title: 'Đã sao chép',
-                          description: 'Thông tin ứng viên đã được sao chép vào clipboard',
-                        });
-                      }}
-                    >
-                      <Share className="h-4 w-4 mr-1.5" />
-                      Chia sẻ
-                    </Button>
-                  </DialogFooter>
-                </>
-              )}
-          </DialogContent>
-        </Dialog>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                      />
+                    </svg>
+                    <div>
+                      <h3 className="font-semibold">
+                        Kết quả bầu cử đã được ghi nhận trên blockchain
+                      </h3>
+                      <p className="mt-1">
+                        Phiên bầu cử #{selectedPhien} đã kết thúc với{' '}
+                        {sessionInfo.electedCandidates.length} ứng viên trúng cử.
+                        {sessionInfo.electedCandidates.length > 1 &&
+                          ' Kết quả có số phiếu ngang nhau.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {sessionInfo.electedCandidates.map((address, index) => {
+                    const candidateInfo = votingResults.find((r) => r.address === address);
+                    return (
+                      <div
+                        key={address}
+                        className="bg-green-50 border border-green-100 rounded-lg p-4 shadow-sm"
+                      >
+                        <div className="flex items-center">
+                          <div className="bg-green-100 rounded-full w-10 h-10 flex items-center justify-center mr-3">
+                            <span className="text-green-800 font-bold">{index + 1}</span>
+                          </div>
+                          <div>
+                            <h3 className="font-medium">
+                              {address.substring(0, 6)}...{address.substring(address.length - 4)}
+                            </h3>
+                            {candidateInfo && (
+                              <p className="text-sm text-green-700">
+                                {candidateInfo.votes} phiếu ({candidateInfo.percentage}%)
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+        </>
+      ) : selectedPhien ? (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6 text-center">
+          <div className="py-12">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-16 w-16 mx-auto text-gray-400 mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-700">
+              Không thể tải thông tin phiên bầu cử
+            </h3>
+            <p className="text-gray-500 mt-2">
+              Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.
+            </p>
+            <button
+              onClick={refreshData}
+              className="mt-6 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="text-center py-16">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-16 w-16 mx-auto text-gray-400 mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-700">Vui lòng chọn phiên bầu cử</h3>
+            <p className="text-gray-500 mt-2">
+              Hãy chọn một phiên bầu cử từ danh sách trên để xem kết quả.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Thông tin cố định */}
+      <div className="bg-gray-100 p-4 rounded-lg text-sm">
+        <h3 className="font-medium mb-2">Thông tin kết nối blockchain</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p>
+              <strong>RPC:</strong> https://geth.holihu.online/rpc
+            </p>
+            <p>
+              <strong>Địa chỉ Contract:</strong> {contractAddress}
+            </p>
+            <p>
+              <strong>Server ID:</strong> {serverId}
+            </p>
+          </div>
+          <div>
+            <p>
+              <strong>Cuộc bầu cử ID:</strong> {cuocBauCuId}
+            </p>
+            <p>
+              <strong>Phiên bầu cử ID:</strong> {selectedPhien || 'Chưa chọn'}
+            </p>
+            <p>
+              <strong>Trạng thái theo dõi:</strong>{' '}
+              {isMonitoring ? '🟢 Đang theo dõi' : '⚪ Không theo dõi'}
+            </p>
+          </div>
+        </div>
       </div>
+
+      {/* Thông báo real-time */}
+      {isMonitoring && (
+        <div className="fixed bottom-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded-lg shadow-lg flex items-center">
+          <div className="relative mr-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <div className="w-3 h-3 bg-green-500 rounded-full absolute top-0 animate-ping"></div>
+          </div>
+          <div>Đang theo dõi phiên #{selectedPhien}</div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default TrangKetQua;
+export default KetQuaBauCu;

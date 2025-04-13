@@ -34,20 +34,28 @@ const DanhSachCuocBauCu: React.FC<ElectionListItemProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  // Parse Vietnamese date format (dd/mm/yyyy hh:mm)
+  const parseVietnameseDate = (dateStr: string) => {
+    const [datePart, timePart] = dateStr.split(' ');
+    const [day, month, year] = datePart.split('/');
+    const [hour, minute] = timePart.split(':');
+    return new Date(+year, +month - 1, +day, +hour, +minute);
+  };
+
   // Xác định trạng thái cuộc bầu cử
   const getElectionStatus = () => {
     const now = new Date();
-    const startDate = new Date(election.ngayBatDau);
-    const endDate = new Date(election.ngayKetThuc);
+    const startDate = parseVietnameseDate(election.ngayBatDau);
+    const endDate = parseVietnameseDate(election.ngayKetThuc);
 
-    if (startDate > now) {
+    if (now < startDate) {
       return {
         status: 'Sắp diễn ra',
         color: 'blue',
         icon: <Clock className="h-4 w-4" />,
       };
     }
-    if (endDate < now) {
+    if (now > endDate) {
       return {
         status: 'Đã kết thúc',
         color: 'gray',
@@ -191,7 +199,7 @@ const DanhSachCuocBauCu: React.FC<ElectionListItemProps> = ({
           >
             <span className="flex items-center">
               <Calendar className="mr-1 h-4 w-4" />
-              {formatDate(election.ngayBatDau)} - {formatDate(election.ngayKetThuc)}
+              {election.ngayBatDau} - {election.ngayKetThuc}
             </span>
             <span className="flex items-center">
               <Users className="mr-1 h-4 w-4" />
