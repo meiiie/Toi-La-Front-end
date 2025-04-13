@@ -168,7 +168,7 @@ export default function Main() {
                 <Layers className="h-8 w-8 text-white" />
               </div>
               <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                BlockVote
+                BlockVote HoLiHu
               </h1>
             </div>
 
@@ -361,7 +361,7 @@ export default function Main() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <NavLink
-                    to="/app/cuoc-bau-cu"
+                    to="/app"
                     className="group bg-gradient-to-br from-[#1E293B]/50 to-[#1E293B]/30 hover:from-blue-900/20 hover:to-purple-900/20 backdrop-blur-sm rounded-xl border border-[#334155]/50 p-6 transition-all duration-300 hover:border-blue-500/30 hover:shadow-[0_0_20px_rgba(59,130,246,0.1)]"
                   >
                     <div className="flex items-start">
@@ -382,7 +382,7 @@ export default function Main() {
                   </NavLink>
 
                   <NavLink
-                    to="/app/ket-qua"
+                    to="/app/ket-qua-bau-cu"
                     className="group bg-gradient-to-br from-[#1E293B]/50 to-[#1E293B]/30 hover:from-blue-900/20 hover:to-purple-900/20 backdrop-blur-sm rounded-xl border border-[#334155]/50 p-6 transition-all duration-300 hover:border-blue-500/30 hover:shadow-[0_0_20px_rgba(59,130,246,0.1)]"
                   >
                     <div className="flex items-start">
@@ -403,7 +403,7 @@ export default function Main() {
                   </NavLink>
 
                   <NavLink
-                    to="/app/lich-su"
+                    to="/app/upcoming-elections"
                     className="group bg-gradient-to-br from-[#1E293B]/50 to-[#1E293B]/30 hover:from-blue-900/20 hover:to-purple-900/20 backdrop-blur-sm rounded-xl border border-[#334155]/50 p-6 transition-all duration-300 hover:border-blue-500/30 hover:shadow-[0_0_20px_rgba(59,130,246,0.1)]"
                   >
                     <div className="flex items-start">
@@ -533,7 +533,7 @@ export default function Main() {
                 </div>
 
                 <NavLink
-                  to="/app/cuoc-bau-cu"
+                  to="/app"
                   className="flex items-center justify-center mt-4 text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200"
                 >
                   Xem tất cả cuộc bầu cử
@@ -545,7 +545,7 @@ export default function Main() {
 
           {/* Footer */}
           <footer className="mt-12 text-center text-blue-200/50 text-sm">
-            <p>© 2023 BlockVote - Nền tảng bầu cử blockchain. Bản quyền thuộc về Holihu.</p>
+            <p>© 2025 BlockVote HoLiHu - Nền tảng bầu cử blockchain. Bản quyền thuộc về Holihu.</p>
           </footer>
         </div>
       </div>

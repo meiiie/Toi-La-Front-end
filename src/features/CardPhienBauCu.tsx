@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Calendar, Users, Trash } from 'lucide-react';
+import { Calendar, Users, Trash, Clock } from 'lucide-react';
 import { PhienBauCu } from '../store/types';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../store/store';
@@ -19,11 +19,40 @@ import {
   AlertDialogCancel,
 } from '../components/ui/AlterDialog';
 
+// Hàm phân tích chuỗi ngày tháng theo định dạng Việt Nam
+const parseVietnameseDate = (dateStr: string) => {
+  const [datePart, timePart] = dateStr.split(' ');
+  const [day, month, year] = datePart.split('/');
+  const [hour, minute] = timePart ? timePart.split(':') : ['00', '00'];
+  return new Date(+year, +month - 1, +day, +hour, +minute);
+};
+
+// Hàm định dạng ngày tháng theo kiểu Việt Nam
+const formatVietnameseDate = (date: Date) => {
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const hour = date.getHours().toString().padStart(2, '0');
+  const minute = date.getMinutes().toString().padStart(2, '0');
+  return `${day}/${month}/${year} ${hour}:${minute}`;
+};
+
 const CardPhienBauCu = ({ session }: { session: PhienBauCu }) => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const location = useLocation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Format dates properly
+  const ngayBatDau =
+    session.ngayBatDau instanceof Date
+      ? formatVietnameseDate(session.ngayBatDau)
+      : formatVietnameseDate(new Date(session.ngayBatDau));
+
+  const ngayKetThuc =
+    session.ngayKetThuc instanceof Date
+      ? formatVietnameseDate(session.ngayKetThuc)
+      : formatVietnameseDate(new Date(session.ngayKetThuc));
 
   const handleDelete = async () => {
     await dispatch(removePhienBauCu(session.id));
@@ -42,16 +71,19 @@ const CardPhienBauCu = ({ session }: { session: PhienBauCu }) => {
             <h3 className="text-xl font-bold text-blue-700 dark:text-blue-300 mb-2">
               {session.tenPhienBauCu}
             </h3>
-            <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-              <span className="flex items-center">
-                <Calendar className="h-4 w-4 mr-1" />
-                {new Date(session.ngayBatDau).toLocaleDateString()} -{' '}
-                {new Date(session.ngayKetThuc).toLocaleDateString()}
-              </span>
-              <span className="flex items-center">
+            <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-center text-[10px] sm:text-sm">
+                <Calendar className="h-4 w-4 mr-2 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                <span className="truncate">Bắt đầu: {ngayBatDau}</span>
+              </div>
+              <div className="flex items-center text-[10px] sm:text-sm">
+                <Clock className="h-4 w-4 mr-2 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                <span className="truncate">Kết thúc: {ngayKetThuc}</span>
+              </div>
+              <div className="flex items-center">
                 <Users className="h-4 w-4 mr-1" />
-                {session.moTa}
-              </span>
+                <span>{session.moTa}</span>
+              </div>
             </div>
           </div>
           <StatusBadge status={session.trangThai || ''} />

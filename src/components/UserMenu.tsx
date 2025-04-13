@@ -392,7 +392,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ isCollapsed = false }) => {
                 </NavLink>
 
                 <NavLink
-                  to="/app/lich-su"
+                  to="/app/upcoming-elections"
                   className="flex items-center px-4 py-2.5 text-sm text-blue-100 hover:bg-blue-600/20 transition-colors duration-200"
                   onClick={() => setIsAccountMenuOpen(false)}
                 >
