@@ -733,8 +733,6 @@ export default function QuanLyThanhTuuPage() {
           : 'bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 text-gray-800'
       } transition-colors duration-500`}
     >
-      <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-
       {/* Header */}
       <header
         className={`sticky top-0 z-10 ${
