@@ -45,13 +45,22 @@ import {
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/Tabs';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/Alter';
+import { Alert, AlertDescription, AlertTitle } from '../components/ui/Alert';
 import { Separator } from '../components/ui/Separator';
 import { Skeleton } from '../components/ui/Skeleton';
 import ParticleBackground from '../components/backgrounds/ParticleBackground';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/Tooltip';
 
 // Định nghĩa component chính
+const parseVietnameseDate = (dateStr: string) => {
+  if (!dateStr) return new Date();
+
+  const [datePart, timePart] = dateStr.split(' ');
+  const [day, month, year] = datePart.split('/');
+  const [hour, minute] = timePart.split(':');
+  return new Date(+year, +month - 1, +day, +hour, +minute);
+};
+
 const XemChiTietCuocBauCuPage: React.FC = () => {
   const { id: cuocBauCuId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -91,16 +100,6 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
     }
   }, [dispatch, cuocBauCuId]);
 
-  // Parse Vietnamese date format (dd/mm/yyyy hh:mm) - this is already correctly defined
-  const parseVietnameseDate = useCallback((dateStr: string) => {
-    if (!dateStr) return new Date();
-
-    const [datePart, timePart] = dateStr.split(' ');
-    const [day, month, year] = datePart.split('/');
-    const [hour, minute] = timePart.split(':');
-    return new Date(+year, +month - 1, +day, +hour, +minute);
-  }, []);
-
   // Tính thời gian còn lại và trạng thái cuộc bầu cử
   const getElectionStatus = useCallback(() => {
     if (!cuocBauCu)
@@ -121,7 +120,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
       return { status: 'Đã kết thúc', color: 'gray', icon: <CheckCircle className="h-4 w-4" /> };
     }
     return { status: 'Đang diễn ra', color: 'green', icon: <Zap className="h-4 w-4" /> };
-  }, [cuocBauCu, parseVietnameseDate]);
+  }, [cuocBauCu]);
 
   // Lấy trạng thái blockchain
   const getBlockchainStatus = useCallback(() => {
@@ -170,7 +169,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
     const elapsed = now.getTime() - startDate.getTime();
 
     return Math.min(100, Math.round((elapsed / totalDuration) * 100));
-  }, [cuocBauCu, parseVietnameseDate]);
+  }, [cuocBauCu]);
 
   // Tính thời gian còn lại
   const getTimeRemaining = useCallback(() => {
@@ -187,7 +186,7 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     return { days, hours, minutes };
-  }, [cuocBauCu, parseVietnameseDate]);
+  }, [cuocBauCu]);
 
   // Lấy các giá trị đã tính toán
   const electionStatus = getElectionStatus();

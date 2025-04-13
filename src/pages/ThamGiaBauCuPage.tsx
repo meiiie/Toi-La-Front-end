@@ -172,6 +172,16 @@ const errorReducer = (state: ErrorState, action: ErrorAction): ErrorState => {
   }
 };
 
+// Update the parseVietnameseDate function to handle Vietnamese date format
+const parseVietnameseDate = (dateStr: string) => {
+  if (!dateStr) return new Date();
+
+  const [datePart, timePart] = dateStr.split(' ');
+  const [day, month, year] = datePart.split('/');
+  const [hour, minute] = timePart.split(':');
+  return new Date(+year, +month - 1, +day, +hour, +minute);
+};
+
 const ThamGiaBauCu: React.FC = () => {
   const { id: cuocBauCuId, idPhien } = useParams<{ id: string; idPhien: string }>();
   const navigate = useNavigate();
@@ -1443,7 +1453,7 @@ const ThamGiaBauCu: React.FC = () => {
 
   useEffect(() => {
     if (phienBauCu?.ngayKetThuc) {
-      setElectionEndTime(new Date(phienBauCu.ngayKetThuc));
+      setElectionEndTime(parseVietnameseDate(phienBauCu.ngayKetThuc));
     } else {
       setElectionEndTime(new Date(Date.now() + 86400000));
     }
