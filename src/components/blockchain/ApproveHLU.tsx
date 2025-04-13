@@ -319,6 +319,7 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
   );
 
   // Hàm approve token cho Paymaster, Factory, hoặc cuộc bầu cử - được tối ưu hóa
+  // Sửa đổi hàm approveToken trong ApproveHLU.tsx
   const approveToken = useCallback(
     async (target: 'paymaster' | 'factory' | 'election') => {
       if (!sessionKey || !contractAddresses) {
@@ -330,6 +331,8 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
       let targetType: string;
       let targetAddress: string;
       let approveAmount: string;
+      // Xác định xem có sử dụng paymaster hay không (chỉ factory và election sử dụng paymaster)
+      const usePaymaster = target !== 'paymaster'; // QUAN TRỌNG: KHÔNG sử dụng paymaster khi approve cho paymaster
 
       switch (target) {
         case 'factory':
@@ -370,7 +373,9 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
             break;
         }
 
-        showMessage(`Bắt đầu phê duyệt token cho ${targetType}...`);
+        showMessage(
+          `Bắt đầu phê duyệt token cho ${targetType}${usePaymaster ? ' (sử dụng paymaster)' : ''}...`,
+        );
 
         // Khởi tạo provider CHỈ ĐỂ LẤY DỮ LIỆU
         const provider = new JsonRpcProvider('https://geth.holihu.online/rpc');
@@ -418,18 +423,19 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
           approveCallData,
         ]);
 
-        // Tạo userOperation
+        // Tạo userOperation - sử dụng cấu hình phù hợp dựa trên script approveHLU.js
         const userOp = {
           sender: scwAddress,
           nonce: nonce.toString(),
           initCode: '0x',
           callData: executeCallData,
-          callGasLimit: '200000',
-          verificationGasLimit: target === 'factory' ? '250000' : '150000', // Tăng gas cho factory vì dùng paymaster
+          callGasLimit: '200000', // Theo script approveHLU.js
+          verificationGasLimit: usePaymaster ? '250000' : '150000', // Tăng gas limit cho paymaster
           preVerificationGas: '50000',
           maxFeePerGas: parseUnits('5', 'gwei').toString(),
           maxPriorityFeePerGas: parseUnits('2', 'gwei').toString(),
-          paymasterAndData: target === 'factory' ? contractAddresses.paymasterAddress : '0x', // Dùng paymaster cho factory
+          // Dựa theo script approveHLU.js, chỉ đơn giản là địa chỉ paymaster hoặc '0x'
+          paymasterAndData: usePaymaster ? contractAddresses.paymasterAddress : '0x',
           signature: '0x',
         };
 
@@ -450,6 +456,9 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
           s: signatureObj.s,
           v: signatureObj.v,
         }).serialized;
+
+        // Log toàn bộ userOp để debug
+        console.log('UserOp được gửi:', JSON.stringify(userOp, null, 2));
 
         // Thay vì gửi trực tiếp, chúng ta sẽ dùng API bundler
         showMessage(`Đang gửi giao dịch approve cho ${targetType} qua bundler API...`);
