@@ -44,15 +44,22 @@ const CardPhienBauCu = ({ session }: { session: PhienBauCu }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Format dates properly
-  const ngayBatDau =
-    session.ngayBatDau instanceof Date
-      ? formatVietnameseDate(session.ngayBatDau)
-      : formatVietnameseDate(new Date(session.ngayBatDau));
+  const formatDateFromAnySource = (dateSource: Date | string) => {
+    if (dateSource instanceof Date) {
+      return formatVietnameseDate(dateSource);
+    }
 
-  const ngayKetThuc =
-    session.ngayKetThuc instanceof Date
-      ? formatVietnameseDate(session.ngayKetThuc)
-      : formatVietnameseDate(new Date(session.ngayKetThuc));
+    // Check if it's a string in Vietnamese date format (DD/MM/YYYY)
+    if (typeof dateSource === 'string' && dateSource.includes('/')) {
+      return formatVietnameseDate(parseVietnameseDate(dateSource));
+    }
+
+    // Handle other string formats (ISO, etc.)
+    return formatVietnameseDate(new Date(dateSource));
+  };
+
+  const ngayBatDau = formatDateFromAnySource(session.ngayBatDau);
+  const ngayKetThuc = formatDateFromAnySource(session.ngayKetThuc);
 
   const handleDelete = async () => {
     await dispatch(removePhienBauCu(session.id));

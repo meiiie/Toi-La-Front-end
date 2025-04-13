@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
+import fs from 'fs';
 import path from 'path';
 
 export default defineConfig({
@@ -47,10 +48,22 @@ export default defineConfig({
   },
   // Đảm bảo mã hóa URL đúng
   server: {
+    https: {
+      key: fs.readFileSync(path.resolve(__dirname, 'localhost-key.pem')),
+      cert: fs.readFileSync(path.resolve(__dirname, 'localhost.pem')),
+    },
+    port: 3000,
     middlewareMode: 'html',
     fs: {
       strict: true,
       allow: ['..'],
     },
+  },
+  preview: {
+    https: {
+      key: fs.readFileSync(path.resolve(__dirname, 'localhost-key.pem')),
+      cert: fs.readFileSync(path.resolve(__dirname, 'localhost.pem')),
+    },
+    port: 5000,
   },
 });

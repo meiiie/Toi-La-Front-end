@@ -3,9 +3,9 @@ import { store } from '../store/store';
 import { refreshJwtToken, logout } from '../store/slice/dangNhapTaiKhoanSlice';
 
 const apiClient = axios.create({
-  //baseURL: 'https://localhost:7250',
-  baseURL:
-    'https://webapplication320250413035557-eebmacambhenb2ha.australiacentral-01.azurewebsites.net/',
+  baseURL: 'https://localhost:7250',
+  // baseURL:
+  //   'https://webapplication320250413035557-eebmacambhenb2ha.australiacentral-01.azurewebsites.net/',
   withCredentials: true, // QUAN TRỌNG: Giúp trình duyệt gửi cookie khi request
   headers: {
     'Content-Type': 'application/json',
