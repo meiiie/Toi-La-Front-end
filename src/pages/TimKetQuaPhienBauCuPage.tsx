@@ -1089,6 +1089,44 @@ const TrangKetQua: React.FC = () => {
     [contractInstance, phienIdParam, toast, fetchElectionSessionsFromAPI],
   );
 
+  // Fetch blockchain session details - declare function before it's used
+  const fetchBlockchainSessionDetails = useCallback(
+    async (electionId: number, sessionId: number) => {
+      if (!electionId || !sessionId || !contractInstance) return;
+
+      try {
+        // Get session details
+        const sessionInfo = await contractInstance.layThongTinPhienBauCu(electionId, sessionId);
+
+        // Get winners
+        const winners = await contractInstance.layDanhSachUngVienDacCu(electionId, sessionId);
+
+        setBlockchainDetails({
+          sessionInfo: {
+            isActive: sessionInfo[0],
+            startTime: sessionInfo[1]
+              ? new Date(Number(sessionInfo[1]) * 1000).toISOString()
+              : null,
+            endTime: sessionInfo[2] ? new Date(Number(sessionInfo[2]) * 1000).toISOString() : null,
+            maxVoters: Number(sessionInfo[3]),
+            candidateCount: Number(sessionInfo[4]),
+            voterCount: Number(sessionInfo[5]),
+            electedCandidates: sessionInfo[6],
+            isReelection: sessionInfo[7],
+            confirmationCount: Number(sessionInfo[8]),
+            confirmationDeadline: sessionInfo[9]
+              ? new Date(Number(sessionInfo[9]) * 1000).toISOString()
+              : null,
+          },
+          winners: winners,
+        });
+      } catch (error) {
+        console.error('Error fetching blockchain session details:', error);
+      }
+    },
+    [contractInstance],
+  );
+
   // Updated function to safely handle potential errors in blockchain data fetching
   const fetchElectionResultsFromBlockchain = useCallback(
     async (electionId: number, sessionId: number) => {
@@ -1237,44 +1275,6 @@ const TrangKetQua: React.FC = () => {
       }
     },
     [contractInstance, danhSachUngVien, fetchBlockchainSessionDetails],
-  );
-
-  // Fetch blockchain session details
-  const fetchBlockchainSessionDetails = useCallback(
-    async (electionId: number, sessionId: number) => {
-      if (!electionId || !sessionId || !contractInstance) return;
-
-      try {
-        // Get session details
-        const sessionInfo = await contractInstance.layThongTinPhienBauCu(electionId, sessionId);
-
-        // Get winners
-        const winners = await contractInstance.layDanhSachUngVienDacCu(electionId, sessionId);
-
-        setBlockchainDetails({
-          sessionInfo: {
-            isActive: sessionInfo[0],
-            startTime: sessionInfo[1]
-              ? new Date(Number(sessionInfo[1]) * 1000).toISOString()
-              : null,
-            endTime: sessionInfo[2] ? new Date(Number(sessionInfo[2]) * 1000).toISOString() : null,
-            maxVoters: Number(sessionInfo[3]),
-            candidateCount: Number(sessionInfo[4]),
-            voterCount: Number(sessionInfo[5]),
-            electedCandidates: sessionInfo[6],
-            isReelection: sessionInfo[7],
-            confirmationCount: Number(sessionInfo[8]),
-            confirmationDeadline: sessionInfo[9]
-              ? new Date(Number(sessionInfo[9]) * 1000).toISOString()
-              : null,
-          },
-          winners: winners,
-        });
-      } catch (error) {
-        console.error('Error fetching blockchain session details:', error);
-      }
-    },
-    [contractInstance],
   );
 
   // Load initial data
