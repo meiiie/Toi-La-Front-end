@@ -119,96 +119,126 @@ const XemChiTietCuocBauCuPage: React.FC = () => {
     };
   }, [cuocBauCu]);
 
-  // Tính thời gian còn lại và trạng thái cuộc bầu cử
-  const getElectionStatus = useCallback(() => {
-    if (!cuocBauCu || !parsedDates.startDate || !parsedDates.endDate)
-      return {
-        status: 'Không xác định',
-        color: 'gray',
-        icon: <AlertTriangle className="h-4 w-4" />,
-      };
+  // Get all status values in a single useMemo to avoid circular dependencies
+  const statusData = useMemo(() => {
+    // Election status
+    let electionStatus = {
+      status: 'Không xác định',
+      color: 'gray',
+      icon: <AlertTriangle className="h-4 w-4" />,
+    };
 
-    const now = new Date();
-
-    if (now < parsedDates.startDate) {
-      return { status: 'Sắp diễn ra', color: 'blue', icon: <Clock className="h-4 w-4" /> };
-    }
-    if (now > parsedDates.endDate) {
-      return { status: 'Đã kết thúc', color: 'gray', icon: <CheckCircle className="h-4 w-4" /> };
-    }
-    return { status: 'Đang diễn ra', color: 'green', icon: <Zap className="h-4 w-4" /> };
-  }, [cuocBauCu, parsedDates]);
-
-  // Lấy trạng thái blockchain
-  const getBlockchainStatus = useCallback(() => {
-    if (!cuocBauCu || cuocBauCu.trangThaiBlockchain === undefined) {
-      return { status: 'Chưa triển khai', color: 'yellow', icon: <Shield className="h-4 w-4" /> };
-    }
-
-    switch (cuocBauCu.trangThaiBlockchain) {
-      case TrangThaiBlockchain.ChuaTrienKhai:
-        return { status: 'Chưa triển khai', color: 'yellow', icon: <Shield className="h-4 w-4" /> };
-      case TrangThaiBlockchain.DangTrienKhai:
-        return {
-          status: 'Đang triển khai',
+    if (cuocBauCu && parsedDates.startDate && parsedDates.endDate) {
+      const now = new Date();
+      if (now < parsedDates.startDate) {
+        electionStatus = {
+          status: 'Sắp diễn ra',
           color: 'blue',
-          icon: <Clock className="h-4 w-4 animate-spin" />,
+          icon: <Clock className="h-4 w-4" />,
         };
-      case TrangThaiBlockchain.DaTrienKhai:
-        return {
-          status: 'Đã triển khai',
-          color: 'green',
+      } else if (now > parsedDates.endDate) {
+        electionStatus = {
+          status: 'Đã kết thúc',
+          color: 'gray',
           icon: <CheckCircle className="h-4 w-4" />,
         };
-      case TrangThaiBlockchain.TrienKhaiThatBai:
-        return {
-          status: 'Triển khai thất bại',
-          color: 'red',
-          icon: <AlertTriangle className="h-4 w-4" />,
+      } else {
+        electionStatus = {
+          status: 'Đang diễn ra',
+          color: 'green',
+          icon: <Zap className="h-4 w-4" />,
         };
-      default:
-        return { status: 'Chưa triển khai', color: 'yellow', icon: <Shield className="h-4 w-4" /> };
+      }
     }
-  }, [cuocBauCu]);
 
-  // Tính progress của cuộc bầu cử
-  const calculateProgress = useCallback(() => {
-    if (!cuocBauCu || !parsedDates.startDate || !parsedDates.endDate) return 0;
+    // Blockchain status
+    let blockchainStatus = {
+      status: 'Chưa triển khai',
+      color: 'yellow',
+      icon: <Shield className="h-4 w-4" />,
+    };
 
-    const now = new Date();
+    if (cuocBauCu && cuocBauCu.trangThaiBlockchain !== undefined) {
+      switch (cuocBauCu.trangThaiBlockchain) {
+        case TrangThaiBlockchain.ChuaTrienKhai:
+          blockchainStatus = {
+            status: 'Chưa triển khai',
+            color: 'yellow',
+            icon: <Shield className="h-4 w-4" />,
+          };
+          break;
+        case TrangThaiBlockchain.DangTrienKhai:
+          blockchainStatus = {
+            status: 'Đang triển khai',
+            color: 'blue',
+            icon: <Clock className="h-4 w-4 animate-spin" />,
+          };
+          break;
+        case TrangThaiBlockchain.DaTrienKhai:
+          blockchainStatus = {
+            status: 'Đã triển khai',
+            color: 'green',
+            icon: <CheckCircle className="h-4 w-4" />,
+          };
+          break;
+        case TrangThaiBlockchain.TrienKhaiThatBai:
+          blockchainStatus = {
+            status: 'Triển khai thất bại',
+            color: 'red',
+            icon: <AlertTriangle className="h-4 w-4" />,
+          };
+          break;
+      }
+    }
 
-    if (now < parsedDates.startDate) return 0;
-    if (now > parsedDates.endDate) return 100;
+    // Calculate progress
+    let progress = 0;
+    if (cuocBauCu && parsedDates.startDate && parsedDates.endDate) {
+      const now = new Date();
+      if (now < parsedDates.startDate) {
+        progress = 0;
+      } else if (now > parsedDates.endDate) {
+        progress = 100;
+      } else {
+        const totalDuration = parsedDates.endDate.getTime() - parsedDates.startDate.getTime();
+        if (totalDuration <= 0) {
+          progress = 0;
+        } else {
+          const elapsed = now.getTime() - parsedDates.startDate.getTime();
+          progress = Math.min(100, Math.round((elapsed / totalDuration) * 100));
+        }
+      }
+    }
 
-    const totalDuration = parsedDates.endDate.getTime() - parsedDates.startDate.getTime();
-    if (totalDuration <= 0) return 0;
+    // Calculate time remaining
+    let timeRemaining = { days: 0, hours: 0, minutes: 0 };
+    if (cuocBauCu && parsedDates.endDate) {
+      const now = new Date();
+      if (now < parsedDates.endDate) {
+        const diff = parsedDates.endDate.getTime() - now.getTime();
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        timeRemaining = { days, hours, minutes };
+      }
+    }
 
-    const elapsed = now.getTime() - parsedDates.startDate.getTime();
-
-    return Math.min(100, Math.round((elapsed / totalDuration) * 100));
+    return {
+      electionStatus,
+      blockchainStatus,
+      progress,
+      timeRemaining,
+    };
   }, [cuocBauCu, parsedDates]);
 
-  // Tính thời gian còn lại
-  const getTimeRemaining = useCallback(() => {
-    if (!cuocBauCu || !parsedDates.endDate) return { days: 0, hours: 0, minutes: 0 };
+  // Extract individual variables from the combined status data
+  const { electionStatus, blockchainStatus, progress, timeRemaining } = statusData;
 
-    const now = new Date();
-
-    if (now > parsedDates.endDate) return { days: 0, hours: 0, minutes: 0 };
-
-    const diff = parsedDates.endDate.getTime() - now.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    return { days, hours, minutes };
-  }, [cuocBauCu, parsedDates]);
-
-  // Lấy các giá trị đã tính toán - Memoize these values to prevent recalculation on every render
-  const electionStatus = useMemo(() => getElectionStatus(), [getElectionStatus]);
-  const blockchainStatus = useMemo(() => getBlockchainStatus(), [getBlockchainStatus]);
-  const progress = useMemo(() => calculateProgress(), [calculateProgress]);
-  const timeRemaining = useMemo(() => getTimeRemaining(), [getTimeRemaining]);
+  // Format date for display
+  const formatDate = useCallback((dateString: string | undefined): string => {
+    if (!dateString) return '';
+    return dateString;
+  }, []);
 
   // Xử lý khi nhấn nút "Xem chi tiết phiên bầu cử"
   const handleViewSessions = () => {
