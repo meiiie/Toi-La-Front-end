@@ -45,7 +45,7 @@ const BlockchainInfo: React.FC<BlockchainInfoProps> = ({ walletAddress }) => {
   const { toast } = useToast();
 
   // HLU Token address - Cập nhật từ luonghoanchinh.js
-  const HLU_TOKEN_ADDRESS = '0x820F15F12Aa75BAa89A16B20768024C8604Ea16f';
+  const HLU_TOKEN_ADDRESS = '0x0c69a0bF43618D8ba8465e095F78AdB3A15F2666';
 
   // ABI của QuanLyCuocBauCu để hiển thị thông tin hệ thống
   const QUANLYCUOCBAUCU_ABI = [

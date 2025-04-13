@@ -30,7 +30,7 @@ import { AlertCircle, ArrowRight, CheckCircle, Network } from 'lucide-react';
 
 // Định nghĩa chainId của mạng HoLiHu
 const HOLIHU_CHAIN_ID = '0xd2'; // 210 trong hệ thập lục phân
-const HLU_TOKEN_ADDRESS = '0x820F15F12Aa75BAa89A16B20768024C8604Ea16f';
+const HLU_TOKEN_ADDRESS = '0x0c69a0bF43618D8ba8465e095F78AdB3A15F2666';
 
 // Các khóa localStorage
 const SETUP_KEYS = {
