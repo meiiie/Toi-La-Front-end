@@ -147,32 +147,19 @@ const EnhancedQRCode: React.FC<EnhancedQRCodeProps> = ({ result, electionName })
   const handleDownload = () => {
     const canvas = canvasRef.current;
     if (canvas) {
-      // Tạo một canvas mới để vẽ với màu sắc phù hợp cho việc tải xuống
+      // Tạo một canvas mới để vẽ với màu sắc nguyên bản
       const downloadCanvas = document.createElement('canvas');
       downloadCanvas.width = canvas.width;
       downloadCanvas.height = canvas.height;
       const ctx = downloadCanvas.getContext('2d');
 
       if (ctx) {
-        // Vẽ nền tối cho chế độ tối
-        ctx.fillStyle = '#0f172a';
+        // Vẽ nền trắng (chế độ sáng) cho tất cả các trường hợp
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, downloadCanvas.width, downloadCanvas.height);
 
-        // Vẽ nội dung từ canvas gốc với màu đảo ngược
+        // Vẽ nội dung từ canvas gốc mà không đảo ngược màu
         ctx.drawImage(canvas, 0, 0);
-
-        // Đảo ngược màu sắc cho chế độ tối
-        const imageData = ctx.getImageData(0, 0, downloadCanvas.width, downloadCanvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-          // Đảo ngược màu cho tất cả các pixel trừ logo
-          if (!(data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 0 && data[i + 3] === 0)) {
-            data[i] = 255 - data[i]; // red
-            data[i + 1] = 255 - data[i + 1]; // green
-            data[i + 2] = 255 - data[i + 2]; // blue
-          }
-        }
-        ctx.putImageData(imageData, 0, 0);
 
         // Tạo URL và tải xuống
         const image = downloadCanvas.toDataURL('image/png');
@@ -195,32 +182,19 @@ const EnhancedQRCode: React.FC<EnhancedQRCodeProps> = ({ result, electionName })
     try {
       const canvas = canvasRef.current;
       if (canvas && navigator.share) {
-        // Tạo một canvas mới để vẽ với màu sắc phù hợp cho việc chia sẻ
+        // Tạo một canvas mới để vẽ với màu nguyên bản
         const shareCanvas = document.createElement('canvas');
         shareCanvas.width = canvas.width;
         shareCanvas.height = canvas.height;
         const ctx = shareCanvas.getContext('2d');
 
         if (ctx) {
-          // Vẽ nền tối cho chế độ tối
-          ctx.fillStyle = '#0f172a';
+          // Vẽ nền trắng (chế độ sáng) cho tất cả các trường hợp
+          ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, shareCanvas.width, shareCanvas.height);
 
-          // Vẽ nội dung từ canvas gốc với màu đảo ngược
+          // Vẽ nội dung từ canvas gốc mà không đảo ngược màu
           ctx.drawImage(canvas, 0, 0);
-
-          // Đảo ngược màu sắc cho chế độ tối
-          const imageData = ctx.getImageData(0, 0, shareCanvas.width, shareCanvas.height);
-          const data = imageData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            // Đảo ngược màu cho tất cả các pixel trừ logo
-            if (!(data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 0 && data[i + 3] === 0)) {
-              data[i] = 255 - data[i]; // red
-              data[i + 1] = 255 - data[i + 1]; // green
-              data[i + 2] = 255 - data[i + 2]; // blue
-            }
-          }
-          ctx.putImageData(imageData, 0, 0);
 
           // Tạo blob và chia sẻ
           const blob = await new Promise<Blob>((resolve) => {
@@ -289,10 +263,10 @@ const EnhancedQRCode: React.FC<EnhancedQRCodeProps> = ({ result, electionName })
                 </div>
               </div>
             )}
-            <div className="p-4 bg-white dark:bg-[#0f172a] rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm">
+            <div className="p-4 bg-white dark:bg-white rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm">
               <canvas
                 ref={canvasRef}
-                className="rounded-lg dark:invert"
+                className="rounded-lg"
                 style={{ maxWidth: '100%', height: 'auto' }}
               />
             </div>
