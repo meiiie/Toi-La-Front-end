@@ -246,7 +246,7 @@ const KetQuaBauCu = () => {
         if (response.data) {
           // Lấy địa chỉ blockchain từ cuộc bầu cử
           setContractAddress(
-            response.data.blockchainAddress || '0x83d076026Cb9fea8694e9cBED3D30116C1DE5f74',
+            response.data.blockchainAddress || '0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10',
           );
           setServerId(response.data.blockchainServerId || 4);
         }
@@ -254,8 +254,8 @@ const KetQuaBauCu = () => {
         console.error('Lỗi khi lấy thông tin cuộc bầu cử:', error);
 
         // Fallback: Nếu API không hoạt động, sử dụng giá trị mặc định
-        setContractAddress('0x83d076026Cb9fea8694e9cBED3D30116C1DE5f74');
-        setServerId(4);
+        setContractAddress('0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10');
+        setServerId(7);
       }
     };
 

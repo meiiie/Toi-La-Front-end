@@ -604,7 +604,7 @@ export function NewAccountForm({ onSave }: Props) {
               {...register('matKhau', {
                 required: 'Bạn phải nhập mật khẩu',
                 pattern: {
-                  value: /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+                  value: /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/,
                   message:
                     'Mật khẩu phải có ít nhất 8 ký tự, bao gồm 1 ký tự viết hoa, 1 ký tự số và 1 ký tự đặc biệt',
                 },
