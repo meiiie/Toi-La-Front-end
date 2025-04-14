@@ -802,7 +802,7 @@ const DieuLePage: React.FC = () => {
                       <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 min-h-[400px]">
                         {/* Sử dụng TinyMCE cho chế độ xem nếu cần tính năng tìm kiếm nâng cao */}
                         <Editor
-                          apiKey="z6iqop8y6f73n3bd79gdc7iu4t2t79h9of5fdgulaa4hw0xg"
+                          apiKey="hnhk7yhahvso9ca3umd4b6yaf47to3o0899j7tc50rj3tzpo"
                           id="dieu-le-viewer"
                           onInit={(evt: unknown, editor: any) => (editorRef.current = editor)}
                           value={dieuLeCuocBauCu.noiDung as string}
@@ -962,7 +962,7 @@ const DieuLePage: React.FC = () => {
                       </Label>
                       <div className="mt-1 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                         <Editor
-                          apiKey="z6iqop8y6f73n3bd79gdc7iu4t2t79h9of5fdgulaa4hw0xg"
+                          apiKey="hnhk7yhahvso9ca3umd4b6yaf47to3o0899j7tc50rj3tzpo"
                           id="editor"
                           onInit={(evt: unknown, editor: any) => (editorRef.current = editor)}
                           value={editorContent}
