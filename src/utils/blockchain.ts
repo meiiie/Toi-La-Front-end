@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 // Địa chỉ và ABI của các smart contract
 export const QUAN_LY_PHIEU_BAU_ADDRESS = '0x9c244B5E1F168510B9b812573b1B667bd1E654c8';
 export const SCW_ADDRESS = '0x066BAdad3aEcfe447a31B3f3994C28F73a1A314F';
+export const FACTORY_ADDRESS = '0x93e3b7720CAf68Fb4E4E0A9ca0152f61529D9900';
 
 // ID của phiên bầu cử
 export const ID_PHIEN_BAU_CU = 3;
@@ -12,6 +13,16 @@ export const QUAN_LY_PHIEU_BAU_ABI = [
   'function layDanhSachTokenCuaPhien(uint256 idPhienBauCu) view returns (uint256[])',
   'function ownerOf(uint256 tokenId) view returns (address)',
   'function tokenURI(uint256 tokenId) view returns (string)',
+  'function tokenDenPhienBauCu(uint256 idToken) view returns (uint256)',
+  'function tokenDenCuocBauCu(uint256 idToken) view returns (uint256)',
+  'function daBoPhieu(uint128 serverId, uint256 idPhienBauCu, address cuTri) view returns (bool)',
+  'function kiemTraQuyenBauCu(address cuTri, uint128 serverId, uint256 idPhienBauCu, uint256 idToken) view returns (bool)',
+  'function kiemTraQuyenBauCuChiTiet(address cuTri, uint128 serverId, uint256 idPhienBauCu, uint256 idToken) view returns (tuple(bool tonTai, bool daBoPhieu, bool laNguoiSoHuu, bool phienHopLe, bool trongThoiGian))',
+];
+
+export const FACTORY_ABI = [
+  'function layThongTinServer(uint128 id) view returns (address, string, string, uint8, uint64, uint64, address)',
+  'function layThongTinServerTheoAddress(address serverAddress) view returns (uint128)',
 ];
 
 // Xử lý tokenURI đặc biệt
@@ -24,98 +35,90 @@ export function processTokenURI(tokenURI: string): string {
   return tokenURI;
 }
 
-// Add a cache to prevent repeated calls for invalid tokens
+// Thêm cache để tránh gọi lặp lại cho token không hợp lệ
 const invalidTokenIds = new Set<number>();
 
-// Modified version with better error handling
+/**
+ * Lấy danh sách phiếu bầu của cử tri từ blockchain
+ * @param voterAddress Địa chỉ ví của cử tri
+ * @param sessionId ID phiên bầu cử
+ * @returns Danh sách phiếu bầu
+ */
 export async function fetchBallotIPFSLinks(
   voterAddress: string,
   sessionId: number,
 ): Promise<{ tokenId: number; tokenURI: string; processedURI: string }[]> {
+  console.log(`Đang lấy danh sách phiếu cho cử tri ${voterAddress} trong phiên ${sessionId}...`);
+
   try {
     const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
 
-    // Safe provider check
     if (!provider) {
-      console.error('Failed to create provider');
-      throw new Error('Failed to connect to blockchain');
+      console.error('Không thể kết nối đến blockchain provider');
+      throw new Error('Không thể kết nối đến blockchain');
     }
 
-    const phieuBauCuAbi = [
-      'function balanceOf(address owner) view returns (uint256)',
-      'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
-      'function tokenURI(uint256 tokenId) view returns (string)',
-      'function ownerOf(uint256 tokenId) view returns (address)',
-    ];
-
-    const phieuBauCuContract = new ethers.Contract(
-      '0x9c244B5E1F168510B9b812573b1B667bd1E654c8', // Consider making this configurable
-      phieuBauCuAbi,
+    const quanLyPhieuBau = new ethers.Contract(
+      QUAN_LY_PHIEU_BAU_ADDRESS,
+      QUAN_LY_PHIEU_BAU_ABI,
       provider,
     );
 
-    // Get token balance
-    let balance;
+    // Phương pháp 1: Lấy danh sách token của phiên
+    let allTokensInSession: number[] = [];
     try {
-      balance = await phieuBauCuContract.balanceOf(voterAddress);
+      console.log(`Đang lấy danh sách phiếu của phiên ${sessionId}...`);
+      const tokenListBigInt = await quanLyPhieuBau.layDanhSachTokenCuaPhien(sessionId);
+
+      // Chuyển từ BigInt sang number
+      allTokensInSession = tokenListBigInt.map((token) => Number(token));
+      console.log(`Tìm thấy ${allTokensInSession.length} phiếu trong phiên ${sessionId}`);
     } catch (error) {
-      console.error('Error fetching balance:', error);
-      throw new Error('Could not fetch ballot balance');
+      console.error(`Lỗi khi lấy danh sách phiếu của phiên ${sessionId}:`, error);
+      allTokensInSession = []; // Mảng rỗng nếu gặp lỗi
     }
 
-    balance = Number(balance);
-    if (balance <= 0) {
-      console.log('No ballots found for address:', voterAddress);
+    if (allTokensInSession.length === 0) {
+      console.log(`Không tìm thấy phiếu nào trong phiên ${sessionId}`);
       return [];
     }
 
-    const tokenIds: number[] = [];
+    // Lọc ra các phiếu thuộc về cử tri
     const validTokenLinks: { tokenId: number; tokenURI: string; processedURI: string }[] = [];
 
-    // Fetch all token IDs first
-    for (let i = 0; i < balance; i++) {
-      try {
-        const tokenIdBigInt = await phieuBauCuContract.tokenOfOwnerByIndex(voterAddress, i);
-        const tokenId = Number(tokenIdBigInt);
-        tokenIds.push(tokenId);
-      } catch (error) {
-        console.error(`Error fetching token ID at index ${i}:`, error);
-        // Continue with the next token
-      }
-    }
-
-    console.log(`Fetched ${tokenIds.length} tokens for session ${sessionId}`);
-
-    // Then process the valid token IDs
-    for (const tokenId of tokenIds) {
-      // Skip already known invalid tokens
+    for (const tokenId of allTokensInSession) {
+      // Bỏ qua token đã biết là không hợp lệ
       if (invalidTokenIds.has(tokenId)) {
+        console.log(`Bỏ qua token không hợp lệ đã biết: ${tokenId}`);
         continue;
       }
 
       try {
-        // Verify ownership first before doing more operations
-        const owner = await phieuBauCuContract.ownerOf(tokenId);
-        if (owner.toLowerCase() !== voterAddress.toLowerCase()) {
-          console.log(`Token ${tokenId} is not owned by ${voterAddress}`);
-          continue;
+        // Kiểm tra chủ sở hữu
+        const owner = await quanLyPhieuBau.ownerOf(tokenId);
+
+        if (owner.toLowerCase() === voterAddress.toLowerCase()) {
+          // Kiểm tra xem token có thuộc về phiên bầu cử đúng không
+          const tokenSessionId = await quanLyPhieuBau.tokenDenPhienBauCu(tokenId);
+
+          if (Number(tokenSessionId) === sessionId) {
+            console.log(`Token ${tokenId} thuộc về cử tri ${voterAddress}`);
+
+            // Lấy URI
+            const tokenURI = await quanLyPhieuBau.tokenURI(tokenId);
+            const processedURI = processTokenURI(tokenURI);
+
+            validTokenLinks.push({
+              tokenId,
+              tokenURI,
+              processedURI,
+            });
+          } else {
+            console.log(`Token ${tokenId} không thuộc về phiên ${sessionId}`);
+          }
         }
-
-        // Now get URI for valid tokens
-        const tokenURI = await phieuBauCuContract.tokenURI(tokenId);
-
-        // Process URI to handle IPFS and base64 formats
-        let processedURI = tokenURI;
-
-        // ...existing URI processing code...
-
-        validTokenLinks.push({
-          tokenId,
-          tokenURI,
-          processedURI,
-        });
       } catch (error) {
-        // Add to invalid token cache
+        // Thêm token không hợp lệ vào cache
         invalidTokenIds.add(tokenId);
 
         if (error instanceof Error) {
@@ -126,69 +129,123 @@ export async function fetchBallotIPFSLinks(
       }
     }
 
-    console.log(`Successfully retrieved ${validTokenLinks.length} valid ballots`);
+    console.log(`Tìm thấy ${validTokenLinks.length} phiếu hợp lệ cho cử tri ${voterAddress}`);
     return validTokenLinks;
   } catch (error) {
-    console.error('Error in fetchBallotIPFSLinks:', error);
+    console.error('Lỗi trong hàm fetchBallotIPFSLinks:', error);
     throw error;
   }
 }
 
-// Improved version with better error handling
+/**
+ * Kiểm tra xem cử tri đã bỏ phiếu chưa
+ * @param voterAddress Địa chỉ ví của cử tri
+ * @param tokenId ID token phiếu bầu
+ * @param serverAddress Địa chỉ server/quản lý cuộc bầu cử
+ * @param sessionId ID phiên bầu cử
+ * @returns true nếu đã bỏ phiếu, false nếu chưa
+ */
 export async function checkVoterHasVotedSafely(
   voterAddress: string,
   tokenId: number,
-  quanLyCuocBauCuAddress: string,
-  phienId: number,
+  serverAddress: string,
+  sessionId: number,
 ): Promise<boolean> {
   try {
-    // Skip known invalid tokens
+    // Bỏ qua token đã biết là không hợp lệ
     if (invalidTokenIds.has(tokenId)) {
+      console.log(`Bỏ qua token không hợp lệ: ${tokenId}`);
       return false;
     }
 
     const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
-
-    // Safe guard against invalid addresses
-    if (!ethers.isAddress(quanLyCuocBauCuAddress)) {
-      console.error('Invalid contract address:', quanLyCuocBauCuAddress);
-      return false;
-    }
-
-    const quanLyCuocBauCuAbi = [
-      'function daBoPhieu(address cuTri, uint256 idPhienBauCu, uint256 idToken) view returns (bool)',
-    ];
-
-    const quanLyCuocBauCu = new ethers.Contract(
-      quanLyCuocBauCuAddress,
-      quanLyCuocBauCuAbi,
+    const factory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, provider);
+    const quanLyPhieuBau = new ethers.Contract(
+      QUAN_LY_PHIEU_BAU_ADDRESS,
+      QUAN_LY_PHIEU_BAU_ABI,
       provider,
     );
 
-    // Use a timeout to prevent hanging calls
-    const hasVotedPromise = quanLyCuocBauCu.daBoPhieu(voterAddress, phienId, tokenId);
-
-    // Add timeout handling
-    const timeoutPromise = new Promise<boolean>((_, reject) => {
-      setTimeout(() => reject(new Error('Blockchain query timed out')), 10000);
-    });
-
-    // Race the promises
-    const hasVoted = await Promise.race([hasVotedPromise, timeoutPromise]);
-
-    return hasVoted as boolean;
-  } catch (error) {
-    // Add to invalid token cache if it's an invalid token error
-    if (error instanceof Error && error.message.includes('invalid token ID')) {
-      invalidTokenIds.add(tokenId);
+    // Lấy serverId từ địa chỉ server
+    let serverId: number;
+    try {
+      const serverIdBigInt = await factory.layThongTinServerTheoAddress(serverAddress);
+      serverId = Number(serverIdBigInt);
+      console.log(`Lấy được server ID: ${serverId} từ địa chỉ ${serverAddress}`);
+    } catch (error) {
+      console.error('Lỗi khi lấy server ID:', error);
+      serverId = 1; // Mặc định là server ID 1
     }
 
-    console.error(`Error checking if voter has voted (token ${tokenId}):`, error);
+    // Phương pháp 1: Kiểm tra trực tiếp trạng thái bỏ phiếu
+    try {
+      const hasVoted = await quanLyPhieuBau.daBoPhieu(serverId, sessionId, voterAddress);
+      if (hasVoted) {
+        console.log(`Cử tri ${voterAddress} đã bỏ phiếu trong phiên ${sessionId}`);
+        return true;
+      }
+    } catch (error) {
+      console.error('Lỗi khi kiểm tra trạng thái bỏ phiếu:', error);
+      // Tiếp tục với phương pháp khác
+    }
+
+    // Phương pháp 2: Kiểm tra quyền bầu cử chi tiết
+    try {
+      const votingRightDetails = await quanLyPhieuBau.kiemTraQuyenBauCuChiTiet(
+        voterAddress,
+        serverId,
+        sessionId,
+        tokenId,
+      );
+
+      console.log(`Chi tiết quyền bầu cử cho token ${tokenId}:`, {
+        tonTai: votingRightDetails[0],
+        daBoPhieu: votingRightDetails[1],
+        laNguoiSoHuu: votingRightDetails[2],
+        phienHopLe: votingRightDetails[3],
+        trongThoiGian: votingRightDetails[4],
+      });
+
+      // Nếu đã bỏ phiếu hoặc token không tồn tại hoặc không sở hữu, coi như đã sử dụng
+      if (votingRightDetails[1] || !votingRightDetails[0] || !votingRightDetails[2]) {
+        return true;
+      }
+
+      // Nếu phiên không hợp lệ hoặc hết thời gian, cũng coi như đã sử dụng
+      if (!votingRightDetails[3] || !votingRightDetails[4]) {
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error(`Lỗi khi kiểm tra quyền bầu cử chi tiết cho token ${tokenId}:`, error);
+
+      // Phương pháp 3: Kiểm tra quyền bầu cử đơn giản
+      try {
+        const hasVotingRights = await quanLyPhieuBau.kiemTraQuyenBauCu(
+          voterAddress,
+          serverId,
+          sessionId,
+          tokenId,
+        );
+
+        // Nếu không có quyền bầu cử, coi như đã sử dụng phiếu
+        return !hasVotingRights;
+      } catch (error) {
+        console.error(`Lỗi khi kiểm tra quyền bầu cử đơn giản cho token ${tokenId}:`, error);
+
+        // Thêm vào danh sách token không hợp lệ để tránh gọi lại
+        invalidTokenIds.add(tokenId);
+        return false;
+      }
+    }
+  } catch (error) {
+    console.error(`Lỗi tổng quát khi kiểm tra phiếu đã bỏ:`, error);
     return false;
   }
 }
 
-// Mô phỏng dữ liệu để kiểm tra
+// Giữ lại mô phỏng dữ liệu để kiểm tra
 export async function getMockBallotIPFSLinks(): Promise<
   { tokenId: number; tokenURI: string; processedURI: string }[]
 > {

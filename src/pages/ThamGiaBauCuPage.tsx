@@ -911,6 +911,7 @@ const ThamGiaBauCu: React.FC = () => {
     ],
   );
 
+  // Hàm fetchBallotsFromBlockchain sửa lỗi
   const fetchBallotsFromBlockchain = useCallback(
     async (forceRefresh = false) => {
       // Skip if already loading or if we have ballots and no errors (unless forced)
@@ -923,15 +924,12 @@ const ThamGiaBauCu: React.FC = () => {
       if (fetchAttempts >= MAX_FETCH_ATTEMPTS) {
         console.log(`Maximum fetch attempts (${MAX_FETCH_ATTEMPTS}) reached. Stopping retries.`);
         setBlockchainError('Đã vượt quá số lần thử kết nối. Vui lòng làm mới trang.');
-
-        // Set user-friendly error
         setUserFriendlyError({
           title: 'Không tìm thấy phiếu bầu',
           message:
             'Hệ thống không thể tìm thấy phiếu bầu cho địa chỉ ví của bạn sau nhiều lần thử.',
           suggestion: 'Vui lòng liên hệ với Ban tổ chức để được hỗ trợ hoặc thử lại sau.',
         });
-
         return;
       }
 
@@ -977,7 +975,11 @@ const ThamGiaBauCu: React.FC = () => {
         // Use try-catch wrapper around fetchBallotIPFSLinks
         let ballotLinks;
         try {
+          console.log(`Đang lấy phiếu bầu cho cử tri ${voterAddress} và phiên ${sessionId}...`);
+
+          // Sử dụng hàm đã sửa trong utils/blockchain.ts
           ballotLinks = await fetchBallotIPFSLinks(voterAddress, sessionId);
+          console.log(`Kết quả lấy phiếu bầu:`, ballotLinks);
         } catch (error) {
           console.error('Lỗi khi lấy danh sách phiếu bầu:', error);
           dispatchError({
@@ -1020,7 +1022,7 @@ const ThamGiaBauCu: React.FC = () => {
 
         const ballotsData = [];
         // Use a smaller set of tokens to prevent excessive errors
-        const maxTokensToProcess = Math.min(ballotLinks.length, 3);
+        const maxTokensToProcess = Math.min(ballotLinks.length, 5); // Giới hạn số lượng token xử lý
 
         // Process ballots with proper error handling for each token
         for (let i = 0; i < maxTokensToProcess; i++) {
@@ -1046,12 +1048,32 @@ const ThamGiaBauCu: React.FC = () => {
               metadata = JSON.parse(jsonString) as BallotMetadata;
             } catch (error) {
               console.error('Lỗi khi parse metadata phiếu bầu:', error);
+              // Tạo metadata mặc định nếu không parse được
+              metadata = {
+                name: `Phiếu bầu #${link.tokenId}`,
+                description: 'Phiếu bầu HoLiHu',
+                image: '/placeholder.svg',
+              };
             }
+          } else if (link.processedURI.startsWith('ipfs://')) {
+            // Xử lý URI ipfs nếu cần
+            metadata = {
+              name: `Phiếu bầu #${link.tokenId}`,
+              description: 'Phiếu bầu HoLiHu',
+              image: '/placeholder.svg',
+            };
           }
 
           // Use try-catch to handle individual token errors
           try {
-            const isUsed = await checkVoterHasVoted(voterAddress, link.tokenId);
+            console.log(`Kiểm tra trạng thái bỏ phiếu cho token ${link.tokenId}...`);
+            const isUsed = await checkVoterHasVotedSafely(
+              voterAddress,
+              link.tokenId,
+              quanLyCuocBauCuAddress || '',
+              sessionId,
+            );
+            console.log(`Token ${link.tokenId} đã sử dụng: ${isUsed}`);
 
             ballotsData.push({
               tokenId: link.tokenId,
@@ -1115,12 +1137,13 @@ const ThamGiaBauCu: React.FC = () => {
       blockchainPhienBauCuId,
       getCurrentWalletAddress,
       fetchBlockchainSessionId,
-      checkVoterHasVoted,
+      checkVoterHasVotedSafely,
       loadingBallots,
       ballots.length,
       errorState.hasError,
       fetchAttempts,
       MAX_FETCH_ATTEMPTS,
+      quanLyCuocBauCuAddress,
     ],
   );
 
