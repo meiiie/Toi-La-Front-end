@@ -558,10 +558,12 @@ const ThamGiaBauCu: React.FC = () => {
       return blockchainPhienBauCuId;
     }
 
+    // Định nghĩa FALLBACK_SESSION_ID nếu chưa có
+    const FALLBACK_SESSION_ID = 1;
+    const MAX_BLOCKCHAIN_RETRIES = 3;
+
     if (blockchainRetryCount >= MAX_BLOCKCHAIN_RETRIES) {
       console.log(`Maximum blockchain connection attempts (${MAX_BLOCKCHAIN_RETRIES}) reached.`);
-
-      // Use fallback session ID
       setIsUsingFallbackSession(true);
       setUserFriendlyError({
         title: 'Không thể kết nối với blockchain',
@@ -569,66 +571,101 @@ const ThamGiaBauCu: React.FC = () => {
         suggestion:
           'Đang sử dụng phiên bầu cử mặc định. Vui lòng liên hệ Ban tổ chức để được hỗ trợ.',
       });
-
       return FALLBACK_SESSION_ID;
     }
 
-    if (!phienBauCu && !cuocBauCu?.blockchainAddress) {
-      console.error('Không có thông tin phiên bầu cử hoặc cuộc bầu cử');
+    if (!cuocBauCu?.blockchainAddress) {
+      console.error('Không có địa chỉ blockchain của cuộc bầu cử');
       setUserFriendlyError({
         title: 'Thiếu thông tin phiên bầu cử',
         message: 'Hệ thống không tìm thấy thông tin phiên bầu cử.',
         suggestion: 'Vui lòng kiểm tra đường dẫn hoặc liên hệ Ban tổ chức.',
       });
-      return null;
+      return FALLBACK_SESSION_ID;
     }
 
     try {
       // Increment retry count
       setBlockchainRetryCount((prev) => prev + 1);
 
-      let contractAddress = phienBauCu?.blockchainAddress;
-
-      if (!contractAddress && cuocBauCu?.blockchainAddress) {
-        contractAddress = cuocBauCu.blockchainAddress;
-      }
-
-      if (!contractAddress) {
-        contractAddress = '0x9c244B5E1F168510B9b812573b1B667bd1E654c8';
-      }
-
+      const contractAddress = cuocBauCu?.blockchainAddress;
       setQuanLyCuocBauCuAddress(contractAddress);
+      console.log('Kết nối đến contract tại địa chỉ:', contractAddress);
 
       const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
 
-      const quanLyCuocBauCuAbi = [
-        'function layDanhSachPhienBauCu(uint256 idCuocBauCu, uint256 chiSoBatDau, uint256 gioiHan) external view returns (uint256[] memory)',
-        'function laPhienHoatDong(uint256 idCuocBauCu, uint256 idPhienBauCu) view returns (bool)',
-      ];
-
-      const quanLyCuocBauCu = new ethers.Contract(contractAddress, quanLyCuocBauCuAbi, provider);
-
-      // Use a try/catch specifically for the contract call
+      // Lấy thông tin cuộc bầu cử
       try {
-        // Use serverId from cuocBauCu or localServerId if available, otherwise use cuocBauCuId or fallback to 1
+        // Xác định serverId - ưu tiên lấy từ các nguồn khác nhau
         const serverId =
           cuocBauCu?.blockchainServerId || localServerId || (cuocBauCuId ? Number(cuocBauCuId) : 1);
+        console.log(`Using serverId: ${serverId} for fetching session list`);
 
-        console.log(`Fetching election sessions with serverId: ${serverId}`);
-        const phienBauCuList = await quanLyCuocBauCu.layDanhSachPhienBauCu(serverId, 0, 10);
+        // Kết nối đến Factory để lấy thông tin
+        const factoryAddress =
+          contractAddresses.factoryAddress || '0x93e3b7720CAf68Fb4E4E0A9ca0152f61529D9900';
+        const factoryAbi = [
+          'function layThongTinServer(uint128 id) view returns (address, string, string, uint8, uint64, uint64, address)',
+          'function quanLyPhieuBauToanCuc() view returns (address)',
+        ];
+
+        const factory = new ethers.Contract(factoryAddress, factoryAbi, provider);
+        const serverInfo = await factory.layThongTinServer(serverId);
+        console.log('Server info:', serverInfo);
+
+        // Xác nhận địa chỉ contract có khớp không
+        if (serverInfo[0].toLowerCase() !== contractAddress.toLowerCase()) {
+          console.warn(`Địa chỉ contract không khớp: ${serverInfo[0]} vs ${contractAddress}`);
+          // Sử dụng địa chỉ từ Factory nếu khác
+          setQuanLyCuocBauCuAddress(serverInfo[0]);
+        }
+
+        // Lấy danh sách phiên bầu cử
+        const quanLyCuocBauCuAbi = [
+          'function layDanhSachPhienBauCu(uint256 idCuocBauCu, uint256 chiSoBatDau, uint256 gioiHan) external view returns (uint256[] memory)',
+          'function laPhienHoatDong(uint256 idCuocBauCu, uint256 idPhienBauCu) view returns (bool)',
+        ];
+
+        const quanLyCuocBauCu = new ethers.Contract(serverInfo[0], quanLyCuocBauCuAbi, provider);
+
+        // Lưu ý: Ở đây ID cuộc bầu cử LUÔN là 1 trong contract
+        const electionId = 1;
+        const phienBauCuList = await quanLyCuocBauCu.layDanhSachPhienBauCu(electionId, 0, 10);
+        console.log(
+          'Danh sách phiên bầu cử:',
+          phienBauCuList.map((id) => id.toString()),
+        );
 
         if (phienBauCuList && phienBauCuList.length > 0) {
-          const latestSessionId = phienBauCuList[phienBauCuList.length - 1];
+          // Tìm phiên bầu cử đang hoạt động hoặc lấy phiên mới nhất
+          let activeSessionId = null;
+          for (let i = phienBauCuList.length - 1; i >= 0; i--) {
+            try {
+              const phienId = phienBauCuList[i];
+              const isActive = await quanLyCuocBauCu.laPhienHoatDong(electionId, phienId);
+              console.log(`Phiên ${phienId}: ${isActive ? 'Đang hoạt động' : 'Không hoạt động'}`);
+              if (isActive) {
+                activeSessionId = phienId;
+                break;
+              }
+            } catch (error) {
+              console.warn(`Lỗi khi kiểm tra phiên ${phienBauCuList[i]}:`, error);
+            }
+          }
+
+          // Nếu có phiên hoạt động thì dùng, không thì lấy phiên mới nhất
+          const sessionId = activeSessionId || phienBauCuList[phienBauCuList.length - 1];
+          console.log(
+            `Chọn phiên ${sessionId} ${activeSessionId ? '(đang hoạt động)' : '(mới nhất)'}`,
+          );
 
           if (isMounted.current) {
-            setBlockchainPhienBauCuId(Number(latestSessionId));
-            // Reset error states on success
+            setBlockchainPhienBauCuId(Number(sessionId));
             setUserFriendlyError(null);
             setIsUsingFallbackSession(false);
           }
-          return Number(latestSessionId);
+          return Number(sessionId);
         } else {
-          // No sessions found but call was successful
           console.log('Không có phiên bầu cử nào được tìm thấy từ blockchain');
           if (isMounted.current) {
             setIsUsingFallbackSession(true);
@@ -642,15 +679,15 @@ const ThamGiaBauCu: React.FC = () => {
           return FALLBACK_SESSION_ID;
         }
       } catch (contractError) {
-        // Handle the specific contract error
         console.error('Lỗi cụ thể khi gọi hàm blockchain:', contractError);
 
         if (
           contractError instanceof Error &&
-          contractError.message.includes('could not decode result data')
+          (contractError.message.includes('could not decode result data') ||
+            contractError.message.includes('execution reverted'))
         ) {
           console.log(
-            'Lỗi decode kết quả từ blockchain, có thể địa chỉ hợp đồng không đúng hoặc ABI không khớp',
+            'Lỗi khi gọi hàm blockchain, có thể địa chỉ hợp đồng không đúng hoặc ABI không khớp',
           );
 
           if (isMounted.current) {
@@ -668,7 +705,6 @@ const ThamGiaBauCu: React.FC = () => {
     } catch (error) {
       console.error('Lỗi tổng quát khi lấy ID phiên bầu cử từ blockchain:', error);
 
-      // Set error state
       dispatchError({
         type: 'SET_ERROR',
         payload: {
@@ -694,12 +730,13 @@ const ThamGiaBauCu: React.FC = () => {
     }
   }, [
     blockchainPhienBauCuId,
-    phienBauCu,
-    cuocBauCu,
-    blockchainRetryCount,
+    cuocBauCu?.blockchainAddress,
     cuocBauCu?.blockchainServerId,
     localServerId,
     cuocBauCuId,
+    blockchainRetryCount,
+    contractAddresses.factoryAddress,
+    isMounted,
   ]);
 
   const checkVoterHasVoted = useCallback(
