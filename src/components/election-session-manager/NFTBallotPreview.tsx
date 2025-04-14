@@ -1,11 +1,28 @@
-'use client';
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { ChevronRight, Image as ImageIcon, RotateCw, Ticket } from 'lucide-react';
-import Image from 'next/image';
+import {
+  ChevronRight,
+  Image as ImageIcon,
+  RotateCw,
+  Ticket,
+  Check,
+  Database,
+  FileText,
+  User,
+  Calendar,
+  Shield,
+} from 'lucide-react';
+import { Separator } from '../../components/ui/Separator';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui/Tooltip';
+import { groupAttributes, processIpfsImageUrl, shortenAddress } from '../../utils/ballotUtils';
+import IPFSImage from '../../components/bophieu/IPFSImage';
 
 interface NFTBallotPreviewProps {
   metadata: {
@@ -20,11 +37,29 @@ interface NFTBallotPreviewProps {
   isLoading?: boolean;
 }
 
+/**
+ * NFTBallotPreview - Hiển thị xem trước phiếu bầu dạng NFT
+ */
 const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading = false }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [showFullAttributes, setShowFullAttributes] = useState(false);
 
-  // Reset image error state when metadata changes
+  // Xử lý URL hình ảnh IPFS
+  const imageUrl = useMemo(() => {
+    if (!metadata?.image) return null;
+    if (metadata.image.startsWith('ipfs://')) {
+      return processIpfsImageUrl(metadata.image);
+    }
+    return metadata.image;
+  }, [metadata?.image]);
+
+  // Nhóm thuộc tính để hiển thị theo danh mục
+  const groupedAttributes = useMemo(() => {
+    return groupAttributes(metadata?.attributes || []);
+  }, [metadata?.attributes]);
+
+  // Reset trạng thái khi metadata thay đổi
   useEffect(() => {
     setImageError(false);
     setImageLoaded(false);
@@ -39,6 +74,7 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
     setImageLoaded(true);
   };
 
+  // Hiển thị hình ảnh phiếu bầu
   const renderImage = () => {
     if (isLoading) {
       return (
@@ -46,7 +82,7 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
       );
     }
 
-    if (!metadata?.image || imageError) {
+    if (!imageUrl || imageError) {
       return (
         <div className="w-full aspect-square rounded-lg bg-gray-100 dark:bg-gray-800/50 flex flex-col items-center justify-center p-4">
           <ImageIcon className="h-8 w-8 md:h-12 md:w-12 text-gray-400 dark:text-gray-600 mb-2" />
@@ -73,37 +109,69 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
             <Skeleton className="w-full h-full" />
           </div>
         )}
-        <Image
-          src={metadata.image}
-          alt={metadata.name || 'NFT Ballot Preview'}
-          onLoad={handleImageLoaded}
-          onError={handleImageError}
-          layout="fill"
-          objectFit="cover"
-          className={`transition-opacity duration-300 rounded-lg ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-        />
+
+        {imageUrl.startsWith('ipfs://') ? (
+          <IPFSImage
+            src={imageUrl}
+            alt={metadata.name || 'NFT Ballot Preview'}
+            onLoad={handleImageLoaded}
+            onError={handleImageError}
+            className={`w-full h-full object-cover transition-opacity duration-300 rounded-lg ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          />
+        ) : (
+          <img
+            src={imageUrl}
+            alt={metadata.name || 'NFT Ballot Preview'}
+            onLoad={handleImageLoaded}
+            onError={handleImageError}
+            className={`w-full h-full object-cover transition-opacity duration-300 rounded-lg ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          />
+        )}
+
+        {/* Hiển thị badge IPFS nếu là ảnh từ IPFS */}
+        {imageLoaded && !imageError && imageUrl.includes('ipfs') && (
+          <div className="absolute bottom-2 right-2 bg-blue-500/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center">
+            <Database className="h-3 w-3 mr-1" />
+            IPFS
+          </div>
+        )}
       </div>
     );
   };
 
-  const renderAttributes = () => {
-    if (!metadata?.attributes || metadata.attributes.length === 0) {
-      return null;
-    }
+  // Hiển thị thuộc tính theo nhóm
+  const renderAttributeGroup = (title: string, icon: React.ReactNode, attributes: any[]) => {
+    if (!attributes || attributes.length === 0) return null;
 
     return (
-      <div className="mt-4">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Thuộc tính</h3>
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2">
-          {metadata.attributes.map((attr, index) => (
+      <div className="space-y-2">
+        <div className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+          {icon}
+          <span className="ml-1.5">{title}</span>
+        </div>
+        <div className="grid grid-cols-1 gap-1.5">
+          {attributes.map((attr, index) => (
             <div
               key={index}
-              className="bg-gray-50 dark:bg-gray-800/30 rounded-md p-2 border border-gray-200 dark:border-gray-700/50"
+              className="flex justify-between py-1 px-2 bg-gray-50 dark:bg-gray-800/30 rounded-md text-xs"
             >
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{attr.trait_type}</p>
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
-                {attr.value}
-              </p>
+              <span className="text-gray-500 dark:text-gray-400 truncate mr-2">
+                {attr.trait_type}:
+              </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="font-medium text-gray-800 dark:text-gray-200 truncate max-w-[150px]">
+                      {attr.trait_type.includes('địa chỉ') || attr.trait_type.includes('hash')
+                        ? shortenAddress(attr.value)
+                        : attr.value}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{attr.value}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           ))}
         </div>
@@ -112,90 +180,101 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
   };
 
   return (
-    <Card className="overflow-hidden border border-gray-200 dark:border-gray-700">
-      <CardHeader className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-b border-gray-200 dark:border-gray-700 p-3 md:p-4">
+    <Card className="overflow-hidden border-gray-200 dark:border-gray-700">
+      <CardHeader className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-b border-gray-200 dark:border-gray-700 p-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center text-sm md:text-base text-gray-800 dark:text-gray-100">
-            <Ticket className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2 text-indigo-600 dark:text-indigo-400" />
-            Xem Trước Phiếu Bầu
+          <CardTitle className="flex items-center text-sm text-gray-800 dark:text-gray-100">
+            <Ticket className="h-3.5 w-3.5 mr-1.5 text-indigo-600 dark:text-indigo-400" />
+            {isLoading ? (
+              <Skeleton className="h-4 w-40 bg-gray-200 dark:bg-gray-700" />
+            ) : (
+              metadata?.name || 'Phiếu bầu cử'
+            )}
           </CardTitle>
           <Badge
             variant="outline"
             className="bg-white/50 dark:bg-gray-800/50 text-xs border-gray-300 dark:border-gray-600 font-normal"
           >
-            NFT Preview
+            Phiếu bầu NFT
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="p-3 md:p-4">
-        <div className="w-full max-w-sm mx-auto">
+      <CardContent className="p-3">
+        <div className="space-y-3">
           {/* NFT Image */}
           {renderImage()}
 
-          {/* NFT Details */}
-          <div className="mt-4 space-y-3">
-            <div>
-              <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                Tên phiếu bầu
-              </h3>
+          {/* Description */}
+          {(metadata?.description || isLoading) && (
+            <div className="mt-2">
               {isLoading ? (
-                <Skeleton className="h-5 md:h-6 w-3/4 mt-1 bg-gray-200 dark:bg-gray-800/50" />
+                <>
+                  <Skeleton className="h-3 w-full mb-1 bg-gray-200 dark:bg-gray-800/50" />
+                  <Skeleton className="h-3 w-2/3 bg-gray-200 dark:bg-gray-800/50" />
+                </>
               ) : (
-                <p className="text-sm md:text-base font-medium text-gray-900 dark:text-gray-100 break-words">
-                  {metadata?.name || 'Chưa cấu hình tên phiếu'}
-                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{metadata.description}</p>
               )}
             </div>
+          )}
 
-            {(metadata?.description || isLoading) && (
-              <div>
-                <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400">Mô tả</h3>
-                {isLoading ? (
-                  <>
-                    <Skeleton className="h-4 w-full mt-1 bg-gray-200 dark:bg-gray-800/50" />
-                    <Skeleton className="h-4 w-2/3 mt-1 bg-gray-200 dark:bg-gray-800/50" />
-                  </>
-                ) : (
-                  <p className="text-xs md:text-sm text-gray-700 dark:text-gray-300 break-words">
-                    {metadata.description}
-                  </p>
-                )}
+          {/* Attributes */}
+          {isLoading ? (
+            <div className="mt-2 space-y-2">
+              <Skeleton className="h-4 w-24 bg-gray-200 dark:bg-gray-800/50" />
+              <div className="grid grid-cols-1 gap-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-8 rounded-md bg-gray-200 dark:bg-gray-800/50" />
+                ))}
               </div>
-            )}
+            </div>
+          ) : metadata?.attributes && metadata.attributes.length > 0 ? (
+            <div className="mt-3 space-y-4 bg-gray-50/70 dark:bg-gray-800/30 p-2 rounded-lg">
+              {/* Thông tin cuộc bầu cử */}
+              {renderAttributeGroup(
+                'Thông tin bầu cử',
+                <FileText className="h-3.5 w-3.5 text-blue-500" />,
+                groupedAttributes.election,
+              )}
 
-            {/* Attributes */}
-            {isLoading ? (
-              <div className="mt-4">
-                <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                  Thuộc tính
-                </h3>
-                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton
-                      key={i}
-                      className="h-14 md:h-16 rounded-md bg-gray-200 dark:bg-gray-800/50"
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              renderAttributes()
-            )}
+              {/* Thông tin cử tri */}
+              {renderAttributeGroup(
+                'Thông tin cử tri',
+                <User className="h-3.5 w-3.5 text-green-500" />,
+                groupedAttributes.identity,
+              )}
 
-            {metadata?.external_url && (
-              <div className="pt-2">
-                <a
-                  href={metadata.external_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+              {/* Thông tin xác thực */}
+              {renderAttributeGroup(
+                'Xác thực',
+                <Shield className="h-3.5 w-3.5 text-purple-500" />,
+                groupedAttributes.verification,
+              )}
+
+              {/* Thông tin khác */}
+              {groupedAttributes.other.length > 0 && (
+                <>
+                  <Separator className="my-2" />
+                  {renderAttributeGroup(
+                    'Thông tin khác',
+                    <Calendar className="h-3.5 w-3.5 text-gray-500" />,
+                    groupedAttributes.other,
+                  )}
+                </>
+              )}
+
+              {/* Nút hiển thị đầy đủ thuộc tính */}
+              {metadata.attributes.length > 6 && !showFullAttributes && (
+                <button
+                  onClick={() => setShowFullAttributes(true)}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center mx-auto mt-1"
                 >
-                  Xem chi tiết
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </a>
-              </div>
-            )}
-          </div>
+                  Xem tất cả thuộc tính
+                  <ChevronRight className="h-3 w-3 ml-1" />
+                </button>
+              )}
+            </div>
+          ) : null}
         </div>
       </CardContent>
     </Card>
