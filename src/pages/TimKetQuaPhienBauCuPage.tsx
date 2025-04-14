@@ -255,7 +255,7 @@ const KetQuaBauCu = () => {
 
         // Fallback: Nếu API không hoạt động, sử dụng giá trị mặc định
         setContractAddress('0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10');
-        setServerId(7);
+        setServerId(8);
       }
     };
 
