@@ -664,7 +664,7 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
           </h3>
 
           <div className="space-y-4">
-            {!sessionStatus.isActive ? (
+            {sessionStatus.isActive ? (
               <div className="flex flex-col sm:flex-row items-start sm:items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800/50">
                 <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mr-3 mt-0.5 sm:mt-0" />
                 <div>
@@ -810,7 +810,7 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
                 : 'bg-gray-400 dark:bg-gray-700'
             } text-white transition-all duration-300`}
           >
-            {!isStartingSession ? (
+            {isStartingSession ? (
               <Loader className="mr-2 h-4 w-4 animate-spin" />
             ) : sessionStatus.isActive ? (
               <CheckCircle2 className="mr-2 h-4 w-4" />
@@ -819,7 +819,7 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
             )}
             {isStartingSession
               ? 'Đang bắt đầu phiên...'
-              : !sessionStatus.isActive
+              : sessionStatus.isActive
                 ? 'Phiên đã bắt đầu'
                 : 'Bắt Đầu Phiên Bầu Cử'}
           </Button>
