@@ -85,7 +85,7 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
   >(propQuanLyCuocBauCuAddress);
   const [isLoadingContractAddresses, setIsLoadingContractAddresses] = useState<boolean>(false);
 
-  // Debug log component initialization
+  // Debug log component initialization and session status
   useEffect(() => {
     console.log('[DEBUG] SessionStartTab - Component initialized with:', {
       selectedSession: selectedSession
@@ -97,6 +97,11 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
       propQuanLyCuocBauCuAddress,
       blockchainSessionId,
       sessionKey: sessionKey ? 'present' : 'null',
+      sessionStatus: {
+        isActive: sessionStatus.isActive,
+        startTime: sessionStatus.startTime,
+        endTime: sessionStatus.endTime,
+      },
     });
   }, []);
 
@@ -604,6 +609,25 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
     !!localQuanLyCuocBauCuAddress &&
     electionStatus.hasBanToChucRole;
 
+  // Debug log whenever canStartSession changes
+  useEffect(() => {
+    console.log('[DEBUG] canStartSession changed:', {
+      canStartSession,
+      isStartingSession,
+      sessionStatusIsActive: sessionStatus.isActive,
+      hasSessionKey: !!sessionKey,
+      hasQuanLyCuocBauCuAddress: !!localQuanLyCuocBauCuAddress,
+      hasBanToChucRole: electionStatus.hasBanToChucRole,
+    });
+  }, [
+    canStartSession,
+    isStartingSession,
+    sessionStatus.isActive,
+    sessionKey,
+    localQuanLyCuocBauCuAddress,
+    electionStatus.hasBanToChucRole,
+  ]);
+
   // Kiểm tra và render component
   if (!selectedSession) {
     return (
@@ -664,6 +688,10 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
           </h3>
 
           <div className="space-y-4">
+            {console.log(
+              '[DEBUG] Rendering session status with isActive =',
+              sessionStatus.isActive,
+            )}
             {sessionStatus.isActive ? (
               <div className="flex flex-col sm:flex-row items-start sm:items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800/50">
                 <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mr-3 mt-0.5 sm:mt-0" />
