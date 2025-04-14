@@ -1,13 +1,13 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect, useCallback, useMemo, useReducer, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams, useNavigate, useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import VotedStamp from '../components/bophieu/VotedStamp';
 import EnhancedBallotCard from '../components/bophieu/EnhancedBallotCard';
 import BallotProcessingAnimation from '../components/bophieu/BallotProcessingAnimation';
+// Update ethers import to include all necessary components
 import { ethers, JsonRpcProvider, Contract } from 'ethers';
 import {
   Calendar,
@@ -34,23 +34,24 @@ import {
   ExternalLink,
   XCircle,
   Loader,
-  RefreshCw,
-  X,
-  Home,
-  CircleCheck,
-  Circle,
 } from 'lucide-react';
 
+// Thêm import fetchBlockchainAddress từ ungCuVienSlice
 import { fetchBlockchainAddress } from '../store/slice/ungCuVienSlice';
 
 import { fetchPhienBauCuById } from '../store/slice/phienBauCuSlice';
 import { fetchCuocBauCuById } from '../store/slice/cuocBauCuByIdSlice';
 import { getViByAddress } from '../store/sliceBlockchain/viBlockchainSlice';
+// Add apiClient import
 import apiClient from '../api/apiClient';
+// Add CardUngVienXemChiTiet import
 import CardUngVienXemChiTiet from '../features/CardUngVienXemChiTiet';
+// Import ApproveHLU component
 import ApproveHLU from '../components/blockchain/ApproveHLU';
+// Add the import for TokenApprovalModal at the top of the file with the other imports
 import TokenApprovalModal from '../components/bophieu/TokenApprovalModal';
 
+// Components
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -64,6 +65,7 @@ import DieuLeLoader from '../components/DieuLeLoader';
 import { useToast } from '../test/components/use-toast';
 import ElectionResultsWaiting from '../components/bophieu/ElectionResultsWaiting';
 
+// Blockchain functions
 import {
   fetchBallotIPFSLinks,
   checkVoterHasVotedSafely,
@@ -73,9 +75,7 @@ import {
 import type { RootState } from '../store/store';
 import type { UngCuVien, BallotMetadata, ViTriUngCu } from '../store/types';
 
-import ErrorBoundary from '../components/ErrorBoundary';
-import BlockchainErrorFallback from '../components/blockchain/BlockchainErrorFallback';
-
+// Xác định các bước tham gia bầu cử
 type Step = {
   id: string;
   title: string;
@@ -129,6 +129,7 @@ const steps: Step[] = [
   },
 ];
 
+// Tạo FileHashIcon component bên ngoài component chính để tránh re-render
 const FileHashIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -151,33 +152,13 @@ const FileHashIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-const errorReducer = (state: ErrorState, action: ErrorAction): ErrorState => {
-  switch (action.type) {
-    case 'SET_ERROR':
-      return {
-        ...action.payload,
-        timestamp: Date.now(),
-      };
-    case 'CLEAR_ERROR':
-      return {
-        hasError: false,
-        message: null,
-        code: null,
-        context: null,
-        recoverable: true,
-        timestamp: Date.now(),
-      };
-    default:
-      return state;
-  }
-};
-
 const ThamGiaBauCu: React.FC = () => {
   const { id: cuocBauCuId, idPhien } = useParams<{ id: string; idPhien: string }>();
   const navigate = useNavigate();
   const phienId = useMemo(() => idPhien || ID_PHIEN_BAU_CU.toString(), [idPhien]);
   const { toast } = useToast();
 
+  // Redux state
   const user = useSelector((state: RootState) => state.dangNhapTaiKhoan.taiKhoan);
   const walletInfo = useSelector((state: RootState) => state.viBlockchain?.data);
   const {
@@ -187,19 +168,20 @@ const ThamGiaBauCu: React.FC = () => {
   } = useSelector((state: RootState) => state.dieuLe);
   const { cuocBauCu } = useSelector((state: RootState) => state.cuocBauCuById);
   const { cacPhienBauCu } = useSelector((state: RootState) => state.phienBauCu);
-  const blockchainAddresses = useSelector(
-    (state: RootState) => state.ungCuVien.blockchainAddresses,
-  );
 
+  // Sử dụng useMemo để tránh tính toán lại phienBauCu khi không cần thiết
   const phienBauCu = useMemo(() => {
     return phienId ? cacPhienBauCu.find((p) => p.id === Number(phienId)) : cacPhienBauCu[0];
   }, [phienId, cacPhienBauCu]);
 
   const dispatch = useDispatch();
 
+  // Add state for SQL candidates
   const [sqlCandidates, setSqlCandidates] = useState<UngCuVien[]>([]);
+  // Add new state for positions
   const [viTriList, setViTriList] = useState<ViTriUngCu[]>([]);
 
+  // State
   const [currentStep, setCurrentStep] = useState<string>('welcome');
   const [acceptedRules, setAcceptedRules] = useState<boolean>(false);
   const [isVerified, setIsVerified] = useState<boolean>(false);
@@ -221,8 +203,10 @@ const ThamGiaBauCu: React.FC = () => {
   const [showTokenApprovalModal, setShowTokenApprovalModal] = useState<boolean>(false);
   const [dataInitialized, setDataInitialized] = useState<boolean>(false);
 
+  // Thêm state để lưu serverId (thêm vào phần state declarations)
   const [localServerId, setLocalServerId] = useState<number | null>(null);
 
+  // Blockchain-related state
   const [ballots, setBallots] = useState<
     Array<{
       tokenId: number;
@@ -239,6 +223,7 @@ const ThamGiaBauCu: React.FC = () => {
   const [blockchainPhienBauCuId, setBlockchainPhienBauCuId] = useState<number | null>(null);
   const [quanLyCuocBauCuAddress, setQuanLyCuocBauCuAddress] = useState<string | null>(null);
 
+  // Add state for blockchain transactions
   const [blockchainTxHash, setBlockchainTxHash] = useState<string>('');
   const [blockchainTxStatus, setBlockchainTxStatus] = useState<
     'pending' | 'success' | 'failed' | null
@@ -248,6 +233,7 @@ const ThamGiaBauCu: React.FC = () => {
     null,
   );
 
+  // IMPORTANT: Define tokenApprovalStatus BEFORE it's used in function dependencies
   const [tokenApprovalStatus, setTokenApprovalStatus] = useState<{
     hluBalance: string;
     allowanceForQuanLyPhieu: string;
@@ -266,52 +252,23 @@ const ThamGiaBauCu: React.FC = () => {
     hluTokenAddress?: string;
   }>({});
 
+  // Add state variable for session key - moved up before it's used
   const [sessionKey, setSessionKey] = useState<{
     sessionKey: string;
     expiresAt: number;
     scwAddress: string;
   } | null>(null);
 
+  // Thêm state để lưu địa chỉ ví của ứng viên được chọn
   const [candidateAddress, setCandidateAddress] = useState<string | null>(null);
 
-  // Add cache of failed token IDs to prevent repeated errors
-  const invalidTokenCache = useRef<Set<number>>(new Set());
-
-  // Add ref to track if component is mounted
-  const isMounted = useRef<boolean>(true);
-
-  // Add state to track fetch attempts
-  const [fetchAttempts, setFetchAttempts] = useState<number>(0);
-  const MAX_FETCH_ATTEMPTS = 3;
-
-  // Add error state with reducer
-  const [errorState, dispatchError] = useReducer(errorReducer, {
-    hasError: false,
-    message: null,
-    code: null,
-    context: null,
-    recoverable: true,
-    timestamp: 0,
-  });
-
-  // Add a user-friendly error message state
-  const [userFriendlyError, setUserFriendlyError] = useState<{
-    title: string;
-    message: string;
-    suggestion: string;
-  } | null>(null);
-
-  // Add new state variables for better error handling
-  const [blockchainRetryCount, setBlockchainRetryCount] = useState<number>(0);
-  const [isUsingFallbackSession, setIsUsingFallbackSession] = useState<boolean>(false);
-  const [showStepper, setShowStepper] = useState<boolean>(true);
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
-
+  // Thêm useEffect mới để dispatch actions - chỉ chạy một lần khi component mount
   useEffect(() => {
     const initializeData = async () => {
       if (dataInitialized) return;
 
       try {
+        // Tạo một mảng các promise để thực hiện song song
         const promises = [];
 
         if (phienId) {
@@ -330,6 +287,7 @@ const ThamGiaBauCu: React.FC = () => {
           );
         }
 
+        // Chờ tất cả các promise hoàn thành
         await Promise.all(promises);
         setDataInitialized(true);
       } catch (error) {
@@ -340,30 +298,40 @@ const ThamGiaBauCu: React.FC = () => {
     initializeData();
   }, [phienId, cuocBauCuId, dispatch, dataInitialized]);
 
+  // Thêm useEffect để lấy địa chỉ ví của ứng viên khi người dùng chọn ứng viên
   useEffect(() => {
     if (selectedCandidate) {
+      // Kiểm tra xem đã có địa chỉ ví trong Redux store chưa
+      const blockchainAddresses = useSelector(
+        (state: RootState) => state.ungCuVien.blockchainAddresses,
+      );
+
       if (blockchainAddresses[selectedCandidate.id]) {
         setCandidateAddress(blockchainAddresses[selectedCandidate.id]);
       } else {
+        // Nếu chưa có, gọi API để lấy địa chỉ ví
         dispatch(fetchBlockchainAddress(selectedCandidate.id))
           .then((action) => {
             if (action.payload?.response?.success && action.payload?.response?.blockchainAddress) {
               setCandidateAddress(action.payload.response.blockchainAddress);
             } else {
               console.warn('Không thể lấy địa chỉ ví của ứng viên:', selectedCandidate.id);
+              // Sử dụng địa chỉ mặc định nếu không lấy được
               setCandidateAddress('0x8dFcB44976E17E9d6378c4F126Dec611F96D219b');
             }
           })
           .catch((error) => {
             console.error('Lỗi khi lấy địa chỉ ví của ứng viên:', error);
+            // Sử dụng địa chỉ mặc định nếu có lỗi
             setCandidateAddress('0x8dFcB44976E17E9d6378c4F126Dec611F96D219b');
           });
       }
     } else {
       setCandidateAddress(null);
     }
-  }, [selectedCandidate, dispatch, blockchainAddresses]);
+  }, [selectedCandidate, dispatch]);
 
+  // Kiểm tra dark mode - chỉ chạy một lần khi component mount
   useEffect(() => {
     const isDark =
       localStorage.getItem('darkMode') === 'true' ||
@@ -376,6 +344,7 @@ const ThamGiaBauCu: React.FC = () => {
       document.documentElement.classList.remove('dark');
     }
 
+    // Lắng nghe sự thay đổi dark mode
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
       setIsDarkMode(e.matches);
@@ -390,6 +359,7 @@ const ThamGiaBauCu: React.FC = () => {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
+  // Kiểm tra kích thước màn hình - chỉ chạy một lần khi component mount
   useEffect(() => {
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -403,17 +373,20 @@ const ThamGiaBauCu: React.FC = () => {
     };
   }, []);
 
+  // Cập nhật trạng thái xác nhận điều lệ
   useEffect(() => {
     if (daXacNhan !== null) {
       setAcceptedRules(daXacNhan);
     }
   }, [daXacNhan]);
 
+  // Hàm helper để xác định địa chỉ ví của người dùng hiện tại - memoized để tránh tính toán lại
   const getCurrentWalletAddress = useMemo(() => {
     if (walletInfo?.diaChiVi) {
       return walletInfo.diaChiVi;
     }
 
+    // If user is logged in but wallet not loaded yet, try to provide a better message
     if (user?.diaChiVi) {
       return user.diaChiVi;
     }
@@ -421,12 +394,15 @@ const ThamGiaBauCu: React.FC = () => {
     return SCW_ADDRESS;
   }, [walletInfo, user]);
 
+  // Improve the useEffect to ensure wallet info is loaded - chỉ chạy khi user hoặc walletInfo thay đổi
   useEffect(() => {
+    // If we don't have wallet info yet but have user data, try to fetch wallet info
     if (!walletInfo && user?.id && user?.diaChiVi) {
       dispatch(getViByAddress({ taiKhoanId: user.id, diaChiVi: user.diaChiVi }));
     }
   }, [user, walletInfo, dispatch]);
 
+  // Thêm useEffect để ngăn người dùng thoát khi đang xử lý
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (currentStep === 'processing') {
@@ -440,6 +416,7 @@ const ThamGiaBauCu: React.FC = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [currentStep]);
 
+  // Add function to fetch contract addresses - memoized để tránh tạo lại function
   const fetchContractAddresses = useCallback(async () => {
     try {
       const response = await apiClient.get('/api/Blockchain/contract-addresses');
@@ -455,10 +432,12 @@ const ThamGiaBauCu: React.FC = () => {
     }
   }, []);
 
+  // Add useEffect to fetch contract addresses when component mounts - chỉ chạy một lần
   useEffect(() => {
     fetchContractAddresses();
   }, [fetchContractAddresses]);
 
+  // Implement the session key retrieval logic - memoized để tránh tạo lại function
   const getSessionKey = useCallback(async () => {
     if (!user?.id || !walletInfo?.viId) {
       toast({
@@ -498,6 +477,7 @@ const ThamGiaBauCu: React.FC = () => {
     }
   }, [user, walletInfo, toast]);
 
+  // Add useEffect to get session key when needed for ApproveHLU - chỉ chạy khi các dependency thay đổi
   useEffect(() => {
     if (
       walletInfo?.diaChiVi &&
@@ -513,8 +493,10 @@ const ThamGiaBauCu: React.FC = () => {
     }
   }, [walletInfo, contractAddresses, sessionKey, currentStep, getSessionKey]);
 
+  // Handle balances updated from ApproveHLU - memoized để tránh tạo lại function
   const handleBalancesUpdated = useCallback((balances: any) => {
-    const requiredAmount = 1;
+    // Calculate if we have sufficient approval for voting
+    const requiredAmount = 1; // 1 HLU needed for voting (reduced from 3)
     const isApproved =
       Number(balances.allowanceForQuanLyPhieu || balances.allowanceForPaymaster || '0') >=
       requiredAmount;
@@ -527,6 +509,7 @@ const ThamGiaBauCu: React.FC = () => {
     });
   }, []);
 
+  // Handle approval success - memoized để tránh tạo lại function
   const handleApproveSuccess = useCallback(() => {
     toast({
       title: 'Phê duyệt thành công',
@@ -534,51 +517,34 @@ const ThamGiaBauCu: React.FC = () => {
     });
   }, [toast]);
 
+  // Handle set loading state from ApproveHLU - memoized để tránh tạo lại function
   const handleSetIsLoading = useCallback((loading: boolean) => {
     setIsApproving(loading);
   }, []);
 
-  // Enhanced fetchBlockchainSessionId with better error handling
+  // Hàm để xác định ID phiên bầu cử từ blockchain - memoized để tránh tạo lại function
   const fetchBlockchainSessionId = useCallback(async () => {
+    // Nếu đã có blockchainPhienBauCuId, không cần fetch lại
     if (blockchainPhienBauCuId) {
       return blockchainPhienBauCuId;
     }
 
-    if (blockchainRetryCount >= MAX_BLOCKCHAIN_RETRIES) {
-      console.log(`Maximum blockchain connection attempts (${MAX_BLOCKCHAIN_RETRIES}) reached.`);
-
-      // Use fallback session ID
-      setIsUsingFallbackSession(true);
-      setUserFriendlyError({
-        title: 'Không thể kết nối với blockchain',
-        message: 'Hệ thống không thể lấy thông tin phiên bầu cử từ blockchain sau nhiều lần thử.',
-        suggestion:
-          'Đang sử dụng phiên bầu cử mặc định. Vui lòng liên hệ Ban tổ chức để được hỗ trợ.',
-      });
-
-      return FALLBACK_SESSION_ID;
-    }
-
+    // Nếu không có phienBauCu, không thể fetch
     if (!phienBauCu && !cuocBauCu?.blockchainAddress) {
       console.error('Không có thông tin phiên bầu cử hoặc cuộc bầu cử');
-      setUserFriendlyError({
-        title: 'Thiếu thông tin phiên bầu cử',
-        message: 'Hệ thống không tìm thấy thông tin phiên bầu cử.',
-        suggestion: 'Vui lòng kiểm tra đường dẫn hoặc liên hệ Ban tổ chức.',
-      });
       return null;
     }
 
     try {
-      // Increment retry count
-      setBlockchainRetryCount((prev) => prev + 1);
-
+      // Ưu tiên sử dụng địa chỉ từ phienBauCu
       let contractAddress = phienBauCu?.blockchainAddress;
 
+      // Nếu không có, thử dùng địa chỉ từ cuocBauCu
       if (!contractAddress && cuocBauCu?.blockchainAddress) {
         contractAddress = cuocBauCu.blockchainAddress;
       }
 
+      // Nếu vẫn không có, dùng địa chỉ cứng
       if (!contractAddress) {
         contractAddress = '0x9c244B5E1F168510B9b812573b1B667bd1E654c8';
       }
@@ -587,6 +553,7 @@ const ThamGiaBauCu: React.FC = () => {
 
       const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
 
+      // ABI cho QuanLyCuocBauCu
       const quanLyCuocBauCuAbi = [
         'function layDanhSachPhienBauCu(uint256 idCuocBauCu, uint256 chiSoBatDau, uint256 gioiHan) external view returns (uint256[] memory)',
         'function laPhienHoatDong(uint256 idCuocBauCu, uint256 idPhienBauCu) view returns (bool)',
@@ -594,128 +561,39 @@ const ThamGiaBauCu: React.FC = () => {
 
       const quanLyCuocBauCu = new ethers.Contract(contractAddress, quanLyCuocBauCuAbi, provider);
 
-      // Use a try/catch specifically for the contract call
-      try {
-        // Use serverId from cuocBauCu or localServerId if available, otherwise use cuocBauCuId or fallback to 1
-        const serverId =
-          cuocBauCu?.blockchainServerId || localServerId || (cuocBauCuId ? Number(cuocBauCuId) : 1);
+      // Lấy danh sách phiên bầu cử
+      const phienBauCuList = await quanLyCuocBauCu.layDanhSachPhienBauCu(1, 0, 10);
 
-        console.log(`Fetching election sessions with serverId: ${serverId}`);
-        const phienBauCuList = await quanLyCuocBauCu.layDanhSachPhienBauCu(serverId, 0, 10);
+      if (phienBauCuList && phienBauCuList.length > 0) {
+        // Lấy phiên bầu cử mới nhất
+        const latestSessionId = phienBauCuList[phienBauCuList.length - 1];
 
-        if (phienBauCuList && phienBauCuList.length > 0) {
-          const latestSessionId = phienBauCuList[phienBauCuList.length - 1];
-
-          if (isMounted.current) {
-            setBlockchainPhienBauCuId(Number(latestSessionId));
-            // Reset error states on success
-            setUserFriendlyError(null);
-            setIsUsingFallbackSession(false);
-          }
-          return Number(latestSessionId);
-        } else {
-          // No sessions found but call was successful
-          console.log('Không có phiên bầu cử nào được tìm thấy từ blockchain');
-          if (isMounted.current) {
-            setIsUsingFallbackSession(true);
-            setUserFriendlyError({
-              title: 'Không tìm thấy phiên bầu cử',
-              message: 'Không có phiên bầu cử nào được tìm thấy cho mã cuộc bầu cử này.',
-              suggestion:
-                'Đang sử dụng phiên bầu cử mặc định. Vui lòng liên hệ Ban tổ chức để được hỗ trợ.',
-            });
-          }
-          return FALLBACK_SESSION_ID;
-        }
-      } catch (contractError) {
-        // Handle the specific contract error
-        console.error('Lỗi cụ thể khi gọi hàm blockchain:', contractError);
-
-        if (
-          contractError instanceof Error &&
-          contractError.message.includes('could not decode result data')
-        ) {
-          console.log(
-            'Lỗi decode kết quả từ blockchain, có thể địa chỉ hợp đồng không đúng hoặc ABI không khớp',
-          );
-
-          if (isMounted.current) {
-            setIsUsingFallbackSession(true);
-            setUserFriendlyError({
-              title: 'Lỗi kết nối với hợp đồng thông minh',
-              message: 'Không thể đọc dữ liệu từ hợp đồng thông minh trên blockchain.',
-              suggestion:
-                'Đang sử dụng phiên bầu cử mặc định. Vui lòng liên hệ Ban tổ chức để được hỗ trợ.',
-            });
-          }
-        }
-        return FALLBACK_SESSION_ID;
+        setBlockchainPhienBauCuId(Number(latestSessionId));
+        return Number(latestSessionId);
       }
+
+      return null;
     } catch (error) {
-      console.error('Lỗi tổng quát khi lấy ID phiên bầu cử từ blockchain:', error);
-
-      // Set error state
-      dispatchError({
-        type: 'SET_ERROR',
-        payload: {
-          hasError: true,
-          message: 'Không thể kết nối tới blockchain. Vui lòng thử lại sau.',
-          code: 'BLOCKCHAIN_CONNECTION_ERROR',
-          context: 'fetchSessionId',
-          recoverable: true,
-        },
-      });
-
-      if (isMounted.current) {
-        setIsUsingFallbackSession(true);
-        setUserFriendlyError({
-          title: 'Lỗi kết nối blockchain',
-          message: 'Không thể kết nối đến blockchain để lấy thông tin phiên bầu cử.',
-          suggestion:
-            'Đang sử dụng phiên bầu cử mặc định. Vui lòng kiểm tra kết nối mạng hoặc liên hệ Ban tổ chức.',
-        });
-      }
-
-      return FALLBACK_SESSION_ID;
+      console.error('Lỗi khi lấy ID phiên bầu cử từ blockchain:', error);
+      return null;
     }
-  }, [
-    blockchainPhienBauCuId,
-    phienBauCu,
-    cuocBauCu,
-    blockchainRetryCount,
-    cuocBauCu?.blockchainServerId,
-    localServerId,
-    cuocBauCuId,
-  ]);
+  }, [blockchainPhienBauCuId, phienBauCu, cuocBauCu]);
 
+  // Kiểm tra xem cử tri đã bỏ phiếu chưa - memoized để tránh tạo lại function
   const checkVoterHasVoted = useCallback(
     async (voterAddress: string, tokenId: number) => {
-      try {
-        // If this token ID has already failed, skip checking it
-        if (invalidTokenCache.current.has(tokenId)) {
-          console.log(`Skipping known invalid token ID: ${tokenId}`);
-          return false;
-        }
-
-        return await checkVoterHasVotedSafely(
-          voterAddress,
-          tokenId,
-          quanLyCuocBauCuAddress || '',
-          blockchainPhienBauCuId || 0,
-        );
-      } catch (error) {
-        // Cache invalid token IDs to prevent repeated errors
-        if (error instanceof Error && error.message.includes('invalid token ID')) {
-          invalidTokenCache.current.add(tokenId);
-        }
-
-        console.error(`Lỗi khi kiểm tra token ${tokenId}:`, error);
-        return false;
-      }
+      // Sử dụng hàm mới với xử lý lỗi tốt hơn
+      return await checkVoterHasVotedSafely(
+        voterAddress,
+        tokenId,
+        quanLyCuocBauCuAddress || '',
+        blockchainPhienBauCuId || 0,
+      );
     },
     [quanLyCuocBauCuAddress, blockchainPhienBauCuId],
   );
 
+  // Thêm hàm này vào phần callback hooks
   const fetchServerIdFromContract = useCallback(async () => {
     if (!cuocBauCu?.blockchainAddress || cuocBauCu?.blockchainServerId || localServerId) return;
 
@@ -726,6 +604,7 @@ const ThamGiaBauCu: React.FC = () => {
       );
       const provider = new JsonRpcProvider('https://geth.holihu.online/rpc');
 
+      // Sử dụng địa chỉ factory từ configuration hoặc hardcode nếu cần
       const factoryAddress =
         contractAddresses.factoryAddress || '0x9c244B5E1F168510B9b812573b1B667bd1E654c8';
 
@@ -740,6 +619,7 @@ const ThamGiaBauCu: React.FC = () => {
         `Retrieved serverId from blockchain: ${serverId} for address: ${cuocBauCu.blockchainAddress}`,
       );
 
+      // Cập nhật local state
       setLocalServerId(Number(serverId));
     } catch (error) {
       console.error('Failed to fetch serverId from contract:', error);
@@ -751,6 +631,7 @@ const ThamGiaBauCu: React.FC = () => {
     localServerId,
   ]);
 
+  // Check voting rights - memoized để tránh tạo lại function
   const checkVotingRights = useCallback(
     async (idToken: number) => {
       if (
@@ -774,12 +655,14 @@ const ThamGiaBauCu: React.FC = () => {
           provider,
         );
 
+        // THAY ĐỔI Ở ĐÂY: Sử dụng serverId từ cuocBauCu
         const serverId =
           cuocBauCu?.blockchainServerId || localServerId || (cuocBauCuId ? Number(cuocBauCuId) : 1);
         console.log(
           `Checking voting rights with serverId: ${serverId}, phienBauCuId: ${blockchainPhienBauCuId}, tokenId: ${idToken}`,
         );
 
+        // Check general voting rights
         const hasVotingRights = await quanLyPhieuBau.kiemTraQuyenBauCu(
           walletInfo.diaChiVi,
           serverId,
@@ -787,6 +670,7 @@ const ThamGiaBauCu: React.FC = () => {
           idToken,
         );
 
+        // If no rights, check detailed reason
         if (!hasVotingRights) {
           const votingRightsDetails = await quanLyPhieuBau.kiemTraQuyenBauCuChiTiet(
             walletInfo.diaChiVi,
@@ -804,30 +688,35 @@ const ThamGiaBauCu: React.FC = () => {
           });
 
           if (votingRightsDetails[1]) {
+            // Already voted
             toast({
               variant: 'destructive',
               title: 'Không thể bỏ phiếu',
               description: 'Bạn đã bỏ phiếu trong phiên này.',
             });
           } else if (!votingRightsDetails[0]) {
+            // Token doesn't exist
             toast({
               variant: 'destructive',
               title: 'Không thể bỏ phiếu',
               description: 'Phiếu bầu không tồn tại.',
             });
           } else if (!votingRightsDetails[2]) {
+            // Not the owner
             toast({
               variant: 'destructive',
               title: 'Không thể bỏ phiếu',
               description: 'Bạn không phải là chủ sở hữu của phiếu bầu này.',
             });
           } else if (!votingRightsDetails[3]) {
+            // Session not valid
             toast({
               variant: 'destructive',
               title: 'Không thể bỏ phiếu',
               description: 'Phiên bầu cử không hợp lệ.',
             });
           } else if (!votingRightsDetails[4]) {
+            // Not in time window
             toast({
               variant: 'destructive',
               title: 'Không thể bỏ phiếu',
@@ -860,53 +749,36 @@ const ThamGiaBauCu: React.FC = () => {
     ],
   );
 
+  // Lấy danh sách phiếu bầu từ blockchain - memoized để tránh tạo lại function
   const fetchBallotsFromBlockchain = useCallback(
-    async (forceRefresh = false) => {
-      // Skip if already loading or if we have ballots and no errors (unless forced)
-      if (loadingBallots || (!forceRefresh && ballots.length > 0 && !errorState.hasError)) {
+    async (retryCount = 0) => {
+      // Đã có dữ liệu và đang hiển thị, không lấy lại
+      if (loadingBallots || (ballots.length > 0 && !blockchainError)) {
         console.log('Skip fetching ballots - already loaded or in progress');
-        return;
-      }
-
-      // Circuit breaker to prevent too many retries
-      if (fetchAttempts >= MAX_FETCH_ATTEMPTS) {
-        console.log(`Maximum fetch attempts (${MAX_FETCH_ATTEMPTS}) reached. Stopping retries.`);
-        setBlockchainError('Đã vượt quá số lần thử kết nối. Vui lòng làm mới trang.');
-
-        // Set user-friendly error
-        setUserFriendlyError({
-          title: 'Không tìm thấy phiếu bầu',
-          message:
-            'Hệ thống không thể tìm thấy phiếu bầu cho địa chỉ ví của bạn sau nhiều lần thử.',
-          suggestion: 'Vui lòng liên hệ với Ban tổ chức để được hỗ trợ hoặc thử lại sau.',
-        });
-
         return;
       }
 
       setLoadingBallots(true);
       setBlockchainError(null);
-      setUserFriendlyError(null);
-
-      // Clear previous error state
-      dispatchError({ type: 'CLEAR_ERROR' });
 
       try {
-        // Increment fetch attempts
-        setFetchAttempts((prev) => prev + 1);
-
+        // Xác định phiên bầu cử ID từ blockchain nếu chưa có
         let sessionId = blockchainPhienBauCuId;
         if (!sessionId) {
           sessionId = await fetchBlockchainSessionId();
         }
 
+        // If we still don't have a blockchain session ID and we haven't retried too many times
+        if (!sessionId && retryCount < 3) {
+          console.log(`No blockchain session ID found, retrying (${retryCount + 1}/3)...`);
+          // Wait a bit before retrying
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          setLoadingBallots(false);
+          return fetchBallotsFromBlockchain(retryCount + 1);
+        }
+
         if (!sessionId) {
           setBlockchainError('Không thể xác định ID phiên bầu cử');
-          setUserFriendlyError({
-            title: 'Lỗi kết nối đến phiên bầu cử',
-            message: 'Hệ thống không thể xác định thông tin phiên bầu cử.',
-            suggestion: 'Vui lòng thử làm mới trang hoặc liên hệ Ban tổ chức.',
-          });
           setLoadingBallots(false);
           return;
         }
@@ -914,150 +786,80 @@ const ThamGiaBauCu: React.FC = () => {
         const voterAddress = getCurrentWalletAddress;
         if (!voterAddress) {
           setBlockchainError('Không thể xác định địa chỉ ví của cử tri');
-          setUserFriendlyError({
-            title: 'Không tìm thấy địa chỉ ví',
-            message: 'Hệ thống không thể xác định địa chỉ ví của bạn.',
-            suggestion: 'Vui lòng kiểm tra kết nối ví hoặc đăng nhập lại.',
-          });
           setLoadingBallots(false);
           return;
         }
 
-        // Use try-catch wrapper around fetchBallotIPFSLinks
-        let ballotLinks;
-        try {
-          ballotLinks = await fetchBallotIPFSLinks(voterAddress, sessionId);
-        } catch (error) {
-          console.error('Lỗi khi lấy danh sách phiếu bầu:', error);
-          dispatchError({
-            type: 'SET_ERROR',
-            payload: {
-              hasError: true,
-              message: 'Không thể lấy danh sách phiếu bầu từ blockchain',
-              code: 'FETCH_BALLOTS_ERROR',
-              context: 'fetchBallots',
-              recoverable: true,
-            },
-          });
-
-          setBlockchainError(
-            'Không thể lấy danh sách phiếu bầu: ' +
-              (error instanceof Error ? error.message : String(error)),
-          );
-
-          setUserFriendlyError({
-            title: 'Lỗi khi tải phiếu bầu',
-            message: 'Hệ thống không thể lấy thông tin phiếu bầu từ blockchain.',
-            suggestion: 'Vui lòng thử lại sau hoặc liên hệ Ban tổ chức để được hỗ trợ.',
-          });
-
-          setLoadingBallots(false);
-          return;
-        }
+        // Lấy danh sách phiếu bầu từ blockchain - với xử lý lỗi tốt hơn
+        const ballotLinks = await fetchBallotIPFSLinks(voterAddress, sessionId);
 
         if (!ballotLinks || ballotLinks.length === 0) {
           setBlockchainError('Không tìm thấy phiếu bầu cho địa chỉ ví này');
-          setUserFriendlyError({
-            title: 'Không tìm thấy phiếu bầu',
-            message: `Không tìm thấy phiếu bầu cho địa chỉ ví ${voterAddress.substring(0, 6)}...${voterAddress.substring(voterAddress.length - 4)}`,
-            suggestion:
-              'Nếu bạn cho rằng bạn nên có phiếu bầu, vui lòng liên hệ Ban tổ chức để được hỗ trợ.',
-          });
           setLoadingBallots(false);
           return;
         }
 
+        // Khởi tạo mảng dữ liệu phiếu bầu với số lượng hợp lý
         const ballotsData = [];
-        // Use a smaller set of tokens to prevent excessive errors
+
+        // Giới hạn số lượng token xử lý để tránh quá nhiều API call
         const maxTokensToProcess = Math.min(ballotLinks.length, 3);
 
-        // Process ballots with proper error handling for each token
         for (let i = 0; i < maxTokensToProcess; i++) {
           const link = ballotLinks[i];
-
-          // Skip known invalid tokens
-          if (invalidTokenCache.current.has(link.tokenId)) {
-            console.log(`Skipping known invalid token ID: ${link.tokenId}`);
-            continue;
-          }
-
+          // Xử lý URI để lấy metadata
           let metadata: BallotMetadata | null = null;
 
           if (link.processedURI.startsWith('data:application/json;base64,')) {
             try {
               const base64Content = link.processedURI.split(',')[1];
+
+              // Sử dụng phương pháp decode Base64 có hỗ trợ UTF-8
               const binaryString = atob(base64Content);
               const bytes = new Uint8Array(binaryString.length);
               for (let i = 0; i < binaryString.length; i++) {
                 bytes[i] = binaryString.charCodeAt(i);
               }
               const jsonString = new TextDecoder('utf-8').decode(bytes);
+
+              // Parse JSON đã được decode đúng
               metadata = JSON.parse(jsonString) as BallotMetadata;
             } catch (error) {
               console.error('Lỗi khi parse metadata phiếu bầu:', error);
             }
           }
 
-          // Use try-catch to handle individual token errors
-          try {
-            const isUsed = await checkVoterHasVoted(voterAddress, link.tokenId);
+          // Kiểm tra xem phiếu đã được sử dụng chưa - với xử lý lỗi tốt hơn
+          const isUsed = await checkVoterHasVoted(voterAddress, link.tokenId);
 
-            ballotsData.push({
-              tokenId: link.tokenId,
-              tokenURI: link.tokenURI,
-              processedURI: link.processedURI,
-              metadata,
-              isUsed,
-            });
-          } catch (error) {
-            console.error(`Lỗi khi xử lý token ${link.tokenId}:`, error);
-            // Add to invalid token cache
-            invalidTokenCache.current.add(link.tokenId);
-            continue;
-          }
+          ballotsData.push({
+            tokenId: link.tokenId,
+            tokenURI: link.tokenURI,
+            processedURI: link.processedURI,
+            metadata,
+            isUsed,
+          });
         }
 
-        // Only update state if successful and component is still mounted
-        if (isMounted.current) {
-          console.log(`Successfully processed ${ballotsData.length} ballots`);
-          setBallots(ballotsData);
+        console.log(`Successfully processed ${ballotsData.length} ballots`);
+        setBallots(ballotsData);
 
-          const unusedBallot = ballotsData.find((ballot) => !ballot.isUsed);
-          if (unusedBallot) {
-            setSelectedBallot({
-              tokenId: unusedBallot.tokenId,
-              metadata: unusedBallot.metadata,
-              tokenURI: unusedBallot.tokenURI,
-            });
-          }
+        // Chọn phiếu đầu tiên chưa sử dụng (nếu có)
+        const unusedBallot = ballotsData.find((ballot) => !ballot.isUsed);
+        if (unusedBallot) {
+          setSelectedBallot({
+            tokenId: unusedBallot.tokenId,
+            metadata: unusedBallot.metadata,
+            tokenURI: unusedBallot.tokenURI,
+          });
         }
       } catch (error) {
-        console.error('Lỗi tổng thể khi lấy phiếu bầu từ blockchain:', error);
-        if (isMounted.current) {
-          setBlockchainError(
-            'Không thể lấy phiếu bầu: ' + (error instanceof Error ? error.message : String(error)),
-          );
-          dispatchError({
-            type: 'SET_ERROR',
-            payload: {
-              hasError: true,
-              message: 'Có lỗi xảy ra khi lấy phiếu bầu từ blockchain.',
-              code: 'BLOCKCHAIN_ERROR',
-              context: 'fetchBallots',
-              recoverable: true,
-            },
-          });
-
-          setUserFriendlyError({
-            title: 'Lỗi kết nối blockchain',
-            message: 'Hệ thống không thể kết nối tới blockchain để lấy thông tin phiếu bầu.',
-            suggestion: 'Vui lòng kiểm tra kết nối mạng và thử lại sau.',
-          });
-        }
+        console.error('Lỗi khi lấy phiếu bầu từ blockchain:', error);
+        setBlockchainError(
+          'Không thể lấy phiếu bầu: ' + (error instanceof Error ? error.message : String(error)),
+        );
       } finally {
-        if (isMounted.current) {
-          setLoadingBallots(false);
-        }
+        setLoadingBallots(false);
       }
     },
     [
@@ -1067,21 +869,22 @@ const ThamGiaBauCu: React.FC = () => {
       checkVoterHasVoted,
       loadingBallots,
       ballots.length,
-      errorState.hasError,
-      fetchAttempts,
-      MAX_FETCH_ATTEMPTS,
+      blockchainError,
     ],
   );
 
+  // Add helper function for position names - memoized để tránh tính toán lại
   const getPositionNameSafe = useCallback(
     (positionId?: number) => {
       if (!positionId) return 'Chưa phân loại';
 
+      // First check in the viTriList
       const position = viTriList.find((pos) => pos.id === positionId);
       if (position) {
         return position.tenViTriUngCu;
       }
 
+      // As fallback, check in candidates if viTriList doesn't have it
       const candidatePosition = candidates.find(
         (c) => c.viTriUngCu && c.viTriUngCu.id === positionId,
       )?.viTriUngCu;
@@ -1091,17 +894,21 @@ const ThamGiaBauCu: React.FC = () => {
     [viTriList, candidates],
   );
 
+  // Add function to fetch SQL candidates - memoized để tránh tạo lại function
   const fetchSqlCandidates = useCallback(async () => {
     if (!phienId) {
       return;
     }
 
+    // Nếu đã đang tải, không tải lại
     if (loadingCandidates) return;
 
     try {
       setLoadingCandidates(true);
+      // Fetch SQL candidates using the API
       const response = await apiClient.get(`/api/UngCuVien/phienBauCu/${phienId}`);
       setSqlCandidates(response.data);
+      // Also set the candidates state with SQL data
       setCandidates(response.data);
     } catch (error) {
       console.error('Lỗi khi lấy danh sách ứng viên từ SQL:', error);
@@ -1110,6 +917,7 @@ const ThamGiaBauCu: React.FC = () => {
     }
   }, [phienId, loadingCandidates]);
 
+  // Add function to fetch positions - memoized để tránh tạo lại function
   const fetchPositions = useCallback(async () => {
     if (!phienId) {
       return;
@@ -1123,6 +931,7 @@ const ThamGiaBauCu: React.FC = () => {
     }
   }, [phienId]);
 
+  // Update the voteForCandidate function to check for token approval before voting - memoized để tránh tạo lại function
   const voteForCandidate = useCallback(async () => {
     if (!selectedCandidate || !selectedBallot || !walletInfo?.diaChiVi || !blockchainPhienBauCuId) {
       console.log('Thiếu thông tin cần thiết:');
@@ -1139,9 +948,11 @@ const ThamGiaBauCu: React.FC = () => {
       return;
     }
 
+    // Sử dụng địa chỉ ví của ứng viên đã chọn hoặc địa chỉ mặc định nếu không có
     const ungVienAddress = candidateAddress || '0x8dFcB44976E17E9d6378c4F126Dec611F96D219b';
     console.log('Địa chỉ ví ứng viên được sử dụng:', ungVienAddress);
 
+    // Hardcode quanLyPhieuBauAddress if undefined
     const hardcodedQuanLyPhieuBauAddress = '0x9c244B5E1F168510B9b812573b1B667bd1E654c8';
     const quanLyPhieuBauAddressToUse =
       contractAddresses.quanLyPhieuBauAddress || hardcodedQuanLyPhieuBauAddress;
@@ -1150,8 +961,9 @@ const ThamGiaBauCu: React.FC = () => {
       setIsSubmitting(true);
       setCurrentStep('processing');
 
+      // Kiểm tra quyền bầu cử
       console.log('Đang kiểm tra quyền bầu cử...');
-      const hasVotingRights = true;
+      const hasVotingRights = true; // Use true directly instead of await checkVotingRights(selectedBallot.tokenId);
       console.log('Quyền bầu cử:', hasVotingRights);
       if (!hasVotingRights) {
         toast({
@@ -1164,6 +976,7 @@ const ThamGiaBauCu: React.FC = () => {
         return;
       }
 
+      // Lấy session key
       console.log('Đang lấy session key...');
       const sessionKeyResponse = await apiClient.post('/api/Blockchain/get-session-key', {
         TaiKhoanID: Number.parseInt(user?.id?.toString() || '0', 10),
@@ -1177,8 +990,10 @@ const ThamGiaBauCu: React.FC = () => {
       const sessionKey = sessionKeyResponse.data.sessionKey;
       console.log('Đã nhận session key');
 
+      // Chuẩn bị thông số
       const provider = new JsonRpcProvider('https://geth.holihu.online/rpc');
 
+      // THAY ĐỔI Ở ĐÂY: Sử dụng serverId từ cuocBauCu thay vì hardcoded value
       const serverId =
         cuocBauCu?.blockchainServerId || localServerId || (cuocBauCuId ? Number(cuocBauCuId) : 1);
 
@@ -1186,9 +1001,10 @@ const ThamGiaBauCu: React.FC = () => {
         tokenId: selectedBallot.tokenId,
         serverId,
         phienBauCuId: blockchainPhienBauCuId,
-        ungVien: ungVienAddress,
+        ungVien: ungVienAddress, // Sử dụng địa chỉ ví của ứng viên
       });
 
+      // Chuẩn bị ABIs
       const quanLyPhieuBauAbi = [
         'function boPhieu(uint256 idToken, uint128 serverId, uint256 idPhienBauCu, address ungVien) external',
         'function taoUserOpBoPhieu(address account, uint256 idToken, uint128 serverId, uint256 idPhienBauCu, address ungVien) external view returns (tuple(address sender, uint256 nonce, bytes initCode, bytes callData, uint256 callGasLimit, uint256 verificationGasLimit, uint256 preVerificationGas, uint256 maxFeePerGas, uint256 maxPriorityFeePerGas, bytes paymasterAndData, bytes signature))',
@@ -1204,6 +1020,7 @@ const ThamGiaBauCu: React.FC = () => {
         'function layHashThaoTac(tuple(address sender, uint256 nonce, bytes initCode, bytes callData, uint256 callGasLimit, uint256 verificationGasLimit, uint256 preVerificationGas, uint256 maxFeePerGas, uint256 maxPriorityFeePerGas, bytes paymasterAndData, bytes signature)) view returns (bytes32)',
       ];
 
+      // Khởi tạo contracts
       console.log('Đang khởi tạo contracts...', quanLyPhieuBauAddressToUse);
       const quanLyPhieuBau = new Contract(quanLyPhieuBauAddressToUse, quanLyPhieuBauAbi, provider);
 
@@ -1217,6 +1034,7 @@ const ThamGiaBauCu: React.FC = () => {
 
       console.log('Đã kết nối các contracts');
 
+      // Lấy nonce hiện tại
       console.log('Đang lấy nonce...');
       let currentNonce;
       try {
@@ -1230,12 +1048,13 @@ const ThamGiaBauCu: React.FC = () => {
       }
       console.log('Nonce hiện tại:', currentNonce.toString());
 
+      // Chuẩn bị callData cho bỏ phiếu
       console.log('Đang chuẩn bị callData...');
       const boPhieuCallData = quanLyPhieuBau.interface.encodeFunctionData('boPhieu', [
         selectedBallot.tokenId,
         serverId,
         blockchainPhienBauCuId,
-        ungVienAddress,
+        ungVienAddress, // Sử dụng địa chỉ ví của ứng viên
       ]);
 
       const executeCallData = simpleAccount.interface.encodeFunctionData('execute', [
@@ -1244,33 +1063,38 @@ const ThamGiaBauCu: React.FC = () => {
         boPhieuCallData,
       ]);
 
+      // Chuẩn bị paymasterAndData
       const currentTimestamp = Math.floor(Date.now() / 1000);
-      const deadlineTime = currentTimestamp + 3600;
+      const deadlineTime = currentTimestamp + 3600; // 1 hour
       const validationTime = currentTimestamp;
 
+      // Sử dụng cấu trúc giống ImprovedDeployment.tsx
       const paymasterAndData = ethers.concat([
         contractAddresses.paymasterAddress!,
         ethers.AbiCoder.defaultAbiCoder().encode(['uint48'], [deadlineTime]),
         ethers.AbiCoder.defaultAbiCoder().encode(['uint48'], [validationTime]),
       ]);
 
+      // Giảm giá trị gas limit để phù hợp với cấu hình contract
       const userOp = {
         sender: walletInfo.diaChiVi,
         nonce: currentNonce.toString(),
         initCode: '0x',
         callData: executeCallData,
-        callGasLimit: '2000000',
-        verificationGasLimit: '1000000',
-        preVerificationGas: '210000',
+        callGasLimit: '2000000', // Sử dụng giá trị nhỏ hơn
+        verificationGasLimit: '1000000', // Giảm giá trị
+        preVerificationGas: '210000', // Giảm giá trị
         maxFeePerGas: ethers.parseUnits('10', 'gwei').toString(),
         maxPriorityFeePerGas: ethers.parseUnits('5', 'gwei').toString(),
         paymasterAndData: paymasterAndData,
         signature: '0x',
       };
 
+      // Ký UserOperation
       console.log('Đang ký UserOperation...');
       const userOpHash = await entryPoint.layHashThaoTac(userOp);
 
+      // Sử dụng phương pháp ký tương tự ImprovedDeployment.tsx
       const signingKey = new ethers.SigningKey(sessionKey);
       const signatureObj = signingKey.sign(ethers.getBytes(userOpHash));
       const signature = ethers.Signature.from({
@@ -1285,8 +1109,10 @@ const ThamGiaBauCu: React.FC = () => {
         sender: userOp.sender,
         nonce: userOp.nonce,
         callGasLimit: userOp.callGasLimit,
+        // Chi tiết khác để kiểm tra
       });
 
+      // Gửi UserOperation đến bundler - Sử dụng cấu trúc liệt kê rõ ràng
       console.log('Đang gửi UserOperation đến bundler...');
       const response = await apiClient.post('/api/bundler/submit', {
         sender: userOp.sender,
@@ -1314,6 +1140,7 @@ const ThamGiaBauCu: React.FC = () => {
       setBlockchainTxStatus('pending');
       console.log('Đã gửi giao dịch bỏ phiếu, hash:', txHash);
 
+      // Kiểm tra trạng thái giao dịch
       let checkCount = 0;
       const maxChecks = 30;
       const checkInterval = setInterval(async () => {
@@ -1371,10 +1198,12 @@ const ThamGiaBauCu: React.FC = () => {
         }
       }, 5000);
     } catch (error) {
+      // Hiện rõ lỗi để debug
       console.error('CHI TIẾT LỖI BỎ PHIẾU:', error);
       let errorMessage = 'Không thể bỏ phiếu';
 
       if (error instanceof Error) {
+        // Chi tiết hơn về lỗi
         errorMessage = `Lỗi: ${error.message}`;
         if (error.stack) {
           console.error('Stack trace:', error.stack);
@@ -1412,12 +1241,14 @@ const ThamGiaBauCu: React.FC = () => {
     setVotedSuccessfully,
     setBallots,
     setCurrentStep,
-    candidateAddress,
+    candidateAddress, // Thêm candidateAddress vào dependencies
   ]);
 
+  // Xử lý đăng ký nhận thông báo - memoized để tránh tạo lại function
   const handleSubscribeNotification = useCallback(
     async (email: string) => {
       try {
+        // Trong triển khai thực tế, đây là nơi bạn gửi yêu cầu đăng ký thông báo
         console.log('Đăng ký thông báo cho email:', email);
 
         toast({
@@ -1441,15 +1272,19 @@ const ThamGiaBauCu: React.FC = () => {
     [toast],
   );
 
+  // Set election end time when phienBauCu is loaded
   useEffect(() => {
     if (phienBauCu?.ngayKetThuc) {
       setElectionEndTime(new Date(phienBauCu.ngayKetThuc));
     } else {
+      // Default to 24 hours from now if no end date is specified
       setElectionEndTime(new Date(Date.now() + 86400000));
     }
   }, [phienBauCu]);
 
+  // Thêm useEffect này sau các useEffect hiện tại
   useEffect(() => {
+    // Log thông tin cuocBauCu để debug
     if (cuocBauCu) {
       console.log('CuocBauCu data loaded:', {
         id: cuocBauCu.id,
@@ -1458,14 +1293,18 @@ const ThamGiaBauCu: React.FC = () => {
         trangThaiBlockchain: cuocBauCu.trangThaiBlockchain,
       });
 
+      // Nếu đã có blockchainServerId, lưu vào state local
       if (cuocBauCu.blockchainServerId) {
         setLocalServerId(cuocBauCu.blockchainServerId);
-      } else if (cuocBauCu.blockchainAddress && !localServerId) {
+      }
+      // Nếu không có blockchainServerId nhưng có address, thử lấy từ blockchain
+      else if (cuocBauCu.blockchainAddress && !localServerId) {
         fetchServerIdFromContract();
       }
     }
   }, [cuocBauCu, fetchServerIdFromContract, localServerId]);
 
+  // Thêm useEffect này để theo dõi giá trị serverId
   useEffect(() => {
     const effectiveServerId =
       cuocBauCu?.blockchainServerId || localServerId || (cuocBauCuId ? Number(cuocBauCuId) : 1);
@@ -1475,103 +1314,93 @@ const ThamGiaBauCu: React.FC = () => {
     );
   }, [cuocBauCu?.blockchainServerId, localServerId, cuocBauCuId]);
 
-  // Enhanced initialization effect to prevent continuous retries
+  // Khi component mount, lấy thông tin phiên bầu cử từ blockchain - cải tiến để tránh re-render
   useEffect(() => {
-    if (!dataInitialized || !isMounted.current || isInitialized) {
-      return;
-    }
-
-    // Set initialized to prevent multiple executions
-    setIsInitialized(true);
+    // Flag để đảm bảo useEffect chỉ chạy một lần
+    let isMounted = true;
 
     const initBlockchainData = async () => {
-      // Skip if we already have the necessary data
-      if (ballots.length > 0 && candidates.length > 0) {
+      // Đã có data, không cần tải lại
+      if (!isMounted || (ballots.length > 0 && candidates.length > 0)) {
         return;
       }
 
+      // Tạo một mảng các promise để thực hiện song song
       const promises = [];
 
-      // Only fetch candidates if needed
+      // Fetch SQL candidates and positions only if needed
       if (candidates.length === 0) {
         promises.push(fetchSqlCandidates());
       }
 
-      // Only fetch positions if needed
       if (viTriList.length === 0) {
         promises.push(fetchPositions());
       }
 
-      try {
-        // If we don't have a session ID, try to fetch it, but with timeout
-        let sessionId = blockchainPhienBauCuId;
-        if (!sessionId) {
-          try {
-            const sessionPromise = fetchBlockchainSessionId();
-            // Add timeout to prevent hanging
-            const timeoutPromise = new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Timeout fetching session ID')), 10000),
-            );
-            sessionId = await Promise.race([sessionPromise, timeoutPromise]);
-          } catch (sessionError) {
-            console.error('Error fetching blockchain session ID with timeout:', sessionError);
-            sessionId = FALLBACK_SESSION_ID;
-            setIsUsingFallbackSession(true);
-          }
-        }
+      // Fetch blockchain session ID only if needed
+      if (!blockchainPhienBauCuId) {
+        const sessionIdPromise = fetchBlockchainSessionId();
+        promises.push(sessionIdPromise);
 
-        // Proceed with other data fetching in parallel
+        // Chờ tất cả các promise hoàn thành
         await Promise.all(promises);
 
-        // Only fetch ballots if necessary and component is still mounted
-        if (ballots.length === 0 && isMounted.current) {
-          await fetchBallotsFromBlockchain();
+        // Sau khi có ID phiên bầu cử, lấy phiếu bầu nếu cần
+        if (ballots.length === 0 && isMounted) {
+          const sessionId = await sessionIdPromise;
+          if (sessionId) {
+            fetchBallotsFromBlockchain();
+          }
         }
-      } catch (error) {
-        console.error('Error in initialization:', error);
-        if (isMounted.current) {
-          dispatchError({
-            type: 'SET_ERROR',
-            payload: {
-              hasError: true,
-              message: 'Lỗi khi khởi tạo dữ liệu. Vui lòng làm mới trang.',
-              code: 'INIT_ERROR',
-              context: 'initialization',
-              recoverable: false,
-            },
-          });
+      } else {
+        // Đã có blockchainPhienBauCuId, chỉ chờ các promise khác
+        await Promise.all(promises);
+
+        // Lấy phiếu bầu nếu cần
+        if (ballots.length === 0 && isMounted) {
+          fetchBallotsFromBlockchain();
         }
       }
     };
 
-    initBlockchainData();
+    // Chỉ chạy khi đã có dữ liệu cơ bản
+    if (dataInitialized) {
+      initBlockchainData();
+    }
+
+    return () => {
+      isMounted = false; // Ngăn chặn việc cập nhật state sau khi component unmount
+    };
   }, [
-    dataInitialized,
-    candidates.length,
-    ballots.length,
-    viTriList.length,
-    blockchainPhienBauCuId,
-    fetchSqlCandidates,
-    fetchPositions,
     fetchBlockchainSessionId,
     fetchBallotsFromBlockchain,
-    isInitialized,
+    fetchSqlCandidates,
+    fetchPositions,
+    dataInitialized,
+    ballots.length,
+    candidates.length,
+    viTriList.length,
+    blockchainPhienBauCuId,
   ]);
 
+  // Xử lý khi điều lệ được tải
   const handleRulesLoaded = useCallback((hasRules: boolean) => {
     setHasRules(hasRules);
   }, []);
 
+  // Tính toán chỉ số bước hiện tại - memoized để tránh tính toán lại
   const currentStepIndex = useMemo(
     () => steps.findIndex((step) => step.id === currentStep),
     [currentStep],
   );
   const progress = useMemo(() => ((currentStepIndex + 1) / steps.length) * 100, [currentStepIndex]);
 
+  // Xử lý chuyển bước - memoized để tránh tạo lại function
   const handleNext = useCallback(() => {
     const currentIndex = steps.findIndex((step) => step.id === currentStep);
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1].id);
+      // Cuộn lên đầu trang khi chuyển bước
       window.scrollTo(0, 0);
     }
   }, [currentStep]);
@@ -1580,13 +1409,20 @@ const ThamGiaBauCu: React.FC = () => {
     const currentIndex = steps.findIndex((step) => step.id === currentStep);
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1].id);
+      // Cuộn lên đầu trang khi chuyển bước
       window.scrollTo(0, 0);
     }
   }, [currentStep]);
 
+  // Xử lý xác nhận điều lệ - memoized để tránh tạo lại function
   const handleAcceptRules = useCallback(async () => {
     if (user?.id && dieuLeCuocBauCu?.id && acceptedRules && dieuLeCuocBauCu.yeuCauXacNhan) {
       try {
+        // Thay vì gọi API xác nhận, chỉ cần chuyển bước
+        // Chúng ta sẽ bỏ qua việc ghi nhận xác nhận vào database cho đến khi bảng được tạo
+        // await dispatch(xacNhanDaDoc({ dieuLeId: dieuLeCuocBauCu.id, taiKhoanId: user.id })).unwrap()
+
+        // Chỉ chuyển bước
         handleNext();
       } catch (error) {
         console.error('Lỗi khi xác nhận điều lệ:', error);
@@ -1601,8 +1437,10 @@ const ThamGiaBauCu: React.FC = () => {
     }
   }, [user, dieuLeCuocBauCu, acceptedRules, handleNext, toast]);
 
+  // Xử lý xác thực danh tính - memoized để tránh tạo lại function
   const handleVerifyIdentity = useCallback(async () => {
     setVerificationStep(1);
+    // Giả lập quá trình xác thực
     setTimeout(() => {
       setVerificationStep(2);
       setTimeout(() => {
@@ -1615,197 +1453,7 @@ const ThamGiaBauCu: React.FC = () => {
     }, 2000);
   }, []);
 
-  // Add this function to navigate to home
-  const goToHome = useCallback(() => {
-    navigate('/app');
-  }, [navigate]);
-
-  // Add a toggle for stepper visibility on mobile
-  const toggleStepper = () => {
-    setShowStepper((prev) => !prev);
-  };
-
-  // Add vertical stepper component
-  const VerticalStepper = () => (
-    <div
-      className={`hidden lg:block sticky top-24 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl p-4 shadow-lg z-20 max-h-[80vh] overflow-y-auto ${showStepper ? '' : 'w-12'}`}
-    >
-      <div className="space-y-4">
-        {steps.map((step, index) => {
-          const isActive = step.id === currentStep;
-          const isCompleted = steps.findIndex((s) => s.id === currentStep) > index;
-
-          return (
-            <div
-              key={step.id}
-              className={`flex items-start ${isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}
-            >
-              <div className="flex-shrink-0 mt-1">
-                {isCompleted ? (
-                  <CircleCheck className="h-6 w-6" />
-                ) : isActive ? (
-                  <div className="h-6 w-6 rounded-full bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 dark:border-blue-400 flex items-center justify-center">
-                    <span className="text-xs font-bold">{index + 1}</span>
-                  </div>
-                ) : (
-                  <Circle className="h-6 w-6" />
-                )}
-              </div>
-              <div className={`ml-3 ${showStepper ? 'block' : 'hidden'}`}>
-                <p
-                  className={`text-sm font-medium ${isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}
-                >
-                  {step.title}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{step.description}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  // Add mobile stepper component
-  const MobileStepper = () => (
-    <div className="lg:hidden sticky top-0 z-20 w-full overflow-x-auto scrollbar-none bg-white/70 dark:bg-gray-800/70 backdrop-blur-md p-3 border-b border-gray-200/50 dark:border-gray-700/50">
-      <div className="flex space-x-4">
-        {steps.map((step, index) => {
-          const isActive = step.id === currentStep;
-          const isCompleted = steps.findIndex((s) => s.id === currentStep) > index;
-
-          return (
-            <div
-              key={step.id}
-              className={`flex flex-col items-center justify-center min-w-[60px] ${isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}
-            >
-              <div className="flex-shrink-0">
-                {isCompleted ? (
-                  <CircleCheck className="h-5 w-5" />
-                ) : isActive ? (
-                  <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 dark:border-blue-400 flex items-center justify-center">
-                    <span className="text-[10px] font-bold">{index + 1}</span>
-                  </div>
-                ) : (
-                  <Circle className="h-5 w-5" />
-                )}
-              </div>
-              <p
-                className={`text-[10px] font-medium mt-1 ${isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}
-              >
-                {step.title}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  // Enhanced error banner for blockchain issues
-  const BlockchainErrorBanner = () => {
-    if (!isUsingFallbackSession) return null;
-
-    return (
-      <div className="mb-6 p-4 bg-amber-50/80 dark:bg-amber-900/30 border border-amber-200/70 dark:border-amber-800/30 rounded-lg shadow-md">
-        <div className="flex items-start">
-          <AlertTriangle className="h-5 w-5 text-amber-500 mr-3 mt-0.5 flex-shrink-0" />
-          <div>
-            <h3 className="font-medium text-amber-800 dark:text-amber-300">
-              Đang sử dụng phiên bầu cử mặc định
-            </h3>
-            <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-              Không thể kết nối đến blockchain để lấy thông tin phiên bầu cử chính xác. Hệ thống
-              đang sử dụng phiên bầu cử mặc định (#{FALLBACK_SESSION_ID}).
-            </p>
-            <div className="mt-3">
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700"
-                onClick={() => {
-                  setBlockchainRetryCount(0);
-                  setIsUsingFallbackSession(false);
-                  fetchBlockchainSessionId();
-                }}
-              >
-                <RefreshCw className="mr-2 h-3 w-3" />
-                Thử kết nối lại
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Enhanced renderErrorMessage with more details and warning for fallback mode
-  const renderErrorMessage = () => {
-    if (!blockchainError && !userFriendlyError) return null;
-
-    return (
-      <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-red-200/50 dark:border-red-900/30 rounded-xl shadow-xl overflow-hidden mb-6">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-orange-600"></div>
-        <CardContent className="p-6">
-          <div className="flex flex-col items-center text-center sm:text-left sm:flex-row gap-4">
-            <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-full">
-              <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
-            </div>
-            <div className="space-y-2 flex-1">
-              <h3 className="text-lg font-medium text-red-800 dark:text-red-300">
-                {userFriendlyError?.title || 'Lỗi kết nối blockchain'}
-              </h3>
-              <p className="text-red-700 dark:text-red-400">
-                {userFriendlyError?.message || blockchainError}
-              </p>
-              {userFriendlyError?.suggestion && (
-                <p className="text-red-600 dark:text-red-400 text-sm">
-                  {userFriendlyError.suggestion}
-                </p>
-              )}
-              {isUsingFallbackSession && (
-                <div className="bg-amber-50/80 dark:bg-amber-900/30 mt-2 p-3 rounded-lg border border-amber-200/50 dark:border-amber-800/30">
-                  <p className="text-amber-700 dark:text-amber-400 text-sm flex items-center">
-                    <Info className="h-4 w-4 mr-2 flex-shrink-0" />
-                    Hệ thống đang sử dụng phiên bầu cử mặc định (ID: {FALLBACK_SESSION_ID})
-                  </p>
-                </div>
-              )}
-              <div className="pt-3 flex flex-wrap gap-3 justify-center sm:justify-start">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setFetchAttempts(0);
-                    setBlockchainRetryCount(0);
-                    invalidTokenCache.current.clear();
-                    setBlockchainError(null);
-                    setUserFriendlyError(null);
-                    setIsUsingFallbackSession(false);
-                    fetchBallotsFromBlockchain(true);
-                  }}
-                  disabled={fetchAttempts >= MAX_FETCH_ATTEMPTS}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Thử lại
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={goToHome}
-                  className="border-red-200 dark:border-red-800 text-red-700 dark:text-red-400"
-                >
-                  <Home className="h-4 w-4 mr-2" />
-                  Về trang chủ
-                </Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
+  // Render nội dung theo bước
   const renderStepContent = () => {
     switch (currentStep) {
       case 'welcome':
@@ -2124,6 +1772,7 @@ const ThamGiaBauCu: React.FC = () => {
                   </Alert>
                 )}
 
+                {/* Display blockchain ballot info */}
                 {isVerified && (
                   <div className="p-4 bg-blue-50/70 dark:bg-blue-900/20 rounded-lg border border-blue-100/50 dark:border-blue-800/30">
                     <h3 className="font-medium text-blue-800 dark:text-blue-300 flex items-center mb-3">
@@ -2138,49 +1787,6 @@ const ThamGiaBauCu: React.FC = () => {
                           Đang tải phiếu bầu...
                         </span>
                       </div>
-                    ) : userFriendlyError ? (
-                      <div className="bg-red-50/70 dark:bg-red-900/20 p-4 rounded-lg border border-red-100/50 dark:border-red-800/30">
-                        <div className="flex items-start">
-                          <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mr-2 mt-0.5 flex-shrink-0" />
-                          <div className="space-y-1">
-                            <h4 className="font-medium text-red-800 dark:text-red-300">
-                              {userFriendlyError.title}
-                            </h4>
-                            <p className="text-red-700 dark:text-red-400 text-sm">
-                              {userFriendlyError.message}
-                            </p>
-                            <p className="text-red-600 dark:text-red-400 text-xs">
-                              {userFriendlyError.suggestion}
-                            </p>
-                            <div className="pt-2">
-                              <Button
-                                size="sm"
-                                className="mr-2 bg-red-600 hover:bg-red-700 text-white"
-                                onClick={() => {
-                                  setFetchAttempts(0);
-                                  invalidTokenCache.current.clear();
-                                  setBlockchainError(null);
-                                  setUserFriendlyError(null);
-                                  fetchBallotsFromBlockchain(true);
-                                }}
-                                disabled={fetchAttempts >= MAX_FETCH_ATTEMPTS}
-                              >
-                                <RefreshCw className="h-3 w-3 mr-1" />
-                                Thử lại
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-red-200 dark:border-red-800 text-red-700 dark:text-red-400"
-                                onClick={goToHome}
-                              >
-                                <Home className="h-3 w-3 mr-1" />
-                                Về trang chủ
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
                     ) : blockchainError ? (
                       <Alert variant="destructive" className="mb-2">
                         <AlertTriangle className="h-4 w-4" />
@@ -2188,37 +1794,9 @@ const ThamGiaBauCu: React.FC = () => {
                         <AlertDescription>{blockchainError}</AlertDescription>
                       </Alert>
                     ) : ballots.length === 0 ? (
-                      <div className="bg-orange-50/70 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-100/50 dark:border-orange-800/30">
-                        <div className="flex items-start">
-                          <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mr-2 mt-0.5 flex-shrink-0" />
-                          <div className="space-y-1">
-                            <h4 className="font-medium text-orange-800 dark:text-orange-300">
-                              Không tìm thấy phiếu bầu
-                            </h4>
-                            <p className="text-orange-700 dark:text-orange-400 text-sm">
-                              Không tìm thấy phiếu bầu cho địa chỉ ví{' '}
-                              {getCurrentWalletAddress.substring(0, 6)}...
-                              {getCurrentWalletAddress.substring(
-                                getCurrentWalletAddress.length - 4,
-                              )}
-                            </p>
-                            <p className="text-orange-600 dark:text-orange-400 text-xs">
-                              Nếu bạn cho rằng bạn nên có phiếu bầu, vui lòng liên hệ Ban tổ chức để
-                              được hỗ trợ.
-                            </p>
-                            <div className="pt-2 flex space-x-2">
-                              <Button
-                                size="sm"
-                                onClick={goToHome}
-                                className="bg-orange-600 hover:bg-orange-700 text-white"
-                              >
-                                <Home className="h-3 w-3 mr-1" />
-                                Về trang chủ
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                      <p className="text-blue-700 dark:text-blue-300">
+                        Không tìm thấy phiếu bầu cho địa chỉ ví của bạn.
+                      </p>
                     ) : (
                       <div className="space-y-2">
                         <p className="text-blue-700 dark:text-blue-300">
@@ -2254,15 +1832,6 @@ const ThamGiaBauCu: React.FC = () => {
                 Tiếp tục
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
-
-              <Button
-                variant="outline"
-                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
-                onClick={goToHome}
-              >
-                <Home className="mr-2 h-4 w-4" />
-                Về trang chủ
-              </Button>
             </div>
           </div>
         );
@@ -2282,9 +1851,7 @@ const ThamGiaBauCu: React.FC = () => {
               </p>
             </div>
 
-            {/* Enhanced error display */}
-            {renderErrorMessage()}
-
+            {/* Add ApproveHLU component if session key is available */}
             {sessionKey && contractAddresses && contractAddresses.quanLyPhieuBauAddress && (
               <div className="mb-6">
                 <ApproveHLU
@@ -2368,6 +1935,7 @@ const ThamGiaBauCu: React.FC = () => {
               ballots.length > 0 &&
               candidates.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Cột 1: Phiếu bầu */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
@@ -2397,6 +1965,7 @@ const ThamGiaBauCu: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Cột 2: Danh sách ứng viên - Now using SQL candidates directly */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
@@ -2424,6 +1993,7 @@ const ThamGiaBauCu: React.FC = () => {
                 </div>
               )}
 
+            {/* Vote confirmation area */}
             {selectedBallot && selectedCandidate && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -2569,15 +2139,6 @@ const ThamGiaBauCu: React.FC = () => {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Quay lại
               </Button>
-
-              <Button
-                variant="outline"
-                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
-                onClick={goToHome}
-              >
-                <Home className="mr-2 h-4 w-4" />
-                Về trang chủ
-              </Button>
             </div>
           </div>
         );
@@ -2611,17 +2172,20 @@ const ThamGiaBauCu: React.FC = () => {
               </motion.p>
             </div>
 
+            {/* Use BallotProcessingAnimation component */}
             <BallotProcessingAnimation
               ballot={selectedBallot}
               candidate={selectedCandidate}
-              processingTime={7000}
+              processingTime={7000} // 7 seconds for demo
               onProcessingComplete={() => {
+                // This may already be handled in voteForCandidate, but add it here as a backup
                 if (votedSuccessfully) {
                   setCurrentStep('confirmation');
                 }
               }}
             />
 
+            {/* Display blockchain transaction info */}
             {blockchainTxHash && (
               <div className="p-4 bg-white/70 dark:bg-gray-800/50 rounded-lg shadow-md mt-4">
                 <h3 className="text-lg font-medium mb-2 text-gray-800 dark:text-gray-200">
@@ -2666,11 +2230,13 @@ const ThamGiaBauCu: React.FC = () => {
               </div>
             )}
 
+            {/* Cancel/back option */}
             <div className="flex justify-end">
               <Button
                 variant="outline"
                 className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                 onClick={() => {
+                  // Go back to voting step if user wants to cancel
                   setCurrentStep('voting');
                 }}
               >
@@ -2797,6 +2363,7 @@ const ThamGiaBauCu: React.FC = () => {
                         Phiếu bầu NFT
                       </h4>
                       <div className="aspect-square max-h-[200px] rounded-md overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 relative">
+                        {/* Background image */}
                         {selectedBallot?.metadata?.image ? (
                           <img
                             src={selectedBallot.metadata.image || '/placeholder.svg'}
@@ -2816,6 +2383,7 @@ const ThamGiaBauCu: React.FC = () => {
                           </div>
                         )}
 
+                        {/* Overlay and stamp */}
                         <div className="absolute inset-0 bg-gray-900/5 dark:bg-gray-900/20 backdrop-blur-[1px]"></div>
                         <VotedStamp size="small" color="gradient" />
                       </div>
@@ -2907,9 +2475,9 @@ const ThamGiaBauCu: React.FC = () => {
                 candidateVoted: selectedCandidate?.hoTen || '',
               }}
               votingStats={{
-                totalVoters: 120,
-                totalVoted: 78,
-                participationPercentage: 65,
+                totalVoters: 120, // Thay bằng dữ liệu thực tế từ API hoặc blockchain
+                totalVoted: 78, // Thay bằng dữ liệu thực tế từ API hoặc blockchain
+                participationPercentage: 65, // Thay bằng dữ liệu thực tế từ API hoặc blockchain
               }}
               onSubscribeNotification={handleSubscribeNotification}
             />
@@ -2932,194 +2500,144 @@ const ThamGiaBauCu: React.FC = () => {
   };
 
   return (
-    <ErrorBoundary
-      FallbackComponent={({ error, resetErrorBoundary }) => (
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg bg-white/95 dark:bg-gray-800/95 shadow-xl backdrop-blur-sm border border-red-200 dark:border-red-900/30 rounded-xl">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-orange-600"></div>
-            <CardContent className="p-6 space-y-6">
-              <div className="flex justify-center">
-                <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-full">
-                  <AlertTriangle className="h-10 w-10 text-red-600 dark:text-red-400" />
-                </div>
-              </div>
+    <div className={`min-h-screen ${isDarkMode} ? 'dark bg-gray-900 text-white'`}>
+      {/* Particle Background */}
+      <ParticleBackground isDarkMode={isDarkMode} />
 
-              <div className="text-center space-y-2">
-                <h2 className="text-xl font-semibold text-red-800 dark:text-red-300">
-                  Lỗi không mong đợi
-                </h2>
-                <p className="text-red-700 dark:text-red-400">
-                  Đã xảy ra lỗi khi tải dữ liệu bầu cử.
-                </p>
-                <div className="p-3 mt-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800/30 text-left">
-                  <p className="text-sm font-mono text-red-600 dark:text-red-400 overflow-auto max-h-32">
-                    {error.message}
-                  </p>
-                </div>
+      <div className="container mx-auto p-4 py-8 relative z-10">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center space-x-2">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-2 rounded-lg">
+              <Vote className="h-6 w-6 text-white" />
+            </div>
 
-                {error.message.includes('could not decode result data') && (
-                  <div className="p-3 mt-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800/30 text-left">
-                    <p className="text-sm text-amber-700 dark:text-amber-400">
-                      <strong>Thông tin chi tiết:</strong> Hệ thống không thể đọc dữ liệu từ hợp
-                      đồng thông minh. Có thể hợp đồng thông minh không tồn tại hoặc không có phiên
-                      bầu cử nào.
-                    </p>
-                  </div>
-                )}
-              </div>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+              Hệ thống bầu cử blockchain
+            </h1>
+          </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-                <Button
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                  onClick={() => {
-                    setBlockchainRetryCount(0);
-                    resetErrorBoundary();
-                  }}
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Thử lại
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-red-200 dark:border-red-800 text-red-700 dark:text-red-400"
-                  onClick={() => navigate('/app')}
-                >
-                  <Home className="mr-2 h-4 w-4" />
-                  Về trang chủ
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-      onReset={() => {
-        // Reset errors and counters
-        dispatchError({ type: 'CLEAR_ERROR' });
-        setFetchAttempts(0);
-        setBlockchainRetryCount(0);
-        invalidTokenCache.current.clear();
-        setBlockchainError(null);
-        setUserFriendlyError(null);
-        setIsUsingFallbackSession(false);
-        setIsInitialized(false);
-
-        // Navigate back or try fetching again
-        if (currentStep === 'voting') {
-          fetchBallotsFromBlockchain(true);
-        } else {
-          navigate(`/app/user-elections/elections/${cuocBauCuId}`);
-        }
-      }}
-    >
-      <div className={`min-h-screen ${isDarkMode ? 'dark bg-gray-900 text-white' : ''}`}>
-        <ParticleBackground isDarkMode={isDarkMode} />
-
-        {/* Mobile Stepper */}
-        <MobileStepper />
-
-        {/* Home button in top-right corner */}
-        <div className="fixed top-4 right-4 z-50">
-          <Button
-            size="sm"
-            variant="outline"
-            className="bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 shadow-lg rounded-full w-10 h-10 p-0 flex items-center justify-center"
-            onClick={goToHome}
-            title="Về trang chủ"
-          >
-            <Home className="h-5 w-5" />
-          </Button>
-        </div>
-
-        {/* Floating error alert */}
-        {(blockchainError || userFriendlyError) && (
-          <div className="fixed bottom-16 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
-            <Alert
-              variant="destructive"
-              className="shadow-xl bg-red-50 border border-red-200 dark:bg-red-900/40 dark:border-red-800/30"
+          <div>
+            <Button
+              variant="outline"
+              className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              onClick={() => navigate(`/app/user-elections/elections/${cuocBauCuId}`)}
             >
-              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-              <div className="flex-1">
-                <AlertTitle>{userFriendlyError?.title || 'Lỗi kết nối blockchain'}</AlertTitle>
-                <AlertDescription className="flex flex-col gap-2">
-                  <p>{userFriendlyError?.message || blockchainError}</p>
-                  {userFriendlyError?.suggestion && (
-                    <p className="text-sm opacity-90">{userFriendlyError.suggestion}</p>
-                  )}
-                  {isUsingFallbackSession && (
-                    <p className="text-sm bg-amber-100/50 dark:bg-amber-900/30 p-1.5 rounded">
-                      Đang sử dụng phiên bầu cử mặc định (ID: {FALLBACK_SESSION_ID})
-                    </p>
-                  )}
-                  <div className="flex gap-2 mt-1">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setFetchAttempts(0);
-                        setBlockchainRetryCount(0);
-                        invalidTokenCache.current.clear();
-                        setBlockchainError(null);
-                        setUserFriendlyError(null);
-                        setIsUsingFallbackSession(false);
-                        fetchBallotsFromBlockchain(true);
-                      }}
-                      disabled={fetchAttempts >= MAX_FETCH_ATTEMPTS}
-                    >
-                      <RefreshCw className="h-3 w-3 mr-1" />
-                      Thử lại
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={goToHome}>
-                      <Home className="h-3 w-3 mr-1" />
-                      Trang chủ
-                    </Button>
-                  </div>
-                </AlertDescription>
-              </div>
-              <X
-                className="h-4 w-4 cursor-pointer opacity-70 hover:opacity-100"
-                onClick={() => {
-                  setBlockchainError(null);
-                  setUserFriendlyError(null);
-                }}
-              />
-            </Alert>
-          </div>
-        )}
-
-        {/* Main content container with proper grid layout */}
-        <div className="container mx-auto p-4 lg:pl-0 lg:pr-4 pt-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6">
-            {/* First column: Stepper (only on desktop) */}
-            <div className="hidden lg:block">
-              <VerticalStepper />
-            </div>
-
-            {/* Second column: Main content */}
-            <div>
-              {/* Show warning banner for fallback mode */}
-              {isUsingFallbackSession && <BlockchainErrorBanner />}
-
-              {/* Main content */}
-              {renderStepContent()}
-            </div>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Quay lại
+            </Button>
           </div>
         </div>
 
-        {/* Token approval modal */}
-        <TokenApprovalModal
-          isOpen={showTokenApprovalModal}
-          onClose={() => setShowTokenApprovalModal(false)}
-          onComplete={() => {
-            setShowTokenApprovalModal(false);
-            setTokenApprovalStatus((prev) => ({ ...prev, isApproved: true }));
-            voteForCandidate();
-          }}
-          contractAddress={
-            contractAddresses.quanLyPhieuBauAddress || '0x9c244B5E1F168510B9b812573b1B667bd1E654c8'
-          }
-          onSessionKeyGenerated={setSessionKey}
-        />
+        {/* Progress */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              Bước {currentStepIndex + 1} / {steps.length}
+            </span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {progress.toFixed(0)}% hoàn thành
+            </span>
+          </div>
+          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+        </div>
+
+        {/* Steps */}
+        <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-8">
+          {/* Step Navigation */}
+          <div className="hidden md:block">
+            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl shadow-lg sticky top-4">
+              <CardContent className="p-4">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+                  <Calendar className="h-5 w-5 text-blue-500 mr-2" />
+                  Các bước tham gia
+                </h2>
+                <div className="space-y-1">
+                  {steps
+                    .filter((step) => !step.hidden)
+                    .map((step, index) => {
+                      const isActive = step.id === currentStep;
+                      const isCompleted =
+                        steps.findIndex((s) => s.id === currentStep) >
+                        steps.findIndex((s) => s.id === step.id);
+
+                      return (
+                        <div
+                          key={step.id}
+                          className={`flex items-center p-2 rounded-lg ${
+                            isActive
+                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                              : isCompleted
+                                ? 'text-gray-700 dark:text-gray-300'
+                                : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          <div
+                            className={`flex items-center justify-center w-6 h-6 rounded-full mr-2 ${
+                              isActive
+                                ? 'bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-400'
+                                : isCompleted
+                                  ? 'bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-400'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                            }`}
+                          >
+                            {isCompleted ? <Check className="h-4 w-4" /> : step.icon}
+                          </div>
+                          <div>
+                            <div className="font-medium">{step.title}</div>
+                            <div className="text-xs">{step.description}</div>
+                          </div>
+                          {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
+                        </div>
+                      );
+                    })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Step Content */}
+          <div>
+            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl shadow-xl">
+              <CardContent className="p-4 sm:p-6">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentStep}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {renderStepContent()}
+                  </motion.div>
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
-    </ErrorBoundary>
+      {/* Modal phê duyệt token */}
+      <TokenApprovalModal
+        isOpen={showTokenApprovalModal}
+        onClose={() => setShowTokenApprovalModal(false)}
+        onComplete={() => {
+          setShowTokenApprovalModal(false);
+          // Cập nhật trạng thái sau khi phê duyệt thành công
+          setTokenApprovalStatus((prev) => ({ ...prev, isApproved: true }));
+          // Thử bỏ phiếu lại
+          voteForCandidate();
+        }}
+        contractAddress={
+          contractAddresses.quanLyPhieuBauAddress || '0x9c244B5E1F168510B9b812573b1B667bd1E654c8'
+        }
+        onSessionKeyGenerated={setSessionKey}
+      />
+    </div>
   );
 };
 
