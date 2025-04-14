@@ -817,9 +817,9 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
             ) : (
               <Play className="mr-2 h-4 w-4" />
             )}
-            {!isStartingSession
+            {isStartingSession
               ? 'Đang bắt đầu phiên...'
-              : sessionStatus.isActive
+              : !sessionStatus.isActive
                 ? 'Phiên đã bắt đầu'
                 : 'Bắt Đầu Phiên Bầu Cử'}
           </Button>
