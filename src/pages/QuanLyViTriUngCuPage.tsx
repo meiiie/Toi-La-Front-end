@@ -450,6 +450,14 @@ const QuanLyViTriUngCuPage: React.FC<QuanLyViTriUngCuPageProps> = ({
     [thongKeChiTiet],
   );
 
+  // Handler for add position button
+  const handleAddPositionClick = useCallback(() => {
+    setEditingPosition(null);
+    setIsFormOpen(true);
+    setFormError(null);
+    setIsFilterMenuOpen(false);
+  }, []);
+
   // Render position table
   const renderPositionTable = useMemo(
     () => (
@@ -803,10 +811,7 @@ const QuanLyViTriUngCuPage: React.FC<QuanLyViTriUngCuPageProps> = ({
       <div className="mt-6">
         <Button
           className="bg-amber-600 hover:bg-amber-700 dark:bg-gradient-to-r dark:from-amber-600 dark:to-orange-600 text-white"
-          onClick={() => {
-            setEditingPosition(null);
-            setIsFormOpen(true);
-          }}
+          onClick={handleAddPositionClick}
         >
           <Plus className="mr-2 h-4 w-4" />
           Thêm vị trí ứng cử
@@ -889,11 +894,7 @@ const QuanLyViTriUngCuPage: React.FC<QuanLyViTriUngCuPageProps> = ({
               <Button
                 className="flex-1 bg-amber-600 hover:bg-amber-700 dark:bg-gradient-to-r dark:from-amber-600 dark:to-orange-600 text-white"
                 size="sm"
-                onClick={() => {
-                  setEditingPosition(null);
-                  setIsFormOpen(true);
-                  setIsFilterMenuOpen(false);
-                }}
+                onClick={handleAddPositionClick}
                 disabled={dangTai}
               >
                 <Plus size={16} className="mr-2" />
@@ -1027,53 +1028,14 @@ const QuanLyViTriUngCuPage: React.FC<QuanLyViTriUngCuPageProps> = ({
                       </Tooltip>
                     </TooltipProvider>
 
-                    <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                      <DialogTrigger asChild>
-                        <Button
-                          className="bg-amber-600 hover:bg-amber-700 dark:bg-gradient-to-r dark:from-amber-600 dark:to-orange-600 text-white gap-1.5"
-                          onClick={() => {
-                            setEditingPosition(null);
-                            setFormError(null);
-                          }}
-                          disabled={dangTai}
-                        >
-                          <Plus size={18} />
-                          <span>Thêm vị trí</span>
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent
-                        className={`max-w-md bg-white dark:bg-gradient-to-br dark:from-[#162A45] dark:to-[#1A2942] ${isMobile ? 'w-[95vw] p-4' : ''}`}
-                      >
-                        <DialogHeader>
-                          <DialogTitle>
-                            {editingPosition ? 'Cập nhật vị trí ứng cử' : 'Thêm vị trí ứng cử mới'}
-                          </DialogTitle>
-                          <DialogDescription>
-                            {editingPosition
-                              ? 'Cập nhật thông tin vị trí ứng cử trong phiên bầu cử'
-                              : 'Thêm vị trí ứng cử mới cho phiên bầu cử này'}
-                          </DialogDescription>
-                        </DialogHeader>
-
-                        {formError && (
-                          <Alert variant="destructive" className="mb-4">
-                            <AlertTitle>Lỗi</AlertTitle>
-                            <AlertDescription>{formError}</AlertDescription>
-                          </Alert>
-                        )}
-
-                        <ViTriUngCuForm
-                          onSave={handleSavePosition}
-                          onCancel={() => setIsFormOpen(false)}
-                          initialData={editingPosition}
-                          phienBauCuId={phienBauCuId}
-                          cuocBauCuId={cuocBauCuId}
-                          isSubmitting={isSubmitting}
-                          checkDuplicateName={checkDuplicateName}
-                          isMobile={isMobile}
-                        />
-                      </DialogContent>
-                    </Dialog>
+                    <Button
+                      className="bg-amber-600 hover:bg-amber-700 dark:bg-gradient-to-r dark:from-amber-600 dark:to-orange-600 text-white gap-1.5"
+                      onClick={handleAddPositionClick}
+                      disabled={dangTai}
+                    >
+                      <Plus size={18} />
+                      <span>Thêm vị trí</span>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -1294,6 +1256,42 @@ const QuanLyViTriUngCuPage: React.FC<QuanLyViTriUngCuPageProps> = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Form Dialog - Shared between mobile and desktop */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent
+          className={`max-w-md bg-white dark:bg-gradient-to-br dark:from-[#162A45] dark:to-[#1A2942] ${isMobile ? 'w-[95vw] p-4' : ''}`}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {editingPosition ? 'Cập nhật vị trí ứng cử' : 'Thêm vị trí ứng cử mới'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingPosition
+                ? 'Cập nhật thông tin vị trí ứng cử trong phiên bầu cử'
+                : 'Thêm vị trí ứng cử mới cho phiên bầu cử này'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {formError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>Lỗi</AlertTitle>
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          )}
+
+          <ViTriUngCuForm
+            onSave={handleSavePosition}
+            onCancel={() => setIsFormOpen(false)}
+            initialData={editingPosition}
+            phienBauCuId={phienBauCuId}
+            cuocBauCuId={cuocBauCuId}
+            isSubmitting={isSubmitting}
+            checkDuplicateName={checkDuplicateName}
+            isMobile={isMobile}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog cho xem ứng viên */}
       <Dialog open={isCandidateDialogOpen} onOpenChange={setIsCandidateDialogOpen}>

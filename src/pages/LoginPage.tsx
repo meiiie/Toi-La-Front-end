@@ -449,7 +449,7 @@ const LoginPage: React.FC = () => {
         keywords="đăng nhập, bầu cử, blockchain, tài khoản"
         author="Blockchain Voting"
         image="./tai_xuong.jpg"
-        url="https://example.com/login"
+        url="https://holihu.online/login"
       />
 
       {/* Animated blockchain background */}
@@ -901,14 +901,14 @@ const LoginPage: React.FC = () => {
         </div>
       </motion.div>
 
-      {isAutoLoggingIn && (
+      {/* {isAutoLoggingIn && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0A0F18]/80 backdrop-blur-sm z-50">
           <div className="text-center">
             <div className="inline-block w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-blue-200 font-medium">Đang đăng nhập tự động...</p>
           </div>
         </div>
-      )}
+      )} */}
       {isLoginFormOpen && (
         <LoginForm onClose={handleCloseLoginForm} onRecaptchaVerify={handleReCaptchaVerify} />
       )}
