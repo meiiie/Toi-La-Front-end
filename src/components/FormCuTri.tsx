@@ -792,8 +792,119 @@ const VoterForm: React.FC<VoterFormProps> = ({ onSave, phienBauCuId }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {/* Existing table rows */}
-                          {/* ... */}
+                          {paginatedVoters.map((voter, index) => {
+                            const errors = getErrorsForVoter(voter.id);
+                            const hasEmailError = errors.some((e) => e.field === 'email');
+                            const hasPhoneError = errors.some((e) => e.field === 'sdt');
+
+                            return (
+                              <tr
+                                key={voter.id}
+                                className={`border-t border-gray-200 dark:border-gray-700 ${
+                                  errors.length > 0
+                                    ? 'bg-red-50 dark:bg-red-900/10'
+                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                                }`}
+                              >
+                                <td className="p-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedVoters.has(voter.id)}
+                                    onChange={() => {
+                                      const newSelectedVoters = new Set(selectedVoters);
+                                      if (newSelectedVoters.has(voter.id)) {
+                                        newSelectedVoters.delete(voter.id);
+                                      } else {
+                                        newSelectedVoters.add(voter.id);
+                                      }
+                                      setSelectedVoters(newSelectedVoters);
+                                    }}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                </td>
+                                <td className="p-3">
+                                  <div className="relative">
+                                    <Input
+                                      type="email"
+                                      value={voter.email || ''}
+                                      onChange={(e) =>
+                                        handleChange(
+                                          (currentPage - 1) * itemsPerPage + index,
+                                          'email',
+                                          e.target.value,
+                                        )
+                                      }
+                                      onFocus={() =>
+                                        setEditingField({ id: voter.id, field: 'email' })
+                                      }
+                                      onBlur={(e) =>
+                                        handleFieldBlur(voter.id, 'email', e.target.value)
+                                      }
+                                      placeholder="email@example.com"
+                                      ref={(el) => (emailInputRefs.current[voter.id] = el)}
+                                      className={`pl-8 ${
+                                        hasEmailError
+                                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                          : ''
+                                      }`}
+                                    />
+                                    <Mail className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    {hasEmailError && (
+                                      <p className="text-xs text-red-600 mt-1">
+                                        {errors.find((e) => e.field === 'email')?.message}
+                                      </p>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <div className="relative">
+                                    <Input
+                                      type="tel"
+                                      value={voter.sdt || ''}
+                                      onChange={(e) =>
+                                        handleChange(
+                                          (currentPage - 1) * itemsPerPage + index,
+                                          'sdt',
+                                          e.target.value,
+                                        )
+                                      }
+                                      onFocus={() =>
+                                        setEditingField({ id: voter.id, field: 'sdt' })
+                                      }
+                                      onBlur={(e) =>
+                                        handleFieldBlur(voter.id, 'sdt', e.target.value)
+                                      }
+                                      placeholder="0xxxxxxxxx"
+                                      ref={(el) => (phoneInputRefs.current[voter.id] = el)}
+                                      className={`pl-8 ${
+                                        hasPhoneError
+                                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                          : ''
+                                      }`}
+                                    />
+                                    <Phone className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    {hasPhoneError && (
+                                      <p className="text-xs text-red-600 mt-1">
+                                        {errors.find((e) => e.field === 'sdt')?.message}
+                                      </p>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-3 text-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleRemoveVoter((currentPage - 1) * itemsPerPage + index)
+                                    }
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 w-8 p-0"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
