@@ -817,15 +817,11 @@ const VoterManager: React.FC<VoterManagerProps> = ({
 
               <SessionStartTab
                 selectedSession={selectedSession}
-                sessionStatus={
-                  blockchainSessionStatus.isActive
-                    ? {
-                        isActive: blockchainSessionStatus.isActive,
-                        startTime: blockchainSessionStatus.startTime,
-                        endTime: blockchainSessionStatus.endTime,
-                      }
-                    : sessionStatus
-                }
+                sessionStatus={{
+                  isActive: blockchainSessionStatus.isActive,
+                  startTime: blockchainSessionStatus.startTime,
+                  endTime: blockchainSessionStatus.endTime,
+                }}
                 electionStatus={electionStatus}
                 sessionKey={sessionKey}
                 scwAddress={scwAddress}
@@ -855,15 +851,11 @@ const VoterManager: React.FC<VoterManagerProps> = ({
 
               <VoterList
                 selectedSession={selectedSession}
-                sessionStatus={
-                  blockchainSessionStatus.isActive
-                    ? {
-                        isActive: blockchainSessionStatus.isActive,
-                        startTime: blockchainSessionStatus.startTime,
-                        endTime: blockchainSessionStatus.endTime,
-                      }
-                    : sessionStatus
-                }
+                sessionStatus={{
+                  isActive: blockchainSessionStatus.isActive,
+                  startTime: blockchainSessionStatus.startTime,
+                  endTime: blockchainSessionStatus.endTime,
+                }}
                 electionStatus={electionStatus}
                 sessionKey={sessionKey}
                 scwAddress={scwAddress}

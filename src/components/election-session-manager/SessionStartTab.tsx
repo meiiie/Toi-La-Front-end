@@ -98,7 +98,7 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
       blockchainSessionId,
       sessionKey: sessionKey ? 'present' : 'null',
       sessionStatus: {
-        isActive: (sessionStatus.isActive = false),
+        isActive: sessionStatus.isActive,
         startTime: sessionStatus.startTime,
         endTime: sessionStatus.endTime,
       },
