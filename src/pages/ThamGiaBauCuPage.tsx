@@ -63,6 +63,8 @@ import ParticleBackground from '../components/backgrounds/ParticleBackground';
 import DieuLeLoader from '../components/DieuLeLoader';
 import { useToast } from '../test/components/use-toast';
 import ElectionResultsWaiting from '../components/bophieu/ElectionResultsWaiting';
+import BallotDisplay from '../components/bophieu/BallotDisplay';
+import { processBallotsMetadata } from '../utils/ballotService';
 
 import {
   fetchBallotIPFSLinks,
@@ -2540,19 +2542,20 @@ const ThamGiaBauCu: React.FC = () => {
 
                     <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 scrollbar scrollbar-track-gray-100 dark:scrollbar-track-gray-900 scrollbar-thumb-blue-500 dark:scrollbar-thumb-blue-700">
                       {ballots.map((ballot) => (
-                        <EnhancedBallotCard
-                          key={ballot.tokenId}
-                          ballot={ballot}
-                          isSelected={selectedBallot?.tokenId === ballot.tokenId}
-                          onSelect={() =>
-                            setSelectedBallot({
-                              tokenId: ballot.tokenId,
-                              metadata: ballot.metadata,
-                              tokenURI: ballot.tokenURI,
-                            })
-                          }
-                          className="sm:flex-row flex-col"
-                        />
+                        <div key={ballot.tokenId} className="mb-4">
+                          <EnhancedBallotCard
+                            ballot={ballot}
+                            isSelected={selectedBallot?.tokenId === ballot.tokenId}
+                            onSelect={() =>
+                              setSelectedBallot({
+                                tokenId: ballot.tokenId,
+                                metadata: ballot.metadata,
+                                tokenURI: ballot.tokenURI,
+                              })
+                            }
+                            showDetails={false}
+                          />
+                        </div>
                       ))}
                     </div>
                   </div>
