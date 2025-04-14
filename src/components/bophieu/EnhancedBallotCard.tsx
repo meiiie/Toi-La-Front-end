@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import NFTBallotPreview from '../election-session-manager/NFTBallotPreview';
 import VotedStamp from './VotedStamp';
+import { ipfsToGatewayUrl, isIpfsUrl } from '../../utils/ipfsUtils';
 
 interface EnhancedBallotCardProps {
   ballot: {
@@ -16,12 +17,44 @@ interface EnhancedBallotCardProps {
   showDetails?: boolean;
 }
 
+/**
+ * EnhancedBallotCard - Hiển thị phiếu bầu dạng thẻ NFT với thông tin chi tiết
+ */
 const EnhancedBallotCard: React.FC<EnhancedBallotCardProps> = ({
   ballot,
   isSelected,
   onSelect,
   showDetails = false,
 }) => {
+  // Xử lý URL hình ảnh từ IPFS nếu cần
+  const processedImageUrl = useMemo(() => {
+    if (!ballot.metadata?.image) return null;
+
+    // Chuyển đổi URL IPFS sang URL gateway có thể truy cập được
+    if (isIpfsUrl(ballot.metadata.image)) {
+      return ipfsToGatewayUrl(ballot.metadata.image);
+    }
+
+    return ballot.metadata.image;
+  }, [ballot.metadata?.image]);
+
+  // Tạo metadata đã xử lý cho NFTBallotPreview
+  const processedMetadata = useMemo(() => {
+    if (!ballot.metadata) {
+      return {
+        name: `Phiếu bầu cử #${ballot.tokenId}`,
+        description: 'Phiếu bầu cử chính thức cho phiên bầu cử',
+        image: 'https://placehold.co/300x300/e2e8f0/667085?text=Ballot+Image',
+        attributes: [],
+      };
+    }
+
+    return {
+      ...ballot.metadata,
+      image: processedImageUrl || ballot.metadata.image,
+    };
+  }, [ballot.tokenId, ballot.metadata, processedImageUrl]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -48,16 +81,12 @@ const EnhancedBallotCard: React.FC<EnhancedBallotCardProps> = ({
       <div
         className={`${ballot.isUsed ? '' : 'hover:scale-[1.01] transition-transform duration-300'}`}
       >
-        <NFTBallotPreview
-          name={ballot.metadata?.name || `Phiếu bầu cử #${ballot.tokenId}`}
-          description={ballot.metadata?.description || 'Phiếu bầu cử chính thức cho phiên bầu cử'}
-          imageUrl={
-            ballot.metadata?.image || 'https://placehold.co/300x300/e2e8f0/667085?text=Ballot+Image'
-          }
-          attributes={ballot.metadata?.attributes || []}
-          backgroundColor={ballot.metadata?.background_color || 'f8f9fa'}
-          isUsed={ballot.isUsed}
-        />
+        <NFTBallotPreview metadata={processedMetadata} isLoading={false} />
+      </div>
+
+      {/* Token ID Badge */}
+      <div className="absolute top-2 left-2 bg-blue-500/90 text-white text-xs font-medium px-2 py-1 rounded shadow z-20">
+        #{ballot.tokenId}
       </div>
 
       {/* Selected indicator */}
@@ -77,7 +106,7 @@ const EnhancedBallotCard: React.FC<EnhancedBallotCardProps> = ({
 
       {/* Used badge */}
       {ballot.isUsed && (
-        <div className="absolute top-2 left-2 bg-red-500/90 text-white text-xs font-medium px-2 py-1 rounded shadow z-20">
+        <div className="absolute top-2 right-2 bg-red-500/90 text-white text-xs font-medium px-2 py-1 rounded shadow z-20">
           Đã sử dụng
         </div>
       )}
