@@ -76,7 +76,7 @@ import type { UngCuVien, BallotMetadata, ViTriUngCu } from '../store/types';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 // Add important missing constants
-const FALLBACK_SESSION_ID = 1; // ID phiên bầu cử mặc định khi không lấy được từ blockchain
+const FALLBACK_SESSION_ID = 2; // ID phiên bầu cử mặc định khi không lấy được từ blockchain
 const MAX_BLOCKCHAIN_RETRIES = 3; // Số lần thử tối đa khi kết nối blockchain
 // ID_PHIEN_BAU_CU đã được định nghĩa trong utils/blockchain.js
 
