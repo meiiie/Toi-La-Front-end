@@ -306,12 +306,13 @@ const BallotImageUploader: React.FC<BallotImageUploaderProps> = ({
   };
 
   // Upload file to IPFS
+  // Upload file to IPFS
   const handleUploadFile = async (file: File) => {
-    // Determine file type
+    // Xác định loại file
     const isImageFile = file.type.startsWith('image/');
     const is3DModelFile = file.name.endsWith('.glb') || file.name.endsWith('.gltf');
 
-    // Check if uploading would conflict with locked tab
+    // Kiểm tra xung đột với tab đã khóa
     if (lockedTab === 'image' && is3DModelFile) {
       toast({
         variant: 'destructive',
@@ -339,7 +340,7 @@ const BallotImageUploader: React.FC<BallotImageUploaderProps> = ({
       return;
     }
 
-    // Check file size
+    // Kiểm tra kích thước file
     const maxSize = is3DModelFile ? 30 * 1024 * 1024 : 10 * 1024 * 1024;
     if (file.size > maxSize) {
       toast({
@@ -351,29 +352,44 @@ const BallotImageUploader: React.FC<BallotImageUploaderProps> = ({
     }
 
     try {
-      // Display loading toast
+      // Hiển thị thông báo đang tải
       toast({
         title: 'Đang xử lý',
         description: 'Đang tải file lên IPFS, vui lòng đợi trong giây lát...',
       });
 
-      // Upload to IPFS with correct file type
-      await dispatch(
-        uploadToIPFS({
-          file,
-          fileType: is3DModelFile ? '3d-model' : 'image',
-        }),
-      ).unwrap();
+      console.log('File upload process started:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: is3DModelFile ? '3d-model' : 'image',
+      });
 
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      // GỬI FILE LÊN IPFS - KHỐI CODE QUAN TRỌNG
+      try {
+        // Sử dụng try-catch riêng để xử lý lỗi dispatch
+        const result = await dispatch(
+          uploadToIPFS({
+            file,
+            fileType: is3DModelFile ? '3d-model' : 'image',
+          }),
+        ).unwrap();
+
+        console.log('Upload completed successfully:', result);
+
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      } catch (dispatchError: any) {
+        console.error('Dispatch error:', dispatchError);
+        throw new Error(dispatchError?.message || 'Lỗi trong quá trình xử lý upload');
       }
     } catch (error: any) {
+      console.error('File upload failed:', error);
       toast({
         variant: 'destructive',
         title: 'Lỗi upload',
-        description: error || 'Không thể upload file',
+        description: error?.message || 'Không thể upload file',
       });
     }
   };

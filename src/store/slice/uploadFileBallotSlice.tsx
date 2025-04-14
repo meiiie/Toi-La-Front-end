@@ -1,21 +1,19 @@
-// uploadFileBallotSlice.ts - Phiên bản đã cập nhật và hoàn thiện
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+// uploadFileBallotSlice.ts - Phiên bản đã cập nhật
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import apiClient from '../../api/apiClient';
 import FileService from '../../api/uploadFileBallotApi';
 
-// Định nghĩa interface thống nhất cho response từ API
+// Updated response type to match what the component is expecting
 interface UploadFileResponse {
   success: boolean;
   message?: string;
   ipfsHash?: string;
-  cid?: string; // Cho IpfsController.cs compatibility
-  url?: string; // Cho IpfsController.cs compatibility
+  cid?: string; // Added for IpfsController.cs response compatibility
+  url?: string; // Added for IpfsController.cs response compatibility
   imageUrl?: string;
   fileInfo?: {
     noiDungType?: string;
     tenFile?: string;
-    kichThuoc?: string;
-    ngayUpload?: string;
-    id?: number;
     [key: string]: any;
   };
 }
@@ -52,84 +50,60 @@ const getProperExtension = (file: File, fileType: 'image' | '3d-model'): string 
   return '.glb';
 };
 
-// Thunk để upload file lên IPFS - ĐÃ SỬA namespace
-export const uploadToIPFS = createAsyncThunk<
-  UploadFileResponse,
-  { file: File; fileType: 'image' | '3d-model' },
-  { rejectValue: string }
->(
-  'uploadFileBallot/uploadToIPFS', // Sửa lại namespace cho đúng
-  async ({ file, fileType }, { rejectWithValue, dispatch }) => {
+// Thunk để upload file lên IPFS qua Pinata
+export const uploadToIPFS = createAsyncThunk(
+  'uploadFile/uploadToIPFS',
+  async (
+    { file, fileType }: { file: File; fileType: 'image' | '3d-model' },
+    { rejectWithValue, dispatch },
+  ) => {
     try {
       dispatch(setProgress(0));
-
-      // Kiểm tra và điều chỉnh fileType dựa trên file thực tế
-      const actualFileType = is3DModelFile(file) ? '3d-model' : 'image';
-      const finalFileType = fileType || actualFileType;
-
-      // Lấy extension thích hợp cho file type
-      const fileExtension = getProperExtension(file, finalFileType);
-
-      // Cập nhật tiến trình upload bằng cách giả lập
-      const progressInterval = setInterval(() => {
-        const randomProgress = Math.floor(Math.random() * 30) + 10;
-        dispatch(setProgress(Math.min(95, randomProgress)));
-      }, 500);
+      console.log('Starting IPFS upload process:', { fileName: file.name, fileType });
 
       // Sử dụng service để upload
-      const response = await FileService.uploadToIPFS(file, finalFileType);
+      const response = await FileService.uploadToIPFS(file, fileType);
 
-      // Xóa interval khi đã upload xong
-      clearInterval(progressInterval);
-      dispatch(setProgress(100));
+      console.log('IPFS upload completed:', response);
 
-      // Đảm bảo phản hồi API được xử lý đúng
+      // Xử lý kết quả
       if (response && response.success) {
-        // Chuẩn hóa response để phù hợp với interface UploadFileResponse
-        let ipfsHash = response.cid;
+        // QUAN TRỌNG: Chuyển đổi từ cid sang ipfsHash để tương thích với component
+        const ipfsHash = response.cid;
         let ipfsUrl = `ipfs://${ipfsHash}`;
 
-        // Đảm bảo model 3D có đuôi file phù hợp
-        if (finalFileType === '3d-model' && fileExtension && !ipfsHash.endsWith(fileExtension)) {
-          ipfsHash = `${ipfsHash}${fileExtension}`;
-          ipfsUrl = `ipfs://${ipfsHash}`;
+        // Thêm extension cho model 3D nếu cần
+        if (fileType === '3d-model') {
+          const fileExtension = file.name.match(/\.(glb|gltf)$/i)?.[0] || '.glb';
+          if (!ipfsHash.toLowerCase().endsWith(fileExtension)) {
+            ipfsUrl = `ipfs://${ipfsHash}${fileExtension}`;
+          }
         }
 
-        // Tạo đối tượng phản hồi chuẩn hóa
         return {
           success: true,
           message: response.message || 'Upload successful',
-          ipfsHash: ipfsHash,
-          cid: ipfsHash, // Đồng bộ cả 2 trường
-          url: response.url,
+          ipfsHash: ipfsHash, // Ánh xạ cid sang ipfsHash
           imageUrl: ipfsUrl,
           fileInfo: {
-            noiDungType: finalFileType === '3d-model' ? 'model/gltf-binary' : 'image',
+            noiDungType: fileType === '3d-model' ? 'model/gltf-binary' : 'image',
             tenFile: file.name,
-            kichThuoc: `${(file.size / 1024).toFixed(2)} KB`,
-            ngayUpload: new Date().toISOString(),
-            ...(response.fileInfo || {}),
           },
         };
       }
 
-      return response;
+      // Xử lý lỗi nếu không thành công
+      throw new Error(response?.message || 'Upload failed with unknown error');
     } catch (error: any) {
-      console.error('Error uploading file to IPFS:', error);
-      return rejectWithValue(
-        error.response?.data?.message || error.message || 'Lỗi khi upload file lên IPFS',
-      );
+      console.error('Error in uploadToIPFS thunk:', error);
+      return rejectWithValue(error.message || 'Lỗi khi upload file');
     }
   },
 );
 
-// Thunk để xác thực URL - ĐÃ SỬA namespace
-export const validateImageUrl = createAsyncThunk<
-  UploadFileResponse,
-  string,
-  { rejectValue: string }
->(
-  'uploadFileBallot/validateImageUrl', // Sửa lại namespace cho đúng
+// Thunk để xác thực URL từ IPFS hoặc URL bên ngoài
+export const validateImageUrl = createAsyncThunk(
+  'uploadFile/validateImageUrl',
   async (url: string, { rejectWithValue }) => {
     try {
       // Kiểm tra URL IPFS và nhận dạng kiểu nội dung
@@ -141,29 +115,20 @@ export const validateImageUrl = createAsyncThunk<
           url.toLowerCase().includes('.glb') ||
           url.toLowerCase().includes('.gltf');
 
-        const ipfsHash = url.replace('ipfs://', '');
         return {
           success: true,
           message: is3DModel ? 'URL mô hình 3D IPFS hợp lệ' : 'IPFS URL hình ảnh hợp lệ',
           imageUrl: url,
-          ipfsHash: ipfsHash,
-          cid: ipfsHash,
+          ipfsHash: url.replace('ipfs://', ''),
           fileInfo: {
             noiDungType: is3DModel ? 'model/gltf-binary' : 'image',
-            tenFile: is3DModel
-              ? url.split('/').pop() || 'model.glb'
-              : url.split('/').pop() || 'image.jpg',
+            tenFile: is3DModel ? 'model.glb' : 'image.jpg',
           },
         };
       }
 
       // Kiểm tra URL bên ngoài cho model 3D
-      if (
-        url.endsWith('.glb') ||
-        url.endsWith('.gltf') ||
-        url.toLowerCase().includes('.glb') ||
-        url.toLowerCase().includes('.gltf')
-      ) {
+      if (url.endsWith('.glb') || url.endsWith('.gltf')) {
         return {
           success: true,
           message: 'URL mô hình 3D hợp lệ',
@@ -175,9 +140,11 @@ export const validateImageUrl = createAsyncThunk<
         };
       }
 
-      // Thực hiện kiểm tra URL thông qua service
-      try {
-        const result = await FileService.validateUrl(url);
+      // Kiểm tra URL bên ngoài - trả về thành công nếu URL có vẻ hợp lệ
+      const urlPattern = /^(https?:\/\/)([\w.-]+)\.([a-z]{2,})(\/\S*)?$/i;
+      const isValidUrl = urlPattern.test(url);
+
+      if (isValidUrl) {
         return {
           success: true,
           message: 'URL hợp lệ',
@@ -187,28 +154,11 @@ export const validateImageUrl = createAsyncThunk<
             tenFile: url.split('/').pop() || 'image.jpg',
           },
         };
-      } catch (error) {
-        // Kiểm tra URL bên ngoài - trả về thành công nếu URL có vẻ hợp lệ
-        const urlPattern = /^(https?:\/\/)([\w.-]+)\.([a-z]{2,})(\/\S*)?$/i;
-        const isValidUrl = urlPattern.test(url);
-
-        if (isValidUrl) {
-          return {
-            success: true,
-            message: 'URL hợp lệ',
-            imageUrl: url,
-            fileInfo: {
-              noiDungType: 'image',
-              tenFile: url.split('/').pop() || 'image.jpg',
-            },
-          };
-        } else {
-          return rejectWithValue('URL không hợp lệ hoặc không thể truy cập được');
-        }
+      } else {
+        return rejectWithValue('URL không hợp lệ');
       }
     } catch (error: any) {
-      console.error('Error validating URL:', error);
-      return rejectWithValue(error.response?.data?.message || error.message || 'URL không hợp lệ');
+      return rejectWithValue(error.response?.data?.message || 'URL không hợp lệ');
     }
   },
 );
@@ -217,7 +167,7 @@ const uploadFileBallotSlice = createSlice({
   name: 'uploadFileBallot',
   initialState,
   reducers: {
-    setProgress: (state, action: PayloadAction<number>) => {
+    setProgress: (state, action) => {
       state.progress = action.payload;
     },
     resetUploadState: (state) => {
@@ -229,7 +179,6 @@ const uploadFileBallotSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // uploadToIPFS
       .addCase(uploadToIPFS.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -244,7 +193,6 @@ const uploadFileBallotSlice = createSlice({
         state.error = action.payload as string;
         state.progress = 0;
       })
-      // validateImageUrl
       .addCase(validateImageUrl.pending, (state) => {
         state.isLoading = true;
         state.error = null;
