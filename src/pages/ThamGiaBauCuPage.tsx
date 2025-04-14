@@ -75,6 +75,11 @@ import type { UngCuVien, BallotMetadata, ViTriUngCu } from '../store/types';
 
 import ErrorBoundary from '../components/ErrorBoundary';
 
+// Số lần tối đa thử kết nối đến blockchain
+const MAX_BLOCKCHAIN_RETRIES = 3;
+// ID phiên dự phòng khi không thể lấy từ blockchain
+const FALLBACK_SESSION_ID = 1;
+
 type Step = {
   id: string;
   title: string;
@@ -589,7 +594,7 @@ const ThamGiaBauCu: React.FC = () => {
       }
 
       if (!contractAddress) {
-        contractAddress = '0x9c244B5E1F168510B9b812573b1B667bd1E654c8';
+        contractAddress = '0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10';
       }
 
       setQuanLyCuocBauCuAddress(contractAddress);
