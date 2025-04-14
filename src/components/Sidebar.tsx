@@ -119,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
       >
         <div className="bg-gradient-to-b from-[#0A0F18] to-[#121A29] text-white border-b border-[#2A3A5A] shadow-lg">
           <div className="flex items-center justify-between p-4 h-16">
-            <NavLink to="/" aria-label="Trang chủ" className="flex items-center">
+            <NavLink to="/app" aria-label="Trang chủ" className="flex items-center">
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-lg mr-2">
                 <Layers className="h-6 w-6 text-white" />
               </div>
@@ -287,7 +287,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
         <div className="flex flex-col h-full p-4">
           <div className="flex items-center justify-between mb-6">
             {isSidebarOpen ? (
-              <NavLink to="/" aria-label="Trang chủ" className="flex items-center">
+              <NavLink to="/app" aria-label="Trang chủ" className="flex items-center">
                 <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-lg mr-2">
                   <Layers className="h-6 w-6 text-white" />
                 </div>

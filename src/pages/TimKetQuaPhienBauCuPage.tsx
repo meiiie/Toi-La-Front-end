@@ -41,7 +41,7 @@ const ThemeToggle = ({ darkMode, toggleDarkMode }) => {
   return (
     <button
       onClick={toggleDarkMode}
-      className="fixed top-6 right-6 z-50 p-2 rounded-full shadow-lg transition-all duration-300 dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200"
+      className="fixed top-2 right-2 sm:top-6 sm:right-6 z-50 p-2 rounded-full shadow-lg transition-all duration-300 dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200"
       aria-label="Toggle dark mode"
     >
       {darkMode ? (
@@ -582,8 +582,8 @@ const KetQuaBauCu = () => {
         {error && <ErrorAlert message={error} />}
 
         {/* Chọn phiên bầu cử */}
-        <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+        <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-4 sm:p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6">
             <div className="flex-grow">
               <label
                 htmlFor="phien-select"
@@ -595,7 +595,7 @@ const KetQuaBauCu = () => {
                 id="phien-select"
                 value={selectedPhien || ''}
                 onChange={handleSessionChange}
-                className="block w-full px-4 py-3 bg-white dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-800 dark:text-white shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                className="block w-full px-3 py-2 sm:px-4 sm:py-3 bg-white dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-800 dark:text-white shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
                 disabled={isChangingSession}
               >
                 <option value="">-- Chọn phiên bầu cử --</option>
@@ -610,16 +610,16 @@ const KetQuaBauCu = () => {
               </select>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               <button
                 onClick={refreshData}
-                className="px-5 py-3 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-600/20 dark:shadow-indigo-900/50"
+                className="flex-1 sm:flex-auto px-3 sm:px-5 py-2 sm:py-3 bg-indigo-600 dark:bg-indigo-700 text-white text-sm sm:text-base rounded-lg hover:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-600/20 dark:shadow-indigo-900/50"
                 disabled={isChangingSession || !selectedPhien}
               >
                 {isChangingSession ? (
-                  <span className="flex items-center">
+                  <span className="flex items-center justify-center">
                     <svg
-                      className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
+                      className="animate-spin -ml-1 mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -638,13 +638,13 @@ const KetQuaBauCu = () => {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    Đang cập nhật...
+                    <span className="whitespace-nowrap">Đang cập nhật...</span>
                   </span>
                 ) : (
-                  <span className="flex items-center">
+                  <span className="flex items-center justify-center">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-2"
+                      className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -663,7 +663,7 @@ const KetQuaBauCu = () => {
 
               <button
                 onClick={toggleMonitoring}
-                className={`px-5 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 shadow-lg flex items-center ${
+                className={`flex-1 sm:flex-auto px-3 sm:px-5 py-2 sm:py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 shadow-lg flex items-center justify-center text-sm sm:text-base ${
                   isMonitoring
                     ? 'bg-rose-600 dark:bg-rose-700 text-white hover:bg-rose-500 dark:hover:bg-rose-600 focus:ring-rose-500 shadow-rose-600/20 dark:shadow-rose-900/50'
                     : 'bg-emerald-600 dark:bg-emerald-700 text-white hover:bg-emerald-500 dark:hover:bg-emerald-600 focus:ring-emerald-500 shadow-emerald-600/20 dark:shadow-emerald-900/50'
@@ -674,7 +674,7 @@ const KetQuaBauCu = () => {
                   <>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-2"
+                      className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -686,13 +686,13 @@ const KetQuaBauCu = () => {
                         d="M6 18L18 6M6 6l12 12"
                       />
                     </svg>
-                    Dừng theo dõi
+                    <span className="whitespace-nowrap">Dừng theo dõi</span>
                   </>
                 ) : (
                   <>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-2"
+                      className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -710,7 +710,7 @@ const KetQuaBauCu = () => {
                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                       />
                     </svg>
-                    Theo dõi real-time
+                    <span className="whitespace-nowrap">Theo dõi</span>
                   </>
                 )}
               </button>
@@ -748,8 +748,8 @@ const KetQuaBauCu = () => {
         {selectedPhien && sessionInfo ? (
           <>
             {/* Thông tin phiên bầu cử */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-6 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8 mb-8">
+              <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-4 sm:p-6 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
                 <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-indigo-500 dark:from-indigo-200 dark:to-purple-200 flex items-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -767,7 +767,7 @@ const KetQuaBauCu = () => {
                   </svg>
                   Thông tin phiên #{selectedPhien}
                 </h2>
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
                     <span className="text-gray-600 dark:text-gray-400">Trạng thái:</span>
                     <span
@@ -836,7 +836,7 @@ const KetQuaBauCu = () => {
                 </div>
               </div>
 
-              <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-6 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
+              <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-4 sm:p-6 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
                 <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-indigo-500 dark:from-indigo-200 dark:to-purple-200 flex items-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -849,7 +849,7 @@ const KetQuaBauCu = () => {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2z"
                     />
                   </svg>
                   Tiến trình bỏ phiếu
@@ -952,7 +952,7 @@ const KetQuaBauCu = () => {
             </div>
 
             {/* Kết quả bỏ phiếu */}
-            <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
+            <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-4 sm:p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
               <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-indigo-500 dark:from-indigo-200 dark:to-purple-200 flex items-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -965,7 +965,7 @@ const KetQuaBauCu = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2z"
                   />
                 </svg>
                 {sessionInfo.isActive ? 'Kết quả bỏ phiếu hiện tại' : 'Kết quả bỏ phiếu cuối cùng'}
@@ -1001,10 +1001,10 @@ const KetQuaBauCu = () => {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 mb-6 sm:mb-10">
                     {/* Biểu đồ cột với hiệu ứng glass */}
-                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 backdrop-blur-sm p-4 rounded-lg shadow-lg h-96">
-                      <h3 className="text-center text-lg font-medium mb-3 text-indigo-700 dark:text-indigo-300">
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-lg h-64 sm:h-96">
+                      <h3 className="text-center text-base sm:text-lg font-medium mb-2 sm:mb-3 text-indigo-700 dark:text-indigo-300">
                         Số phiếu theo ứng viên
                       </h3>
                       <ResponsiveContainer width="100%" height="90%">
@@ -1046,8 +1046,8 @@ const KetQuaBauCu = () => {
                     </div>
 
                     {/* Biểu đồ tròn với hiệu ứng glass */}
-                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 backdrop-blur-sm p-4 rounded-lg shadow-lg h-96">
-                      <h3 className="text-center text-lg font-medium mb-3 text-indigo-700 dark:text-indigo-300">
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-lg h-64 sm:h-96">
+                      <h3 className="text-center text-base sm:text-lg font-medium mb-2 sm:mb-3 text-indigo-700 dark:text-indigo-300">
                         Phân phối phiếu bầu
                       </h3>
                       <ResponsiveContainer width="100%" height="90%">
@@ -1058,8 +1058,8 @@ const KetQuaBauCu = () => {
                             nameKey="displayAddress"
                             cx="50%"
                             cy="50%"
-                            outerRadius={100}
-                            innerRadius={60}
+                            outerRadius={window.innerWidth < 640 ? 70 : 100}
+                            innerRadius={window.innerWidth < 640 ? 40 : 60}
                             labelLine={false}
                             label={({
                               cx,
@@ -1070,6 +1070,9 @@ const KetQuaBauCu = () => {
                               percent,
                               index,
                             }) => {
+                              // Only show labels if there's enough space
+                              if (window.innerWidth < 400 && votingResults.length > 3) return null;
+
                               const RADIAN = Math.PI / 180;
                               const radius = innerRadius + (outerRadius - innerRadius) * 0.7;
                               const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -1080,7 +1083,7 @@ const KetQuaBauCu = () => {
                                   x={x}
                                   y={y}
                                   fill={darkMode ? '#fff' : '#333'}
-                                  fontSize={11}
+                                  fontSize={window.innerWidth < 640 ? 9 : 11}
                                   fontWeight="bold"
                                   textAnchor={x > cx ? 'start' : 'end'}
                                   dominantBaseline="central"
@@ -1110,8 +1113,16 @@ const KetQuaBauCu = () => {
                             ))}
                           </Pie>
                           <Legend
+                            layout={window.innerWidth < 500 ? 'vertical' : 'horizontal'}
+                            align={window.innerWidth < 500 ? 'center' : 'center'}
+                            verticalAlign={window.innerWidth < 500 ? 'bottom' : 'bottom'}
                             formatter={(value, entry, index) => (
-                              <span style={{ color: darkMode ? '#a5b4fc' : '#4f46e5' }}>
+                              <span
+                                style={{
+                                  color: darkMode ? '#a5b4fc' : '#4f46e5',
+                                  fontSize: window.innerWidth < 640 ? '0.7rem' : '0.8rem',
+                                }}
+                              >
                                 {votingResults[index]?.displayAddress}
                               </span>
                             )}
@@ -1124,23 +1135,23 @@ const KetQuaBauCu = () => {
 
                   {/* Bảng chi tiết với thiết kế responsive */}
                   <div className="overflow-hidden rounded-xl shadow-xl border border-gray-200 dark:border-indigo-900/50">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto -mx-4 sm:mx-0">
                       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead className="bg-indigo-50 dark:bg-indigo-900/50">
                           <tr>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
-                              Thứ tự
+                            <th className="px-2 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
+                              #
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
+                            <th className="px-2 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
                               Địa chỉ
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
+                            <th className="px-2 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
                               Số phiếu
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
+                            <th className="px-2 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
                               Tỷ lệ
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
+                            <th className="px-2 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
                               Trạng thái
                             </th>
                           </tr>
@@ -1155,9 +1166,9 @@ const KetQuaBauCu = () => {
                                   : 'odd:bg-white even:bg-gray-50 dark:odd:bg-gray-800/30 dark:even:bg-gray-800/10'
                               } hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors duration-150`}
                             >
-                              <td className="px-6 py-4 whitespace-nowrap">
+                              <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                                 <span
-                                  className={`inline-flex items-center justify-center rounded-full h-7 w-7 text-sm 
+                                  className={`inline-flex items-center justify-center rounded-full h-5 w-5 sm:h-7 sm:w-7 text-xs sm:text-sm
                                   ${
                                     result.isElected
                                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-600/50'
@@ -1167,31 +1178,34 @@ const KetQuaBauCu = () => {
                                   {index + 1}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap font-mono text-gray-800 dark:text-indigo-300">
+                              <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap font-mono text-xs sm:text-sm text-gray-800 dark:text-indigo-300">
                                 {result.displayAddress}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="text-xl font-semibold text-gray-900 dark:text-white">
+                              <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                                <span className="text-base sm:text-xl font-semibold text-gray-900 dark:text-white">
                                   {result.votes}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
+                              <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                                 <div className="flex items-center">
-                                  <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-3">
+                                  <div className="w-8 sm:w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 sm:h-2 mr-2 sm:mr-3">
                                     <div
-                                      className={`h-2 rounded-full ${result.isElected ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                                      className={`h-1.5 sm:h-2 rounded-full ${result.isElected ? 'bg-emerald-500' : 'bg-indigo-500'}`}
                                       style={{ width: `${result.percentage}%` }}
                                     ></div>
                                   </div>
-                                  <span className="text-gray-700 dark:text-indigo-200">
+                                  <span className="text-xs sm:text-sm text-gray-700 dark:text-indigo-200">
                                     {result.percentage}%
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
+                              <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs">
                                 {sessionInfo.isActive ? (
-                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-800/50 dark:text-amber-300 dark:border-amber-700/50">
-                                    <svg className="w-3 h-3 mr-1 animate-spin" viewBox="0 0 24 24">
+                                  <span className="inline-flex items-center px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-800/50 dark:text-amber-300 dark:border-amber-700/50">
+                                    <svg
+                                      className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 animate-spin"
+                                      viewBox="0 0 24 24"
+                                    >
                                       <circle
                                         className="opacity-25"
                                         cx="12"
@@ -1207,13 +1221,13 @@ const KetQuaBauCu = () => {
                                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                       />
                                     </svg>
-                                    Đang kiểm phiếu
+                                    Đang kiểm
                                   </span>
                                 ) : result.isElected ? (
-                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-800/50 dark:text-emerald-300 dark:border-emerald-700/50">
+                                  <span className="inline-flex items-center px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-800/50 dark:text-emerald-300 dark:border-emerald-700/50">
                                     <svg
                                       xmlns="http://www.w3.org/2000/svg"
-                                      className="h-3 w-3 mr-1"
+                                      className="h-2 w-2 sm:h-3 sm:w-3 mr-0.5 sm:mr-1"
                                       fill="none"
                                       viewBox="0 0 24 24"
                                       stroke="currentColor"
@@ -1228,8 +1242,8 @@ const KetQuaBauCu = () => {
                                     Trúng cử
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700/50">
-                                    Chưa trúng cử
+                                  <span className="inline-flex items-center px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700/50">
+                                    Chưa trúng
                                   </span>
                                 )}
                               </td>
@@ -1247,7 +1261,7 @@ const KetQuaBauCu = () => {
             {!sessionInfo.isActive &&
               sessionInfo.electedCandidates &&
               sessionInfo.electedCandidates.length > 0 && (
-                <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
+                <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-4 sm:p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
                   <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-indigo-500 dark:from-indigo-200 dark:to-purple-200 flex items-center">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -1299,32 +1313,32 @@ const KetQuaBauCu = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
                     {sessionInfo.electedCandidates.map((address, index) => {
                       const candidateInfo = votingResults.find((r) => r.address === address);
                       return (
                         <div
                           key={address}
-                          className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-teal-900/30 backdrop-blur-md border border-emerald-200 dark:border-emerald-700/50 rounded-lg p-5 shadow-lg transition-all duration-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:shadow-emerald-300/20 dark:hover:shadow-emerald-900/40 group"
+                          className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-teal-900/30 backdrop-blur-md border border-emerald-200 dark:border-emerald-700/50 rounded-lg p-3 sm:p-5 shadow-lg transition-all duration-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:shadow-emerald-300/20 dark:hover:shadow-emerald-900/40 group"
                         >
                           <div className="flex items-center">
-                            <div className="bg-emerald-200 dark:bg-emerald-800/70 rounded-full w-12 h-12 flex items-center justify-center mr-4 border border-emerald-300 dark:border-emerald-600/50 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                              <span className="text-emerald-800 dark:text-emerald-300 font-bold text-lg">
+                            <div className="bg-emerald-200 dark:bg-emerald-800/70 rounded-full w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center mr-3 sm:mr-4 border border-emerald-300 dark:border-emerald-600/50 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                              <span className="text-emerald-800 dark:text-emerald-300 font-bold text-sm sm:text-lg">
                                 {index + 1}
                               </span>
                             </div>
                             <div>
-                              <h3 className="font-bold text-lg text-emerald-800 dark:text-emerald-200">
+                              <h3 className="font-bold text-sm sm:text-lg text-emerald-800 dark:text-emerald-200">
                                 {address.substring(0, 6)}...{address.substring(address.length - 4)}
                               </h3>
                               {candidateInfo && (
-                                <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">
+                                <p className="text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 mt-0.5 sm:mt-1">
                                   {candidateInfo.votes} phiếu ({candidateInfo.percentage}%)
                                 </p>
                               )}
                             </div>
                           </div>
-                          <div className="mt-4 bg-emerald-200/50 dark:bg-emerald-900/30 h-1.5 rounded-full">
+                          <div className="mt-3 sm:mt-4 bg-emerald-200/50 dark:bg-emerald-900/30 h-1.5 rounded-full">
                             <div
                               className="h-1.5 bg-emerald-500 rounded-full"
                               style={{ width: `${candidateInfo?.percentage || 0}%` }}
@@ -1405,11 +1419,11 @@ const KetQuaBauCu = () => {
         )}
 
         {/* Thông tin kết nối blockchain */}
-        <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
-          <h3 className="font-medium mb-4 text-lg text-indigo-700 dark:text-indigo-300 flex items-center">
+        <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-4 sm:p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
+          <h3 className="font-medium mb-4 text-base sm:text-lg text-indigo-700 dark:text-indigo-300 flex items-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2"
+              className="h-4 w-4 sm:h-5 sm:w-5 mr-2"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -1423,38 +1437,46 @@ const KetQuaBauCu = () => {
             </svg>
             Thông tin kết nối blockchain
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <p className="flex items-center">
-                <span className="text-gray-500 dark:text-gray-400 w-32">RPC:</span>
-                <span className="text-indigo-700 dark:text-indigo-300 font-mono text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
+            <div className="space-y-1 sm:space-y-2">
+              <p className="flex flex-wrap items-center text-sm sm:text-base">
+                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-32 mb-1 sm:mb-0">
+                  RPC:
+                </span>
+                <span className="text-indigo-700 dark:text-indigo-300 font-mono text-xs sm:text-sm break-all">
                   https://geth.holihu.online/rpc
                 </span>
               </p>
-              <p className="flex items-center">
-                <span className="text-gray-500 dark:text-gray-400 w-32">Địa chỉ Contract:</span>
-                <span className="text-indigo-700 dark:text-indigo-300 font-mono text-sm truncate">
+              <p className="flex flex-wrap items-center text-sm sm:text-base">
+                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-32 mb-1 sm:mb-0">
+                  Contract:
+                </span>
+                <span className="text-indigo-700 dark:text-indigo-300 font-mono text-xs sm:text-sm break-all">
                   {contractAddress}
                 </span>
               </p>
-              <p className="flex items-center">
-                <span className="text-gray-500 dark:text-gray-400 w-32">Server ID:</span>
+              <p className="flex flex-wrap items-center text-sm sm:text-base">
+                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-32">Server ID:</span>
                 <span className="text-indigo-700 dark:text-indigo-300">{serverId}</span>
               </p>
             </div>
-            <div className="space-y-2">
-              <p className="flex items-center">
-                <span className="text-gray-500 dark:text-gray-400 w-32">Cuộc bầu cử ID:</span>
+            <div className="space-y-1 sm:space-y-2">
+              <p className="flex flex-wrap items-center text-sm sm:text-base">
+                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-32 mb-1 sm:mb-0">
+                  Cuộc BC ID:
+                </span>
                 <span className="text-indigo-700 dark:text-indigo-300">{cuocBauCuId}</span>
               </p>
-              <p className="flex items-center">
-                <span className="text-gray-500 dark:text-gray-400 w-32">Phiên bầu cử ID:</span>
+              <p className="flex flex-wrap items-center text-sm sm:text-base">
+                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-32 mb-1 sm:mb-0">
+                  Phiên BC ID:
+                </span>
                 <span className="text-indigo-700 dark:text-indigo-300">
                   {selectedPhien || 'Chưa chọn'}
                 </span>
               </p>
-              <p className="flex items-center">
-                <span className="text-gray-500 dark:text-gray-400 w-32">Trạng thái:</span>
+              <p className="flex flex-wrap items-center text-sm sm:text-base">
+                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-32">Trạng thái:</span>
                 <span
                   className={`${isMonitoring ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'} flex items-center`}
                 >
@@ -1471,14 +1493,14 @@ const KetQuaBauCu = () => {
 
       {/* Thông báo real-time */}
       {isMonitoring && (
-        <div className="fixed bottom-6 right-6 backdrop-blur-md bg-emerald-100/90 dark:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-500/50 text-emerald-800 dark:text-emerald-300 px-5 py-3 rounded-lg shadow-2xl flex items-center transition-all duration-300 animate-pulse">
-          <div className="relative mr-3">
-            <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-            <div className="w-3 h-3 bg-emerald-400 rounded-full absolute top-0 animate-ping"></div>
+        <div className="fixed bottom-2 right-2 sm:bottom-6 sm:right-6 backdrop-blur-md bg-emerald-100/90 dark:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-500/50 text-emerald-800 dark:text-emerald-300 px-3 py-2 sm:px-5 sm:py-3 rounded-lg shadow-2xl flex items-center transition-all duration-300 animate-pulse max-w-[90vw] sm:max-w-xs">
+          <div className="relative mr-2 sm:mr-3">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-emerald-500 rounded-full"></div>
+            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-emerald-400 rounded-full absolute top-0 animate-ping"></div>
           </div>
           <div>
-            <p className="font-medium">Đang theo dõi phiên #{selectedPhien}</p>
-            <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80 mt-1">
+            <p className="font-medium text-sm sm:text-base">Đang theo dõi phiên #{selectedPhien}</p>
+            <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80 mt-0.5 sm:mt-1">
               Cập nhật tự động mỗi 15 giây
             </p>
           </div>

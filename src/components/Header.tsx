@@ -56,7 +56,7 @@ export default function Header() {
         : 'bg-transparent';
 
   return (
-    <header className={`sticky top-0 z-50 w-full transition-all duration-500 ${headerBg}`}>
+    <header className={`sticky top-0 z-40 w-full transition-all duration-500 ${headerBg}`}>
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         {/* Logo and Brand */}
         <Link to="/" className="flex items-center space-x-3 group">
@@ -158,14 +158,9 @@ export default function Header() {
           )}
 
           {/* Mobile Menu Button */}
-          <DropdownMenu>
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden relative"
-                onClick={() => setMenuOpen(!menuOpen)}
-              >
+              <Button variant="ghost" size="icon" className="md:hidden relative">
                 <div className="absolute inset-0 bg-[#0288D1]/10 rounded-full blur-md opacity-0 hover:opacity-70 transition-opacity duration-300"></div>
                 <div
                   className={`relative rounded-full p-2 border border-[#455A64] hover:border-[#0288D1] transition-colors duration-300 ${
@@ -189,9 +184,10 @@ export default function Header() {
             {/* Mobile Menu Dropdown */}
             <DropdownMenuContent
               align="end"
-              className={`w-72 backdrop-blur-md border border-[#455A64] rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.5)] p-4 mt-2 ${
+              className={`w-72 backdrop-blur-md border border-[#455A64] rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.5)] p-4 mt-2 z-50 ${
                 theme === 'dark' ? 'bg-[#263238]/95' : 'bg-white/95'
               }`}
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="space-y-4">
                 <DropdownMenuItem
@@ -199,6 +195,7 @@ export default function Header() {
                   className={`hover:bg-[#37474F] rounded-lg transition-colors duration-200 p-3 ${
                     theme === 'dark' ? '' : 'hover:bg-[#E1F5FE]'
                   }`}
+                  onClick={() => setMenuOpen(false)}
                 >
                   <NavLink
                     to={user ? '/app' : '/'}
@@ -218,6 +215,7 @@ export default function Header() {
                   className={`hover:bg-[#37474F] rounded-lg transition-colors duration-200 p-3 ${
                     theme === 'dark' ? '' : 'hover:bg-[#E1F5FE]'
                   }`}
+                  onClick={() => setMenuOpen(false)}
                 >
                   <NavLink
                     to="/elections"
@@ -238,6 +236,7 @@ export default function Header() {
                     className={`hover:bg-[#37474F] rounded-lg transition-colors duration-200 p-3 ${
                       theme === 'dark' ? '' : 'hover:bg-[#E1F5FE]'
                     }`}
+                    onClick={() => setMenuOpen(false)}
                   >
                     <NavLink
                       to="/login"
@@ -253,7 +252,7 @@ export default function Header() {
                   </DropdownMenuItem>
                 ) : (
                   <div className="p-3">
-                    <UserMenu />
+                    <UserMenu inMobileMenu={true} />
                   </div>
                 )}
 

@@ -24,9 +24,10 @@ import { fetchAddressDetails } from '../store/sliceBlockchain/blockchainSlice';
 
 interface UserMenuProps {
   isCollapsed?: boolean;
+  inMobileMenu?: boolean;
 }
 
-const UserMenu: React.FC<UserMenuProps> = ({ isCollapsed = false }) => {
+const UserMenu: React.FC<UserMenuProps> = ({ isCollapsed = false, inMobileMenu = false }) => {
   const { taiKhoan: user } = useSelector((state: RootState) => state.dangNhapTaiKhoan);
   const { hluBalance, isLoading: blockchainLoading } = useSelector(
     (state: RootState) => state.blockchain,
@@ -84,6 +85,13 @@ const UserMenu: React.FC<UserMenuProps> = ({ isCollapsed = false }) => {
     }
   }, [dispatch, user?.diaChiVi]);
 
+  // Đóng menu khi chuyển trang
+  useEffect(() => {
+    return () => {
+      setIsAccountMenuOpen(false);
+    };
+  }, [navigate]);
+
   // Định dạng tên người dùng
   const formatName = (name: string) => {
     return name
@@ -107,7 +115,8 @@ const UserMenu: React.FC<UserMenuProps> = ({ isCollapsed = false }) => {
     return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
-  const toggleAccountMenu = () => {
+  const toggleAccountMenu = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Ngăn sự kiện nổi bọt lên các phần tử cha
     setIsAccountMenuOpen(!isAccountMenuOpen);
   };
 
@@ -160,13 +169,16 @@ const UserMenu: React.FC<UserMenuProps> = ({ isCollapsed = false }) => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    if (isAccountMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [isAccountMenuOpen]);
 
-  // Replace the copyToClipboard function with this more robust implementation
+  // Copy địa chỉ ví
   const copyToClipboard = (text: string) => {
     // Create a temporary textarea element
     const textArea = document.createElement('textarea');
@@ -218,8 +230,13 @@ const UserMenu: React.FC<UserMenuProps> = ({ isCollapsed = false }) => {
     document.body.removeChild(textArea);
   };
 
+  // CSS classes for mobile menu
+  const mobileMenuClasses = inMobileMenu
+    ? 'w-full bg-transparent hover:bg-transparent focus:bg-transparent border-0'
+    : '';
+
   return (
-    <div className="relative user-menu-container" ref={menuRef}>
+    <div className={`relative user-menu-container ${inMobileMenu ? 'w-full' : ''}`} ref={menuRef}>
       {isCollapsed ? (
         // Collapsed version
         <button
@@ -246,7 +263,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ isCollapsed = false }) => {
         <button
           ref={buttonRef}
           onClick={toggleAccountMenu}
-          className="w-full flex items-center space-x-2 bg-[#1E293B]/50 backdrop-blur-sm px-4 py-2 rounded-lg border border-[#334155]/50 hover:bg-[#1E293B]/80 transition-colors duration-200"
+          className={`w-full flex items-center space-x-2 bg-[#1E293B]/50 backdrop-blur-sm px-4 py-2 rounded-lg border border-[#334155]/50 hover:bg-[#1E293B]/80 transition-colors duration-200 ${mobileMenuClasses}`}
           aria-expanded={isAccountMenuOpen}
           aria-haspopup="true"
         >
@@ -280,18 +297,14 @@ const UserMenu: React.FC<UserMenuProps> = ({ isCollapsed = false }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className={`
-              ${isMobile ? 'absolute right-0 top-full mt-2 z-50 w-full' : 'fixed z-[60] w-64'}
-            `}
+            className={`${inMobileMenu ? 'w-full' : isMobile ? 'absolute right-0 z-[100]' : 'fixed z-[100] w-64'}`}
             style={{
               transformOrigin: isMobile ? 'top right' : isCollapsed ? 'left center' : 'top left',
               ...(isMobile
-                ? {}
-                : {
-                    top: `${menuPosition.top}px`,
-                    left: `${menuPosition.left}px`,
-                  }),
+                ? { top: '100%', right: '0', marginTop: '0.5rem' }
+                : { top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }),
             }}
+            onClick={(e) => e.stopPropagation()} // Ngăn sự kiện truyền lên phần tử cha
           >
             <div className="bg-[#1E293B]/90 backdrop-blur-md rounded-xl border border-[#334155]/70 shadow-lg overflow-hidden">
               {/* User info header */}
@@ -431,7 +444,8 @@ const UserMenu: React.FC<UserMenuProps> = ({ isCollapsed = false }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+            onClick={(e) => e.stopPropagation()}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
