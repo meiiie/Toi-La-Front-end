@@ -664,7 +664,7 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
           </h3>
 
           <div className="space-y-4">
-            {sessionStatus.isActive ? (
+            {!sessionStatus.isActive ? (
               <div className="flex flex-col sm:flex-row items-start sm:items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800/50">
                 <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mr-3 mt-0.5 sm:mt-0" />
                 <div>
