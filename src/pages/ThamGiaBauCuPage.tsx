@@ -64,7 +64,7 @@ import DieuLeLoader from '../components/DieuLeLoader';
 import { useToast } from '../test/components/use-toast';
 import ElectionResultsWaiting from '../components/bophieu/ElectionResultsWaiting';
 import BallotDisplay from '../components/bophieu/BallotDisplay';
-import { processBallotsMetadata } from '../utils/ballotService';
+import { processBallotsMetadata, decodeMetadataFromUri } from '../utils/ballotService';
 
 import {
   fetchBallotIPFSLinks,
@@ -974,12 +974,12 @@ const ThamGiaBauCu: React.FC = () => {
           return;
         }
 
-        // Use try-catch wrapper around fetchBallotIPFSLinks
+        // Lấy danh sách phiếu bầu từ blockchain
         let ballotLinks;
         try {
           console.log(`Đang lấy phiếu bầu cho cử tri ${voterAddress} và phiên ${sessionId}...`);
 
-          // Sử dụng hàm đã sửa trong utils/blockchain.ts
+          // Sử dụng hàm từ utils/blockchain.ts
           ballotLinks = await fetchBallotIPFSLinks(voterAddress, sessionId);
           console.log(`Kết quả lấy phiếu bầu:`, ballotLinks);
         } catch (error) {
@@ -1022,51 +1022,21 @@ const ThamGiaBauCu: React.FC = () => {
           return;
         }
 
-        const ballotsData = [];
-        // Use a smaller set of tokens to prevent excessive errors
-        const maxTokensToProcess = Math.min(ballotLinks.length, 5); // Giới hạn số lượng token xử lý
+        // Chuẩn bị dữ liệu phiếu bầu
+        const rawBallotsData = [];
+        // Giới hạn số lượng token xử lý để tránh quá nhiều lỗi
+        const maxTokensToProcess = Math.min(ballotLinks.length, 5);
 
-        // Process ballots with proper error handling for each token
+        // Xử lý từng phiếu bầu với handling lỗi phù hợp
         for (let i = 0; i < maxTokensToProcess; i++) {
           const link = ballotLinks[i];
 
-          // Skip known invalid tokens
+          // Bỏ qua token đã biết là không hợp lệ
           if (invalidTokenCache.current.has(link.tokenId)) {
             console.log(`Skipping known invalid token ID: ${link.tokenId}`);
             continue;
           }
 
-          let metadata: BallotMetadata | null = null;
-
-          if (link.processedURI.startsWith('data:application/json;base64,')) {
-            try {
-              const base64Content = link.processedURI.split(',')[1];
-              const binaryString = atob(base64Content);
-              const bytes = new Uint8Array(binaryString.length);
-              for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-              }
-              const jsonString = new TextDecoder('utf-8').decode(bytes);
-              metadata = JSON.parse(jsonString) as BallotMetadata;
-            } catch (error) {
-              console.error('Lỗi khi parse metadata phiếu bầu:', error);
-              // Tạo metadata mặc định nếu không parse được
-              metadata = {
-                name: `Phiếu bầu #${link.tokenId}`,
-                description: 'Phiếu bầu HoLiHu',
-                image: '/placeholder.svg',
-              };
-            }
-          } else if (link.processedURI.startsWith('ipfs://')) {
-            // Xử lý URI ipfs nếu cần
-            metadata = {
-              name: `Phiếu bầu #${link.tokenId}`,
-              description: 'Phiếu bầu HoLiHu',
-              image: '/placeholder.svg',
-            };
-          }
-
-          // Use try-catch to handle individual token errors
           try {
             console.log(`Kiểm tra trạng thái bỏ phiếu cho token ${link.tokenId}...`);
             const isUsed = await checkVoterHasVotedSafely(
@@ -1077,27 +1047,33 @@ const ThamGiaBauCu: React.FC = () => {
             );
             console.log(`Token ${link.tokenId} đã sử dụng: ${isUsed}`);
 
-            ballotsData.push({
+            rawBallotsData.push({
               tokenId: link.tokenId,
               tokenURI: link.tokenURI,
               processedURI: link.processedURI,
-              metadata,
               isUsed,
             });
           } catch (error) {
             console.error(`Lỗi khi xử lý token ${link.tokenId}:`, error);
-            // Add to invalid token cache
+            // Thêm vào cache token không hợp lệ
             invalidTokenCache.current.add(link.tokenId);
             continue;
           }
         }
 
-        // Only update state if successful and component is still mounted
-        if (isMounted.current) {
-          console.log(`Successfully processed ${ballotsData.length} ballots`);
-          setBallots(ballotsData);
+        // Xử lý metadata cho tất cả phiếu bầu một lần sử dụng ballotService
+        const processedBallots = processBallotsMetadata(rawBallotsData);
 
-          const unusedBallot = ballotsData.find((ballot) => !ballot.isUsed);
+        // Log để debug
+        console.log('Processed ballots with metadata:', processedBallots);
+
+        // Chỉ cập nhật state nếu thành công và component vẫn được mount
+        if (isMounted.current) {
+          console.log(`Successfully processed ${processedBallots.length} ballots`);
+          setBallots(processedBallots);
+
+          // Tìm một phiếu chưa sử dụng để chọn mặc định
+          const unusedBallot = processedBallots.find((ballot) => !ballot.isUsed);
           if (unusedBallot) {
             setSelectedBallot({
               tokenId: unusedBallot.tokenId,
@@ -1146,6 +1122,7 @@ const ThamGiaBauCu: React.FC = () => {
       fetchAttempts,
       MAX_FETCH_ATTEMPTS,
       quanLyCuocBauCuAddress,
+      isMounted,
     ],
   );
 
