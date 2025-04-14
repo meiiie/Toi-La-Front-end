@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { VaiTroChucNang } from '../store/types';
 import PaginationPhu from '../components/PaginationPhu';
 import { Button } from '../components/ui/Button';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, ChevronRight } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '../components/ui/Tooltip';
 import {
   Dialog,
@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '../components/ui/Dialog';
+import { Card } from '../components/ui/Card';
 
 interface RoleListProps {
   roles: VaiTroChucNang[];
@@ -34,6 +35,7 @@ const DanhSachVaiTro: React.FC<RoleListProps> = ({
 }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
+  const [selectedRole, setSelectedRole] = useState<number | null>(null);
 
   React.useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -86,12 +88,85 @@ const DanhSachVaiTro: React.FC<RoleListProps> = ({
     }
   };
 
+  const toggleRoleDetails = (roleId: number) => {
+    setSelectedRole(selectedRole === roleId ? null : roleId);
+  };
+
   return (
     <TooltipProvider>
       <div>
         {roles.length > 0 ? (
           <>
-            <div className="overflow-x-auto">
+            {/* Mobile view - Card-based layout */}
+            <div className="md:hidden space-y-4">
+              {paginatedRoles.map((role: VaiTroChucNang) => (
+                <Card key={role.id} className="p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium" style={{ color: roleColor }}>
+                      {role.tenVaiTro}
+                    </span>
+                    <div className="flex items-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePencilClick(role)}
+                        className={`p-1 h-8 w-8 ${editingRoleId === role.id ? 'bg-yellow-400' : ''}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteRole(role.id)}
+                        className="p-1 h-8 w-8"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleRoleDetails(role.id)}
+                        className="p-1 h-8 w-8"
+                      >
+                        <ChevronRight
+                          className={`h-4 w-4 transition-transform ${selectedRole === role.id ? 'transform rotate-90' : ''}`}
+                        />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {selectedRole === role.id && (
+                    <div className="mt-3 border-t pt-3 space-y-2">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-gray-500">Chức năng:</span>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <span className="text-sm cursor-pointer text-blue-600">
+                              {getRoleFunctions(role.id)}
+                            </span>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Chức năng của {role.tenVaiTro}</DialogTitle>
+                              <DialogDescription className="mt-2">
+                                {getFullRoleFunctions(role.id)}
+                              </DialogDescription>
+                            </DialogHeader>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-gray-500">Ngày tạo:</span>
+                        <span className="text-sm">{new Date().toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+
+            {/* Desktop view - Table layout */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
@@ -118,32 +193,14 @@ const DanhSachVaiTro: React.FC<RoleListProps> = ({
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {isMobile ? (
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <span className="text-sm cursor-pointer">
-                                {getRoleFunctions(role.id)}
-                              </span>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Chức năng</DialogTitle>
-                                <DialogDescription>
-                                  {getFullRoleFunctions(role.id)}
-                                </DialogDescription>
-                              </DialogHeader>
-                            </DialogContent>
-                          </Dialog>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-sm cursor-pointer">
-                                {getRoleFunctions(role.id)}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>{getFullRoleFunctions(role.id)}</TooltipContent>
-                          </Tooltip>
-                        )}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm cursor-pointer">
+                              {getRoleFunctions(role.id)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{getFullRoleFunctions(role.id)}</TooltipContent>
+                        </Tooltip>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm">{new Date().toLocaleString()}</span>
