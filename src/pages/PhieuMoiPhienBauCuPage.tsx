@@ -183,7 +183,7 @@ export default function PhieuMoiPhienBauCuPage() {
         setToastMessage('Tham gia phiên bầu cử thành công!');
         setIsOtpModalOpen(false);
         setTimeout(() => {
-          navigate(`/app/elections/${phieuMoi?.cuocBauCuId}`);
+          navigate(`/app`);
         }, 2000);
       } catch (error) {
         handleError(error);
