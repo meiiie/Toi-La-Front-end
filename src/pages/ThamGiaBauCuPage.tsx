@@ -4,7 +4,7 @@ import type React from 'react';
 import { useState, useEffect, useCallback, useMemo, useReducer, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import VotedStamp from '../components/bophieu/VotedStamp';
 import EnhancedBallotCard from '../components/bophieu/EnhancedBallotCard';
 import BallotProcessingAnimation from '../components/bophieu/BallotProcessingAnimation';
@@ -74,6 +74,7 @@ import type { RootState } from '../store/store';
 import type { UngCuVien, BallotMetadata, ViTriUngCu } from '../store/types';
 
 import ErrorBoundary from '../components/ErrorBoundary';
+import BlockchainErrorFallback from '../components/blockchain/BlockchainErrorFallback';
 
 type Step = {
   id: string;
@@ -169,16 +170,6 @@ const errorReducer = (state: ErrorState, action: ErrorAction): ErrorState => {
     default:
       return state;
   }
-};
-
-// Update the parseVietnameseDate function to handle Vietnamese date format
-const parseVietnameseDate = (dateStr: string) => {
-  if (!dateStr) return new Date();
-
-  const [datePart, timePart] = dateStr.split(' ');
-  const [day, month, year] = datePart.split('/');
-  const [hour, minute] = timePart.split(':');
-  return new Date(+year, +month - 1, +day, +hour, +minute);
 };
 
 const ThamGiaBauCu: React.FC = () => {
@@ -1452,7 +1443,7 @@ const ThamGiaBauCu: React.FC = () => {
 
   useEffect(() => {
     if (phienBauCu?.ngayKetThuc) {
-      setElectionEndTime(parseVietnameseDate(phienBauCu.ngayKetThuc));
+      setElectionEndTime(new Date(phienBauCu.ngayKetThuc));
     } else {
       setElectionEndTime(new Date(Date.now() + 86400000));
     }
@@ -1637,7 +1628,7 @@ const ThamGiaBauCu: React.FC = () => {
   // Add vertical stepper component
   const VerticalStepper = () => (
     <div
-      className={`hidden lg:block sticky top-24 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl p-4 shadow-lg z-20 max-h-[80vh] overflow-y-auto ${showStepper ? '' : 'w-12'}`}
+      className={`hidden lg:block fixed left-4 top-1/2 transform -translate-y-1/2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl p-4 shadow-lg z-20 max-h-[80vh] overflow-y-auto ${showStepper ? '' : 'w-12'}`}
     >
       <div className="space-y-4">
         {steps.map((step, index) => {
@@ -1677,8 +1668,8 @@ const ThamGiaBauCu: React.FC = () => {
 
   // Add mobile stepper component
   const MobileStepper = () => (
-    <div className="lg:hidden sticky top-0 z-20 w-full overflow-x-auto scrollbar-none bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-2 border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
-      <div className="flex space-x-2 min-w-max px-1">
+    <div className="lg:hidden sticky top-0 z-20 w-full overflow-x-auto scrollbar-none bg-white/70 dark:bg-gray-800/70 backdrop-blur-md p-3 border-b border-gray-200/50 dark:border-gray-700/50">
+      <div className="flex space-x-4">
         {steps.map((step, index) => {
           const isActive = step.id === currentStep;
           const isCompleted = steps.findIndex((s) => s.id === currentStep) > index;
@@ -1686,37 +1677,21 @@ const ThamGiaBauCu: React.FC = () => {
           return (
             <div
               key={step.id}
-              className={`flex flex-col items-center justify-center p-1.5 rounded-lg ${
-                isActive
-                  ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/30'
-                  : 'border border-transparent'
-              } min-w-[60px] ${
-                isActive
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : isCompleted
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-gray-400 dark:text-gray-500'
-              }`}
+              className={`flex flex-col items-center justify-center min-w-[60px] ${isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}
             >
               <div className="flex-shrink-0">
                 {isCompleted ? (
-                  <CircleCheck className="h-4 w-4" />
+                  <CircleCheck className="h-5 w-5" />
                 ) : isActive ? (
-                  <div className="h-4 w-4 rounded-full bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 dark:border-blue-400 flex items-center justify-center">
-                    <span className="text-[8px] font-bold">{index + 1}</span>
+                  <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 dark:border-blue-400 flex items-center justify-center">
+                    <span className="text-[10px] font-bold">{index + 1}</span>
                   </div>
                 ) : (
-                  <Circle className="h-4 w-4" />
+                  <Circle className="h-5 w-5" />
                 )}
               </div>
               <p
-                className={`text-[9px] font-medium mt-1 ${
-                  isActive
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : isCompleted
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-gray-600 dark:text-gray-400'
-                }`}
+                className={`text-[10px] font-medium mt-1 ${isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}
               >
                 {step.title}
               </p>
@@ -1725,75 +1700,6 @@ const ThamGiaBauCu: React.FC = () => {
         })}
       </div>
     </div>
-  );
-  <div className="fixed bottom-4 right-4 z-50 lg:hidden">
-    <Button
-      size="sm"
-      variant="outline"
-      className="bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 shadow-lg rounded-full w-10 h-10 p-0 flex items-center justify-center"
-      onClick={toggleStepper}
-      title="Hiển thị/Ẩn các bước"
-    >
-      {showStepper ? <X className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-    </Button>
-  </div>;
-  isMobile && (
-    <div
-      className={`fixed inset-y-0 left-0 z-40 w-64 bg-white/95 dark:bg-gray-800/95 shadow-xl backdrop-blur-sm border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out ${showStepper ? 'translate-x-0' : '-translate-x-full'}`}
-    >
-      <div className="p-4 h-full overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-medium text-gray-900 dark:text-white">Các bước bầu cử</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => setShowStepper(false)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="space-y-4">
-          {steps.map((step, index) => {
-            const isActive = step.id === currentStep;
-            const isCompleted = steps.findIndex((s) => s.id === currentStep) > index;
-
-            return (
-              <div
-                key={step.id}
-                className={`flex items-start ${isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}
-              >
-                <div className="flex-shrink-0 mt-1">
-                  {isCompleted ? (
-                    <CircleCheck className="h-5 w-5" />
-                  ) : isActive ? (
-                    <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 dark:border-blue-400 flex items-center justify-center">
-                      <span className="text-xs font-bold">{index + 1}</span>
-                    </div>
-                  ) : (
-                    <Circle className="h-5 w-5" />
-                  )}
-                </div>
-                <div className="ml-3">
-                  <p
-                    className={`text-sm font-medium ${isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}
-                  >
-                    {step.title}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{step.description}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-  isMobile && showStepper && (
-    <div
-      className="fixed inset-0 bg-black/20 dark:bg-black/50 z-30 backdrop-blur-sm"
-      onClick={() => setShowStepper(false)}
-    />
   );
 
   // Enhanced error banner for blockchain issues
@@ -1838,34 +1744,34 @@ const ThamGiaBauCu: React.FC = () => {
     if (!blockchainError && !userFriendlyError) return null;
 
     return (
-      <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-red-200/50 dark:border-red-900/30 rounded-xl shadow-xl overflow-hidden mb-4 sm:mb-6">
+      <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-red-200/50 dark:border-red-900/30 rounded-xl shadow-xl overflow-hidden mb-6">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-orange-600"></div>
-        <CardContent className="p-3 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 text-center sm:text-left">
-            <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full mx-auto sm:mx-0">
-              <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+        <CardContent className="p-6">
+          <div className="flex flex-col items-center text-center sm:text-left sm:flex-row gap-4">
+            <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-full">
+              <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
             </div>
             <div className="space-y-2 flex-1">
-              <h3 className="text-base sm:text-lg font-medium text-red-800 dark:text-red-300">
+              <h3 className="text-lg font-medium text-red-800 dark:text-red-300">
                 {userFriendlyError?.title || 'Lỗi kết nối blockchain'}
               </h3>
-              <p className="text-red-700 dark:text-red-400 text-sm sm:text-base">
+              <p className="text-red-700 dark:text-red-400">
                 {userFriendlyError?.message || blockchainError}
               </p>
               {userFriendlyError?.suggestion && (
-                <p className="text-red-600 dark:text-red-400 text-xs sm:text-sm">
+                <p className="text-red-600 dark:text-red-400 text-sm">
                   {userFriendlyError.suggestion}
                 </p>
               )}
               {isUsingFallbackSession && (
-                <div className="bg-amber-50/80 dark:bg-amber-900/30 mt-2 p-2 sm:p-3 rounded-lg border border-amber-200/50 dark:border-amber-800/30">
-                  <p className="text-amber-700 dark:text-amber-400 text-xs sm:text-sm flex items-center">
-                    <Info className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                <div className="bg-amber-50/80 dark:bg-amber-900/30 mt-2 p-3 rounded-lg border border-amber-200/50 dark:border-amber-800/30">
+                  <p className="text-amber-700 dark:text-amber-400 text-sm flex items-center">
+                    <Info className="h-4 w-4 mr-2 flex-shrink-0" />
                     Hệ thống đang sử dụng phiên bầu cử mặc định (ID: {FALLBACK_SESSION_ID})
                   </p>
                 </div>
               )}
-              <div className="pt-2 sm:pt-3 flex flex-wrap gap-2 sm:gap-3 justify-center sm:justify-start">
+              <div className="pt-3 flex flex-wrap gap-3 justify-center sm:justify-start">
                 <Button
                   size="sm"
                   onClick={() => {
@@ -1878,18 +1784,18 @@ const ThamGiaBauCu: React.FC = () => {
                     fetchBallotsFromBlockchain(true);
                   }}
                   disabled={fetchAttempts >= MAX_FETCH_ATTEMPTS}
-                  className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm py-1 h-8"
+                  className="bg-red-600 hover:bg-red-700 text-white"
                 >
-                  <RefreshCw className="h-3 w-3 mr-1 sm:mr-2" />
+                  <RefreshCw className="h-4 w-4 mr-2" />
                   Thử lại
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={goToHome}
-                  className="border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-xs sm:text-sm py-1 h-8"
+                  className="border-red-200 dark:border-red-800 text-red-700 dark:text-red-400"
                 >
-                  <Home className="h-3 w-3 mr-1 sm:mr-2" />
+                  <Home className="h-4 w-4 mr-2" />
                   Về trang chủ
                 </Button>
               </div>
@@ -1909,7 +1815,7 @@ const ThamGiaBauCu: React.FC = () => {
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-6">
                 <Vote className="h-10 w-10 text-white" />
               </div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
                 Chào mừng bạn tham gia cuộc bầu cử
               </h2>
               <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
@@ -1926,7 +1832,7 @@ const ThamGiaBauCu: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-gray-50/70 dark:bg-gray-900/50 rounded-lg p-4 backdrop-blur-sm">
                     <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center">
                       <FileText className="h-4 w-4 text-blue-500 mr-1" />
@@ -2016,7 +1922,7 @@ const ThamGiaBauCu: React.FC = () => {
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-6">
                   <FileText className="h-10 w-10 text-white" />
                 </div>
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
                   Điều lệ bầu cử
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
@@ -2088,7 +1994,7 @@ const ThamGiaBauCu: React.FC = () => {
                 </CardContent>
               </Card>
 
-              <div className="flex flex-col sm:flex-row justify-between gap-2 w-full">
+              <div className="flex flex-col sm:flex-row justify-between gap-3">
                 <Button
                   variant="outline"
                   className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
@@ -2118,7 +2024,7 @@ const ThamGiaBauCu: React.FC = () => {
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-6">
                 <Shield className="h-10 w-10 text-white" />
               </div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
                 Xác thực danh tính
               </h2>
               <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
@@ -2330,7 +2236,7 @@ const ThamGiaBauCu: React.FC = () => {
               </CardContent>
             </Card>
 
-            <div className="flex flex-col sm:flex-row justify-between gap-2 w-full">
+            <div className="flex flex-col sm:flex-row justify-between gap-3">
               <Button
                 variant="outline"
                 className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
@@ -2368,7 +2274,7 @@ const ThamGiaBauCu: React.FC = () => {
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-6">
                 <Vote className="h-10 w-10 text-white" />
               </div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
                 Bỏ phiếu bầu
               </h2>
               <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
@@ -2461,7 +2367,7 @@ const ThamGiaBauCu: React.FC = () => {
               !loadingCandidates &&
               ballots.length > 0 &&
               candidates.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
@@ -2486,7 +2392,6 @@ const ThamGiaBauCu: React.FC = () => {
                               tokenURI: ballot.tokenURI,
                             })
                           }
-                          className="sm:flex-row flex-col"
                         />
                       ))}
                     </div>
@@ -2512,7 +2417,6 @@ const ThamGiaBauCu: React.FC = () => {
                           showBlockchainInfo={true}
                           onVote={() => setSelectedCandidate(candidate)}
                           isActiveElection={true}
-                          className="sm:flex-row flex-col"
                         />
                       ))}
                     </div>
@@ -2532,7 +2436,7 @@ const ThamGiaBauCu: React.FC = () => {
                   Xác nhận bỏ phiếu
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div className="flex items-center p-3 bg-white/70 dark:bg-gray-800/30 rounded-lg border border-green-200/50 dark:border-green-800/20">
                     <div className="flex-shrink-0 h-10 w-10 bg-green-100 dark:bg-green-800/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mr-3">
                       <User className="h-5 w-5" />
@@ -2656,7 +2560,7 @@ const ThamGiaBauCu: React.FC = () => {
               </motion.div>
             )}
 
-            <div className="flex flex-col sm:flex-row justify-between gap-2 w-full pt-2">
+            <div className="flex flex-col sm:flex-row justify-between gap-3 pt-2">
               <Button
                 variant="outline"
                 className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
@@ -2693,7 +2597,7 @@ const ThamGiaBauCu: React.FC = () => {
               <motion.h2
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600"
+                className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600"
               >
                 Đang xử lý giao dịch
               </motion.h2>
@@ -2788,7 +2692,7 @@ const ThamGiaBauCu: React.FC = () => {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-500 to-emerald-600"
+                className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-500 to-emerald-600"
               >
                 Bỏ phiếu thành công
               </motion.h2>
@@ -2886,7 +2790,7 @@ const ThamGiaBauCu: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-gradient-to-br from-gray-50/90 to-gray-100/90 dark:from-gray-900/50 dark:to-gray-800/50 rounded-lg border border-gray-200/50 dark:border-gray-700/50 p-4 backdrop-blur-sm">
                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center">
                         <Ticket className="h-4 w-4 text-blue-500 mr-1.5" />
@@ -2970,7 +2874,7 @@ const ThamGiaBauCu: React.FC = () => {
               </CardContent>
             </Card>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-3 w-full">
+            <div className="flex justify-center gap-4">
               <Button
                 className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
                 onClick={() => navigate(`/app/user-elections/elections/${cuocBauCuId}`)}
@@ -3113,82 +3017,8 @@ const ThamGiaBauCu: React.FC = () => {
         {/* Mobile Stepper */}
         <MobileStepper />
 
-        {/* Mobile toggle for stepper */}
-        <div className="fixed bottom-4 right-4 z-50 lg:hidden">
-          <Button
-            size="sm"
-            variant="outline"
-            className="bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 shadow-lg rounded-full w-10 h-10 p-0 flex items-center justify-center"
-            onClick={toggleStepper}
-            title="Hiển thị/Ẩn các bước"
-          >
-            {showStepper ? <X className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-          </Button>
-        </div>
-
-        {/* Mobile slide-in stepper */}
-        {isMobile && (
-          <div
-            className={`fixed inset-y-0 left-0 z-40 w-64 bg-white/95 dark:bg-gray-800/95 shadow-xl backdrop-blur-sm border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out ${showStepper ? 'translate-x-0' : '-translate-x-full'}`}
-          >
-            <div className="p-4 h-full overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-medium text-gray-900 dark:text-white">Các bước bầu cử</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => setShowStepper(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="space-y-4">
-                {steps.map((step, index) => {
-                  const isActive = step.id === currentStep;
-                  const isCompleted = steps.findIndex((s) => s.id === currentStep) > index;
-
-                  return (
-                    <div
-                      key={step.id}
-                      className={`flex items-start ${isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}
-                    >
-                      <div className="flex-shrink-0 mt-1">
-                        {isCompleted ? (
-                          <CircleCheck className="h-5 w-5" />
-                        ) : isActive ? (
-                          <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 dark:border-blue-400 flex items-center justify-center">
-                            <span className="text-xs font-bold">{index + 1}</span>
-                          </div>
-                        ) : (
-                          <Circle className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div className="ml-3">
-                        <p
-                          className={`text-sm font-medium ${isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}
-                        >
-                          {step.title}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {step.description}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Backdrop for mobile stepper */}
-        {isMobile && showStepper && (
-          <div
-            className="fixed inset-0 bg-black/20 dark:bg-black/50 z-30 backdrop-blur-sm"
-            onClick={() => setShowStepper(false)}
-          />
-        )}
+        {/* Vertical Stepper for Desktop */}
+        <VerticalStepper />
 
         {/* Home button in top-right corner */}
         <div className="fixed top-4 right-4 z-50">
@@ -3258,23 +3088,13 @@ const ThamGiaBauCu: React.FC = () => {
           </div>
         )}
 
-        {/* Main content container with proper grid layout */}
-        <div className="container mx-auto px-3 sm:px-4 lg:pl-0 lg:pr-4 pt-6 sm:pt-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6">
-            {/* First column: Stepper (only on desktop) */}
-            <div className="hidden lg:block">
-              <VerticalStepper />
-            </div>
+        {/* Main content container with padding adjustment for stepper */}
+        <div className="container mx-auto p-4 pt-8 lg:pl-32 relative z-10">
+          {/* Show warning banner for fallback mode */}
+          {isUsingFallbackSession && <BlockchainErrorBanner />}
 
-            {/* Second column: Main content */}
-            <div>
-              {/* Show warning banner for fallback mode */}
-              {isUsingFallbackSession && <BlockchainErrorBanner />}
-
-              {/* Main content */}
-              {renderStepContent()}
-            </div>
-          </div>
+          {/* Main content */}
+          {renderStepContent()}
         </div>
 
         {/* Token approval modal */}
