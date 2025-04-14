@@ -810,14 +810,14 @@ const SessionStartTab: React.FC<SessionStartTabProps> = ({
                 : 'bg-gray-400 dark:bg-gray-700'
             } text-white transition-all duration-300`}
           >
-            {isStartingSession ? (
+            {!isStartingSession ? (
               <Loader className="mr-2 h-4 w-4 animate-spin" />
             ) : sessionStatus.isActive ? (
               <CheckCircle2 className="mr-2 h-4 w-4" />
             ) : (
               <Play className="mr-2 h-4 w-4" />
             )}
-            {isStartingSession
+            {!isStartingSession
               ? 'Đang bắt đầu phiên...'
               : sessionStatus.isActive
                 ? 'Phiên đã bắt đầu'
