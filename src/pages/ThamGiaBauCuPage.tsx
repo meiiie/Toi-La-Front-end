@@ -2685,45 +2685,35 @@ const ThamGiaBauCu: React.FC = () => {
                 {!tokenApprovalStatus.isApproved ? (
                   <div className="space-y-4">
                     <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30">
-                      <div className="flex items-start">
-                        <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mr-3 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h4 className="font-medium text-amber-800 dark:text-amber-300">
-                            Cần phê duyệt token trước
-                          </h4>
-                          <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                            Phê duyệt token HLU là bước cần thiết để chi trả phí bỏ phiếu trên
-                            blockchain. Đây là bước bảo mật quan trọng để đảm bảo tính minh bạch của
-                            quá trình bầu cử.
+                      <p className="text-amber-800 dark:text-amber-300 font-medium mb-2">
+                        Cần phê duyệt token trước
+                      </p>
+                      <p className="text-amber-700 dark:text-amber-400 text-sm mb-3">
+                        Phê duyệt token HLU là bước cần thiết để chi trả phí bỏ phiếu trên
+                        blockchain. Đây là bước bảo mật quan trọng để đảm bảo tính minh bạch của quá
+                        trình bầu cử.
+                      </p>
+                      <div className="grid grid-cols-2 gap-4 my-3">
+                        <div className="bg-white/80 dark:bg-gray-800/50 p-3 rounded-lg border border-amber-200/50 dark:border-amber-800/20">
+                          <p className="text-gray-500 dark:text-gray-400 text-xs mb-1">Số dư:</p>
+                          <p
+                            className={`font-medium ${Number(tokenApprovalStatus.hluBalance) >= 1 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                          >
+                            {tokenApprovalStatus.hluBalance} HLU{' '}
+                            {Number(tokenApprovalStatus.hluBalance) < 1 && '(Cần ít nhất 1 HLU)'}
                           </p>
-
-                          <div className="mt-3 space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span>Số dư:</span>
-                              <span
-                                className={
-                                  Number(tokenApprovalStatus.hluBalance) >= 1
-                                    ? 'text-green-600 dark:text-green-400 font-medium'
-                                    : 'text-red-600 dark:text-red-400 font-medium'
-                                }
-                              >
-                                {tokenApprovalStatus.hluBalance} HLU (Cần ít nhất 1 HLU)
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Đã phê duyệt cho QuanLyPhieu:</span>
-                              <span
-                                className={
-                                  Number(tokenApprovalStatus.allowanceForQuanLyPhieu) >= 3
-                                    ? 'text-green-600 dark:text-green-400 font-medium'
-                                    : 'text-red-600 dark:text-red-400 font-medium'
-                                }
-                              >
-                                {tokenApprovalStatus.allowanceForQuanLyPhieu} HLU (Cần ít nhất 3
-                                HLU)
-                              </span>
-                            </div>
-                          </div>
+                        </div>
+                        <div className="bg-white/80 dark:bg-gray-800/50 p-3 rounded-lg border border-amber-200/50 dark:border-amber-800/20">
+                          <p className="text-gray-500 dark:text-gray-400 text-xs mb-1">
+                            Đã phê duyệt cho QuanLyPhieu:
+                          </p>
+                          <p
+                            className={`font-medium ${Number(tokenApprovalStatus.allowanceForQuanLyPhieu) >= 3 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                          >
+                            {tokenApprovalStatus.allowanceForQuanLyPhieu} HLU{' '}
+                            {Number(tokenApprovalStatus.allowanceForQuanLyPhieu) < 3 &&
+                              '(Cần ít nhất 3 HLU)'}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -2736,10 +2726,8 @@ const ThamGiaBauCu: React.FC = () => {
                       }}
                       disabled={isSubmitting}
                     >
-                      <div className="flex items-center justify-center">
-                        <Zap className="mr-2 h-5 w-5" />
-                        <span className="text-lg">Phê duyệt token HLU</span>
-                      </div>
+                      <Shield className="mr-2 h-5 w-5" />
+                      Phê duyệt token HLU
                     </Button>
                   </div>
                 ) : (
@@ -2751,12 +2739,12 @@ const ThamGiaBauCu: React.FC = () => {
                     {isSubmitting ? (
                       <div className="flex items-center justify-center">
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        <span className="text-lg">Đang xử lý giao dịch...</span>
+                        Đang xử lý...
                       </div>
                     ) : (
                       <div className="flex items-center justify-center">
                         <Check className="mr-2 h-5 w-5" />
-                        <span className="text-lg">Xác nhận bỏ phiếu</span>
+                        Xác nhận bỏ phiếu
                       </div>
                     )}
                   </Button>
