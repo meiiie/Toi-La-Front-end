@@ -18,6 +18,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../store/store';
 import { getViByAddress } from '../store/sliceBlockchain/viBlockchainSlice';
 import apiClient from '../api/apiClient';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // Các màu sắc cho biểu đồ
 const COLORS = [
@@ -1369,6 +1371,263 @@ const KetQuaBauCu = () => {
     }
   };
 
+  // Tạo và tải xuống báo cáo PDF
+  const handleDownloadPDF = async () => {
+    if (!selectedPhien || !sessionInfo) {
+      setError('Vui lòng chọn phiên bầu cử để tải kết quả');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      showMessage('Đang chuẩn bị tài liệu PDF...');
+
+      // Create a new PDF document in A4 format
+      const pdf = new jsPDF('portrait', 'mm', 'a4');
+
+      // Add header
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(16);
+      pdf.text('KẾT QUẢ BẦU CỬ BLOCKCHAIN', 105, 15, { align: 'center' });
+
+      if (electionInfo) {
+        pdf.setFontSize(14);
+        pdf.text(electionInfo.name, 105, 22, { align: 'center' });
+      }
+
+      // Add generation info and timestamp
+      const now = new Date().toLocaleString();
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Thời gian xuất báo cáo: ${now}`, 105, 30, { align: 'center' });
+      pdf.text(`Phiên bầu cử: #${selectedPhien}`, 105, 35, { align: 'center' });
+
+      // Add session info
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('THÔNG TIN PHIÊN BẦU CỬ', 15, 45);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+
+      const sessionStatus = sessionInfo.isActive ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc';
+      pdf.text(`Trạng thái: ${sessionStatus}`, 15, 52);
+      pdf.text(`Thời gian bắt đầu: ${sessionInfo.startTime}`, 15, 57);
+      pdf.text(`Thời gian kết thúc: ${sessionInfo.endTime}`, 15, 62);
+      pdf.text(`Số cử tri: ${sessionInfo.voterCount}`, 15, 67);
+      pdf.text(`Số ứng viên: ${sessionInfo.candidateCount}`, 15, 72);
+      pdf.text(`Số ứng viên trúng cử: ${sessionInfo.electedCandidates?.length || 0}`, 15, 77);
+      pdf.text(
+        `Tỷ lệ tham gia: ${progress.percentage}% (${progress.voted}/${progress.total})`,
+        15,
+        82,
+      );
+
+      // Add progress bar
+      pdf.setDrawColor(200, 200, 200);
+      pdf.setFillColor(200, 200, 200);
+      pdf.rect(15, 87, 180, 5, 'F');
+
+      // Select color based on percentage
+      if (progress.percentage >= 80) {
+        pdf.setFillColor(16, 185, 129); // emerald-500
+      } else if (progress.percentage >= 50) {
+        pdf.setFillColor(37, 99, 235); // blue-600
+      } else {
+        pdf.setFillColor(245, 158, 11); // amber-500
+      }
+
+      pdf.rect(15, 87, 180 * (progress.percentage / 100), 5, 'F');
+
+      // Current Y position for content
+      let yPosition = 100;
+
+      // Add Results title
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('KẾT QUẢ PHIÊN BẦU CỬ', 15, yPosition);
+      yPosition += 10;
+
+      // Get charts container element
+      const chartContainer = document.getElementById('result-charts-container');
+      if (chartContainer && votingResults.length > 0) {
+        const chartCanvas = await html2canvas(chartContainer, {
+          scale: 2, // Higher quality
+          useCORS: true,
+          logging: false,
+        });
+
+        // Add chart image to PDF
+        const chartImgData = chartCanvas.toDataURL('image/png');
+        pdf.addImage(chartImgData, 'PNG', 15, yPosition, 180, 85);
+        yPosition += 90;
+      }
+
+      // Create table for results
+      if (votingResults.length > 0) {
+        // Check if we need a new page
+        if (yPosition > 240) {
+          pdf.addPage();
+          yPosition = 15;
+        }
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('BẢNG KẾT QUẢ CHI TIẾT', 15, yPosition);
+        yPosition += 8;
+
+        // Table headers
+        pdf.setFillColor(73, 85, 156); // indigo color
+        pdf.setTextColor(255, 255, 255);
+        pdf.rect(15, yPosition, 10, 8, 'F');
+        pdf.rect(25, yPosition, 70, 8, 'F');
+        pdf.rect(95, yPosition, 30, 8, 'F');
+        pdf.rect(125, yPosition, 30, 8, 'F');
+        pdf.rect(155, yPosition, 40, 8, 'F');
+
+        pdf.setFontSize(9);
+        pdf.text('#', 20, yPosition + 5, { align: 'center' });
+        pdf.text('Địa chỉ', 60, yPosition + 5, { align: 'center' });
+        pdf.text('Số phiếu', 110, yPosition + 5, { align: 'center' });
+        pdf.text('Tỷ lệ', 140, yPosition + 5, { align: 'center' });
+        pdf.text('Trạng thái', 175, yPosition + 5, { align: 'center' });
+
+        yPosition += 8;
+
+        // Table rows
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
+
+        let rowColor = false;
+        votingResults.forEach((result, index) => {
+          // Check if we need a new page
+          if (yPosition > 280) {
+            pdf.addPage();
+            yPosition = 15;
+
+            // Recreate headers on new page
+            pdf.setFillColor(73, 85, 156);
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(9);
+            pdf.setFont('helvetica', 'bold');
+
+            pdf.rect(15, yPosition, 10, 8, 'F');
+            pdf.rect(25, yPosition, 70, 8, 'F');
+            pdf.rect(95, yPosition, 30, 8, 'F');
+            pdf.rect(125, yPosition, 30, 8, 'F');
+            pdf.rect(155, yPosition, 40, 8, 'F');
+
+            pdf.text('#', 20, yPosition + 5, { align: 'center' });
+            pdf.text('Địa chỉ', 60, yPosition + 5, { align: 'center' });
+            pdf.text('Số phiếu', 110, yPosition + 5, { align: 'center' });
+            pdf.text('Tỷ lệ', 140, yPosition + 5, { align: 'center' });
+            pdf.text('Trạng thái', 175, yPosition + 5, { align: 'center' });
+
+            yPosition += 8;
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            rowColor = false;
+          }
+
+          // Row background
+          if (result.isElected) {
+            pdf.setFillColor(209, 250, 229); // emerald-100
+            pdf.rect(15, yPosition, 180, 7, 'F');
+          } else if (rowColor) {
+            pdf.setFillColor(243, 244, 246); // gray-100
+            pdf.rect(15, yPosition, 180, 7, 'F');
+          }
+          rowColor = !rowColor;
+
+          // Row content
+          pdf.text((index + 1).toString(), 20, yPosition + 4, { align: 'center' });
+          pdf.text(result.displayAddress, 60, yPosition + 4, { align: 'center' });
+          pdf.text(result.votes.toString(), 110, yPosition + 4, { align: 'center' });
+          pdf.text(`${result.percentage}%`, 140, yPosition + 4, { align: 'center' });
+
+          const status = result.isElected
+            ? sessionInfo.isActive
+              ? 'Đang kiểm'
+              : 'Trúng cử'
+            : sessionInfo.isActive
+              ? 'Đang kiểm'
+              : 'Chưa trúng';
+          pdf.text(status, 175, yPosition + 4, { align: 'center' });
+
+          yPosition += 7;
+        });
+      }
+
+      // Add elected candidates section if applicable
+      if (
+        !sessionInfo.isActive &&
+        sessionInfo.electedCandidates &&
+        sessionInfo.electedCandidates.length > 0
+      ) {
+        // Check if we need a new page
+        if (yPosition > 240) {
+          pdf.addPage();
+          yPosition = 15;
+        }
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('DANH SÁCH TRÚNG CỬ', 15, yPosition + 15);
+        yPosition += 25;
+
+        // Add elected candidates in a nice format
+        sessionInfo.electedCandidates.forEach((address, index) => {
+          const candidateInfo = votingResults.find((r) => r.address === address);
+
+          // Check if we need a new page
+          if (yPosition > 270) {
+            pdf.addPage();
+            yPosition = 15;
+
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('DANH SÁCH TRÚNG CỬ (TIẾP THEO)', 15, yPosition);
+            yPosition += 10;
+          }
+
+          pdf.setDrawColor(16, 185, 129); // emerald-500
+          pdf.setFillColor(240, 255, 244); // emerald-50
+          pdf.rect(15, yPosition, 180, 20, 'FD');
+
+          pdf.setFontSize(10);
+          pdf.setTextColor(0, 0, 0);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`Ứng viên #${index + 1}:`, 25, yPosition + 7);
+          pdf.setFont('helvetica', 'normal');
+
+          const shortAddress = `${address.substring(0, 18)}...${address.substring(address.length - 8)}`;
+          pdf.text(shortAddress, 70, yPosition + 7);
+
+          if (candidateInfo) {
+            pdf.text(
+              `Số phiếu: ${candidateInfo.votes} (${candidateInfo.percentage}% tổng số phiếu)`,
+              25,
+              yPosition + 15,
+            );
+          }
+
+          yPosition += 25;
+        });
+      }
+
+      // Save the PDF
+      pdf.save(`ket-qua-bau-cu-phien-${selectedPhien}.pdf`);
+
+      setIsLoading(false);
+      setSuccessAlert('Đã tạo báo cáo PDF thành công!');
+    } catch (error) {
+      console.error('Lỗi khi tạo PDF:', error);
+      setError(`Không thể tạo tệp PDF: ${error instanceof Error ? error.message : String(error)}`);
+      setIsLoading(false);
+    }
+  };
+
   // RENDER LOGIC
   if (isLoading) {
     return (
@@ -1494,6 +1753,54 @@ const KetQuaBauCu = () => {
                     Làm mới
                   </span>
                 )}
+              </button>
+
+              {/* PDF Download button */}
+              <button
+                onClick={handleDownloadPDF}
+                className="flex-1 sm:flex-auto px-3 sm:px-5 py-2 sm:py-3 bg-blue-600 dark:bg-blue-700 text-white text-sm sm:text-base rounded-lg hover:bg-blue-500 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-lg shadow-blue-600/20 dark:shadow-blue-900/50"
+                disabled={isChangingSession || !selectedPhien || isLoading}
+              >
+                <span className="flex items-center justify-center">
+                  {isLoading ? (
+                    <svg
+                      className="animate-spin -ml-1 mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  )}
+                  <span className="whitespace-nowrap">Xuất PDF</span>
+                </span>
               </button>
 
               <button
@@ -1889,7 +2196,10 @@ const KetQuaBauCu = () => {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 mb-6 sm:mb-10">
+                  <div
+                    id="result-charts-container"
+                    className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 mb-6 sm:mb-10"
+                  >
                     {/* Biểu đồ cột với hiệu ứng glass */}
                     <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-lg h-64 sm:h-96">
                       <h3 className="text-center text-base sm:text-lg font-medium mb-2 sm:mb-3 text-indigo-700 dark:text-indigo-300">
@@ -2022,7 +2332,10 @@ const KetQuaBauCu = () => {
                   </div>
 
                   {/* Bảng chi tiết với thiết kế responsive */}
-                  <div className="overflow-hidden rounded-xl shadow-xl border border-gray-200 dark:border-indigo-900/50">
+                  <div
+                    id="results-table-container"
+                    className="overflow-hidden rounded-xl shadow-xl border border-gray-200 dark:border-indigo-900/50"
+                  >
                     <div className="overflow-x-auto -mx-4 sm:mx-0">
                       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead className="bg-indigo-50 dark:bg-indigo-900/50">
