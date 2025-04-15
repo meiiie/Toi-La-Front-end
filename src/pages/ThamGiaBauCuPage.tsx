@@ -1230,20 +1230,83 @@ const ThamGiaBauCu: React.FC = () => {
       return;
     }
 
-    // First, directly call checkApprovalStatus to get the latest state
-    const currentlyApproved = await checkApprovalStatus();
+    // Log current token approval status
+    console.log('Trạng thái phê duyệt token hiện tại:', tokenApprovalStatus);
 
-    console.log('Current approval status before voting:', currentlyApproved);
+    // QUAN TRỌNG: Chỉ cần kiểm tra những allowance cần thiết cho bỏ phiếu
+    // => Bypass việc kiểm tra Factory allowance
+    let currentlyApproved = tokenApprovalStatus.isApproved;
 
-    // Check if token approval is needed
+    // Nếu chưa được phê duyệt theo state, thực hiện kiểm tra trực tiếp từ blockchain
+    if (!currentlyApproved) {
+      try {
+        console.log('Đang kiểm tra trạng thái phê duyệt từ blockchain...');
+        const timestamp = Date.now();
+
+        // Lấy thông tin từ blockchain
+        const quanLyPhieuResponse = await apiClient.get(
+          `/api/Blockchain/check-contract-allowance?scwAddress=${walletInfo.diaChiVi}&contractAddress=${contractAddresses.quanLyPhieuBauAddress || '0x9c244B5E1F168510B9b812573b1B667bd1E654c8'}&_t=${timestamp}`,
+        );
+        const paymasterResponse = await apiClient.get(
+          `/api/Blockchain/check-allowance?scwAddress=${walletInfo.diaChiVi}&spenderType=paymaster&_t=${timestamp}`,
+        );
+
+        // Lấy balance
+        const balanceResponse = await apiClient.get(
+          `/api/Blockchain/token-balance?scwAddress=${walletInfo.diaChiVi}&_t=${timestamp}`,
+        );
+
+        // Parse giá trị
+        const quanLyPhieuAllowance = Number(quanLyPhieuResponse.data?.allowance || '0');
+        const paymasterAllowance = Number(paymasterResponse.data?.allowance || '0');
+        const hluBalance = Number(balanceResponse.data?.balance || '0');
+
+        console.log(
+          `Dữ liệu từ blockchain - QuanLyPhieu: ${quanLyPhieuAllowance}, Paymaster: ${paymasterAllowance}, Balance: ${hluBalance}`,
+        );
+
+        // CHỈ kiểm tra điều kiện cần thiết cho bỏ phiếu
+        // Lưu ý: KHÔNG kiểm tra Factory allowance
+        const hasQuanLyPhieuAllowance = quanLyPhieuAllowance >= 3; // cần ít nhất 3 HLU
+        const hasPaymasterAllowance = paymasterAllowance >= 1; // cần ít nhất 1 HLU
+        const hasMinimumBalance = hluBalance >= 1; // cần ít nhất 1 HLU
+
+        // Phê duyệt nếu có đủ các allowance cần thiết
+        currentlyApproved = hasQuanLyPhieuAllowance && hasPaymasterAllowance && hasMinimumBalance;
+
+        console.log(
+          `Kết quả kiểm tra trực tiếp từ blockchain: ${currentlyApproved ? 'ĐÃ PHÊ DUYỆT' : 'CHƯA PHÊ DUYỆT'}`,
+        );
+
+        // Cập nhật state nếu trạng thái từ blockchain khác với state hiện tại
+        if (currentlyApproved !== tokenApprovalStatus.isApproved) {
+          console.log('Cập nhật lại state với trạng thái mới từ blockchain');
+          setTokenApprovalStatus({
+            hluBalance: hluBalance.toString(),
+            allowanceForQuanLyPhieu: quanLyPhieuAllowance.toString(),
+            isApproved: currentlyApproved,
+          });
+        }
+      } catch (error) {
+        console.error('Lỗi khi kiểm tra phê duyệt token:', error);
+        // Tiếp tục với giá trị từ state hiện tại
+      }
+    }
+
+    // Kiểm tra phê duyệt sau double-check
     if (!currentlyApproved) {
       console.log('Token approval needed, opening modal');
+
+      // Reset lại trạng thái hủy phê duyệt
+      setApprovalCancelled(false);
+
+      // Mở modal phê duyệt
       setShowTokenApprovalModal(true);
       return;
     }
 
-    // If user cancelled approval, don't proceed with voting
-    if (!currentlyApproved && approvalCancelled) {
+    // Nếu người dùng đã hủy phê duyệt trước đó
+    if (approvalCancelled) {
       toast({
         variant: 'destructive',
         title: 'Phê duyệt token chưa hoàn tất',
@@ -3164,11 +3227,17 @@ const ThamGiaBauCu: React.FC = () => {
         `Direct API responses - QuanLyPhieu: ${quanLyPhieuAllowance}, Paymaster: ${paymasterAllowance}, Balance: ${hluBalance}`,
       );
 
-      // Check if all requirements are met - use same logic as modal
+      // Check if all requirements are met - CHỈNH SỬA: LOẠI BỎ YÊU CẦU VỀ FACTORY ALLOWANCE
       const quanLyPhieuRequirementMet = quanLyPhieuAllowance >= 3; // Requires 3 HLU
       const paymasterRequirementMet = paymasterAllowance >= 1; // Requires 1 HLU
+      const hasMinimumBalance = Number(hluBalance) >= 1; // Requires at least 1 HLU
 
-      const isApproved = quanLyPhieuRequirementMet && paymasterRequirementMet;
+      // Chỉ kiểm tra các điều kiện cần thiết cho việc bỏ phiếu
+      const isApproved = quanLyPhieuRequirementMet && paymasterRequirementMet && hasMinimumBalance;
+
+      console.log(
+        `Approval status - QuanLyPhieu: ${quanLyPhieuRequirementMet ? 'OK' : 'MISSING'}, Paymaster: ${paymasterRequirementMet ? 'OK' : 'MISSING'}, Balance: ${hasMinimumBalance ? 'OK' : 'INSUFFICIENT'}, Overall: ${isApproved ? 'APPROVED' : 'NOT APPROVED'}`,
+      );
 
       // Update the token approval status
       setTokenApprovalStatus({
