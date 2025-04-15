@@ -531,27 +531,30 @@ const ThamGiaBauCu: React.FC = () => {
   }, [walletInfo, contractAddresses, sessionKey, currentStep, getSessionKey]);
 
   const handleBalancesUpdated = useCallback((balances: any) => {
-    console.log('Updated token approval status:', balances);
-    const requiredAmount = 1;
-    const quanLyPhieuRequiredAmount = 3; // Required amount for QuanLyPhieuBau
+    console.log('Raw updated token approval status:', balances);
 
-    // Check if all required allowances are sufficient
-    const isApproved =
-      Number(balances.allowanceForQuanLyPhieu || balances.allowanceForPaymaster || '0') >=
-        requiredAmount &&
-      Number(balances.allowanceForQuanLyPhieu || '0') >= quanLyPhieuRequiredAmount;
+    // Extract allowances with proper fallbacks
+    const paymasterAllowance = Number(balances.allowanceForPaymaster || '0');
+    const quanLyPhieuAllowance = Number(balances.allowanceForQuanLyPhieu || '0');
+
+    // Use the same requirements as in the modal
+    const paymasterRequirementMet = paymasterAllowance >= 1; // Requires 1 HLU
+    const quanLyPhieuRequirementMet = quanLyPhieuAllowance >= 3; // Requires 3 HLU
+
+    const isApproved = paymasterRequirementMet && quanLyPhieuRequirementMet;
+
+    console.log(
+      `Token approval status: ` +
+        `Paymaster: ${paymasterAllowance}/${1} HLU (${paymasterRequirementMet ? 'met' : 'not met'}), ` +
+        `QuanLyPhieu: ${quanLyPhieuAllowance}/${3} HLU (${quanLyPhieuRequirementMet ? 'met' : 'not met'}), ` +
+        `Overall: ${isApproved ? 'APPROVED' : 'NOT APPROVED'}`,
+    );
 
     setTokenApprovalStatus({
       hluBalance: balances.hluBalance || '0',
-      allowanceForQuanLyPhieu:
-        balances.allowanceForQuanLyPhieu || balances.allowanceForPaymaster || '0',
+      allowanceForQuanLyPhieu: quanLyPhieuAllowance.toString(),
       isApproved,
     });
-
-    // Log for debugging
-    console.log(
-      `Token approval status updated: paymaster=${Number(balances.allowanceForPaymaster || '0')}, quanLyPhieu=${Number(balances.allowanceForQuanLyPhieu || '0')}, isApproved=${isApproved}`,
-    );
   }, []);
 
   const handleApproveSuccess = useCallback(() => {
@@ -1227,12 +1230,14 @@ const ThamGiaBauCu: React.FC = () => {
       return;
     }
 
-    // First, recheck approval status to ensure it's current
+    // First, directly call checkApprovalStatus to get the latest state
     const currentlyApproved = await checkApprovalStatus();
 
+    console.log('Current approval status before voting:', currentlyApproved);
+
     // Check if token approval is needed
-    if (!currentlyApproved && !approvalCancelled) {
-      console.log('Token approval needed but not yet approved');
+    if (!currentlyApproved) {
+      console.log('Token approval needed, opening modal');
       setShowTokenApprovalModal(true);
       return;
     }
@@ -2693,33 +2698,29 @@ const ThamGiaBauCu: React.FC = () => {
                           </p>
 
                           <div className="mt-3 space-y-2 text-sm">
-                            <div className="flex items-center">
+                            <div className="flex justify-between">
+                              <span>Số dư:</span>
                               <span
-                                className={`inline-flex items-center ${Number(tokenApprovalStatus.hluBalance) >= 1 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                                className={
+                                  Number(tokenApprovalStatus.hluBalance) >= 1
+                                    ? 'text-green-600 dark:text-green-400 font-medium'
+                                    : 'text-red-600 dark:text-red-400 font-medium'
+                                }
                               >
-                                {Number(tokenApprovalStatus.hluBalance) >= 1 ? (
-                                  <Check className="h-4 w-4 mr-1" />
-                                ) : (
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                )}
-                                Số dư: {tokenApprovalStatus.hluBalance} HLU
-                                {Number(tokenApprovalStatus.hluBalance) < 1 &&
-                                  ' (Cần ít nhất 1 HLU)'}
+                                {tokenApprovalStatus.hluBalance} HLU (Cần ít nhất 1 HLU)
                               </span>
                             </div>
-
-                            <div className="flex items-center">
+                            <div className="flex justify-between">
+                              <span>Đã phê duyệt cho QuanLyPhieu:</span>
                               <span
-                                className={`inline-flex items-center ${Number(tokenApprovalStatus.allowanceForQuanLyPhieu) >= 1 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}
+                                className={
+                                  Number(tokenApprovalStatus.allowanceForQuanLyPhieu) >= 3
+                                    ? 'text-green-600 dark:text-green-400 font-medium'
+                                    : 'text-red-600 dark:text-red-400 font-medium'
+                                }
                               >
-                                {Number(tokenApprovalStatus.allowanceForQuanLyPhieu) >= 1 ? (
-                                  <Check className="h-4 w-4 mr-1" />
-                                ) : (
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                )}
-                                Đã phê duyệt: {tokenApprovalStatus.allowanceForQuanLyPhieu} HLU
-                                {Number(tokenApprovalStatus.allowanceForQuanLyPhieu) < 1 &&
-                                  ' (Cần phê duyệt ít nhất 1 HLU)'}
+                                {tokenApprovalStatus.allowanceForQuanLyPhieu} HLU (Cần ít nhất 3
+                                HLU)
                               </span>
                             </div>
                           </div>
@@ -2730,7 +2731,7 @@ const ThamGiaBauCu: React.FC = () => {
                     <Button
                       className="w-full py-6 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
                       onClick={() => {
-                        setApprovalCancelled(false); // Reset cancelled state when opening modal
+                        setApprovalCancelled(false);
                         setShowTokenApprovalModal(true);
                       }}
                       disabled={isSubmitting}
@@ -3137,16 +3138,24 @@ const ThamGiaBauCu: React.FC = () => {
   // Add a new function to check approval status from the blockchain
   const checkApprovalStatus = useCallback(async () => {
     if (!walletInfo?.diaChiVi || !contractAddresses.quanLyPhieuBauAddress) {
-      return;
+      console.log('Cannot check approval: Missing wallet or contract address');
+      return false;
     }
 
+    console.log(
+      'Checking token approval status for wallet:',
+      walletInfo.diaChiVi,
+      'and contract:',
+      contractAddresses.quanLyPhieuBauAddress,
+    );
+
     try {
-      // Check allowance for QuanLyPhieuBau
+      // Check QuanLyPhieuBau allowance
       const quanLyPhieuResponse = await apiClient.get(
         `/api/Blockchain/check-contract-allowance?scwAddress=${walletInfo.diaChiVi}&contractAddress=${contractAddresses.quanLyPhieuBauAddress}`,
       );
 
-      // Check allowance for Paymaster
+      // Check paymaster allowance
       const paymasterResponse = await apiClient.get(
         `/api/Blockchain/check-allowance?scwAddress=${walletInfo.diaChiVi}&spenderType=paymaster`,
       );
@@ -3156,15 +3165,31 @@ const ThamGiaBauCu: React.FC = () => {
         `/api/Blockchain/token-balance?scwAddress=${walletInfo.diaChiVi}`,
       );
 
-      const updatedBalances = {
-        hluBalance: balanceResponse.data?.balance?.toString() || '0',
-        allowanceForPaymaster: paymasterResponse.data?.allowance?.toString() || '0',
-        allowanceForQuanLyPhieu: quanLyPhieuResponse.data?.allowance?.toString() || '0',
-      };
+      const quanLyPhieuAllowance = Number(quanLyPhieuResponse.data?.allowance || '0');
+      const paymasterAllowance = Number(paymasterResponse.data?.allowance || '0');
+      const hluBalance = balanceResponse.data?.balance?.toString() || '0';
 
-      handleBalancesUpdated(updatedBalances);
+      console.log(
+        `Direct API responses - QuanLyPhieu: ${quanLyPhieuAllowance}, Paymaster: ${paymasterAllowance}, Balance: ${hluBalance}`,
+      );
+
+      // Check if all requirements are met - use same logic as modal
+      const quanLyPhieuRequirementMet = quanLyPhieuAllowance >= 3; // Requires 3 HLU
+      const paymasterRequirementMet = paymasterAllowance >= 1; // Requires 1 HLU
+
+      const isApproved = quanLyPhieuRequirementMet && paymasterRequirementMet;
+
+      // Update the token approval status
+      setTokenApprovalStatus({
+        hluBalance,
+        allowanceForQuanLyPhieu: quanLyPhieuAllowance.toString(),
+        isApproved,
+      });
+
+      return isApproved;
     } catch (error) {
       console.error('Error checking approval status:', error);
+      return false;
     }
   }, [walletInfo?.diaChiVi, contractAddresses.quanLyPhieuBauAddress, handleBalancesUpdated]);
 
@@ -3451,37 +3476,38 @@ const ThamGiaBauCu: React.FC = () => {
             setShowTokenApprovalModal(false);
           }}
           onComplete={async (approvalSuccessful) => {
-            // Only proceed if approval was successful
+            console.log('TokenApprovalModal complete, success:', approvalSuccessful);
             if (approvalSuccessful) {
               setShowTokenApprovalModal(false);
-              toast({
-                title: 'Đang kiểm tra phê duyệt',
-                description: 'Đang xác nhận trạng thái phê duyệt token HLU...',
-              });
 
-              // Poll for approval status multiple times, as blockchain state might take time to update
+              // Add more retries and longer delays for the blockchain to update
               let approvalConfirmed = false;
               let attempts = 0;
-              const maxAttempts = 3;
+              const maxAttempts = 4;
+
+              toast({
+                title: 'Đang kiểm tra phê duyệt',
+                description:
+                  'Vui lòng đợi trong khi chúng tôi xác nhận trạng thái phê duyệt token...',
+              });
 
               while (!approvalConfirmed && attempts < maxAttempts) {
                 attempts++;
                 console.log(`Checking token approval - attempt ${attempts}/${maxAttempts}`);
 
-                // Wait a bit before checking to allow blockchain state to update
-                if (attempts > 1) {
-                  await new Promise((resolve) => setTimeout(resolve, 2000));
-                }
+                // Longer delay for blockchain state to propagate
+                await new Promise((resolve) => setTimeout(resolve, 2000 + attempts * 1000));
 
+                // Force a direct check from the API
                 approvalConfirmed = await checkApprovalStatus();
 
                 if (approvalConfirmed) {
                   setApprovalCancelled(false);
                   toast({
-                    variant: 'success',
                     title: 'Phê duyệt thành công',
                     description:
-                      'Bạn đã phê duyệt token HLU thành công. Bạn có thể tiếp tục bỏ phiếu.',
+                      'Bạn đã phê duyệt token HLU thành công và có thể tiếp tục bỏ phiếu.',
+                    variant: 'success',
                   });
                   return;
                 }
@@ -3490,17 +3516,13 @@ const ThamGiaBauCu: React.FC = () => {
               if (!approvalConfirmed) {
                 toast({
                   variant: 'warning',
-                  title: 'Chưa phát hiện phê duyệt',
+                  title: 'Đang chờ xác nhận',
                   description:
-                    'Hệ thống không phát hiện được phê duyệt token đầy đủ. Vui lòng thử kiểm tra lại sau.',
+                    'Việc phê duyệt token đang được xử lý trên blockchain. Vui lòng thử lại sau một lát.',
                 });
               }
             } else {
-              toast({
-                variant: 'warning',
-                title: 'Phê duyệt không hoàn tất',
-                description: 'Vui lòng hoàn tất quá trình phê duyệt token trước khi tiếp tục.',
-              });
+              // ...existing code for failure...
             }
           }}
           contractAddress={

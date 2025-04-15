@@ -183,12 +183,27 @@ const SessionKeyAndTokenApproval: React.FC<SessionKeyAndTokenApprovalProps> = ({
   // Xử lý khi có cập nhật balances từ ApproveHLU
   const handleBalancesUpdated = useCallback(
     (balances: any) => {
-      // Tính toán xem đã có đủ approve chưa
-      const requiredAmount = 1; // Số lượng HLU cần thiết để bỏ phiếu (giảm từ 5 xuống 1)
+      console.log('SessionKeyAndTokenApproval received balances:', balances);
 
-      const isApproved =
-        Number(balances.allowanceForQuanLyPhieu || '0') >= requiredAmount ||
-        Number(balances.allowanceForPaymaster || '0') >= requiredAmount;
+      // Extract allowances with proper fallbacks
+      const paymasterAllowance = Number(balances.allowanceForPaymaster || '0');
+      const quanLyPhieuAllowance = Number(balances.allowanceForQuanLyPhieu || '0');
+      const hluBalance = Number(balances.hluBalance || '0');
+
+      // Check requirements - matching modal verification logic
+      const paymasterRequirementMet = paymasterAllowance >= 1; // Requires 1 HLU
+      const quanLyPhieuRequirementMet = quanLyPhieuAllowance >= 3; // Requires 3 HLU
+      const hasEnoughBalance = hluBalance >= 1;
+
+      const isApproved = paymasterRequirementMet && quanLyPhieuRequirementMet && hasEnoughBalance;
+
+      console.log(
+        `SessionKey component - Approval Status: ` +
+          `Balance: ${hluBalance}/1 HLU (${hasEnoughBalance ? 'met' : 'not met'}), ` +
+          `Paymaster: ${paymasterAllowance}/1 HLU (${paymasterRequirementMet ? 'met' : 'not met'}), ` +
+          `QuanLyPhieu: ${quanLyPhieuAllowance}/3 HLU (${quanLyPhieuRequirementMet ? 'met' : 'not met'}), ` +
+          `Overall: ${isApproved ? 'APPROVED' : 'NOT APPROVED'}`,
+      );
 
       setTokenApprovalStatus({
         hluBalance: balances.hluBalance || '0',
@@ -199,16 +214,8 @@ const SessionKeyAndTokenApproval: React.FC<SessionKeyAndTokenApprovalProps> = ({
         isApproved,
       });
 
-      console.log('Updated token approval status:', {
-        hluBalance: balances.hluBalance || '0',
-        allowanceForFactory: balances.allowanceForFactory || '0',
-        allowanceForPaymaster: balances.allowanceForPaymaster || '0',
-        allowanceForQuanLyPhieu:
-          balances.allowanceForQuanLyPhieu || balances.allowanceForElection || '0',
-        isApproved,
-      });
-
       if (isApproved && onApprovalComplete) {
+        console.log('Calling onApprovalComplete - all requirements met');
         onApprovalComplete();
       }
     },

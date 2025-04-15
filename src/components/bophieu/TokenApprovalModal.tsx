@@ -29,9 +29,10 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Verify approval meets all requirements
+  // Verify approval meets all requirements with improved logging
   const verifyApprovalRequirements = async (address: string) => {
     if (!address || !contractAddress) {
+      console.error('Cannot verify approval: Missing address or contract');
       return false;
     }
 
@@ -49,22 +50,34 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
         `/api/Blockchain/check-allowance?scwAddress=${address}&spenderType=paymaster`,
       );
 
+      // Also check balance
+      const balanceResponse = await apiClient.get(
+        `/api/Blockchain/token-balance?scwAddress=${address}`,
+      );
+
       const quanLyPhieuAllowance = Number(quanLyPhieuResponse.data?.allowance || '0');
       const paymasterAllowance = Number(paymasterResponse.data?.allowance || '0');
+      const hluBalance = Number(balanceResponse.data?.balance || '0');
 
       console.log(
-        `Verifying approval requirements - QuanLyPhieu: ${quanLyPhieuAllowance}, Paymaster: ${paymasterAllowance}`,
+        `Modal verification - QuanLyPhieu: ${quanLyPhieuAllowance}, Paymaster: ${paymasterAllowance}, Balance: ${hluBalance}`,
       );
 
       // Check if all requirements are met
       const quanLyPhieuRequirementMet = quanLyPhieuAllowance >= 3; // Requires 3 HLU
       const paymasterRequirementMet = paymasterAllowance >= 1; // Requires 1 HLU
+      const hasEnoughBalance = hluBalance >= 1; // Need at least 1 HLU balance
 
       setVerificationMessage(
-        `Kết quả kiểm tra - Paymaster: ${paymasterAllowance}/1 HLU, Quản lý phiếu bầu: ${quanLyPhieuAllowance}/3 HLU`,
+        `Kết quả kiểm tra - Số dư: ${hluBalance}/1 HLU, ` +
+          `Paymaster: ${paymasterAllowance}/1 HLU, ` +
+          `Quản lý phiếu bầu: ${quanLyPhieuAllowance}/3 HLU`,
       );
 
-      return quanLyPhieuRequirementMet && paymasterRequirementMet;
+      const isApproved = quanLyPhieuRequirementMet && paymasterRequirementMet && hasEnoughBalance;
+      console.log(`Modal approval check result: ${isApproved ? 'APPROVED' : 'NOT APPROVED'}`);
+
+      return isApproved;
     } catch (error) {
       console.error('Error verifying approval requirements:', error);
       setVerificationMessage('Lỗi khi kiểm tra phê duyệt: ' + (error as Error).message);
@@ -84,7 +97,7 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
     }
   };
 
-  // Handle approval complete with verification
+  // Handle approval complete with more robust verification
   const handleApprovalComplete = async () => {
     if (!scwAddress) {
       console.error('Cannot verify approval: No SCW address available');
@@ -96,19 +109,21 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
     setVerificationMessage('Đang xác minh phê duyệt token...');
 
     try {
-      // Small delay to allow blockchain state to update
+      // First small delay to allow blockchain state to update
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // First check
       let isApproved = await verifyApprovalRequirements(scwAddress);
 
-      // If not approved on first check, try again after a delay
+      // If not approved on first check, try again with increasing delays
       if (!isApproved) {
-        setVerificationMessage('Chờ xác nhận từ blockchain...');
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          setVerificationMessage(`Chờ xác nhận từ blockchain... (Lần thử ${attempt}/3)`);
+          await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
 
-        // Second check
-        isApproved = await verifyApprovalRequirements(scwAddress);
+          isApproved = await verifyApprovalRequirements(scwAddress);
+          if (isApproved) break;
+        }
       }
 
       if (isApproved) {
@@ -117,11 +132,11 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
         setVerificationMessage('Chưa phê duyệt đủ token cần thiết. Vui lòng phê duyệt lại.');
       }
 
-      // Wait a moment to show the success message
+      // Wait a moment to show the message
       setTimeout(() => {
         setVerificationInProgress(false);
         onComplete(isApproved);
-      }, 1000);
+      }, 1500);
     } catch (error) {
       console.error('Error during approval verification:', error);
       setVerificationMessage('Lỗi khi xác minh: ' + (error as Error).message);
