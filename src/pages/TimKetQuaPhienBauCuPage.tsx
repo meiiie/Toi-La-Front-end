@@ -14,7 +14,9 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import apiClient from '../api/apiClient';
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../store/store';
+import { getViByAddress } from '../store/sliceBlockchain/viBlockchainSlice';
 
 // Các màu sắc cho biểu đồ
 const COLORS = [
@@ -297,6 +299,11 @@ enum DeploymentStatus {
 
 // Main component
 const KetQuaBauCu = () => {
+  // Redux
+  const dispatch = useDispatch<AppDispatch>();
+  const userInfo = useSelector((state: RootState) => state.dangNhapTaiKhoan?.taiKhoan);
+  const walletInfo = useSelector((state: RootState) => state.viBlockchain?.data);
+
   // Thông tin cố định
   const cuocBauCuId = 1; // Fix cứng ID cuộc bầu cử
   const [contractAddresses, setContractAddresses] = useState({
@@ -344,7 +351,9 @@ const KetQuaBauCu = () => {
   const [canEarlyEndSession, setCanEarlyEndSession] = useState(false);
 
   // State cho thông tin người dùng và SCW
-  const [userInfo, setUserInfo] = useState(null);
+  const [taiKhoanId, setTaiKhoanId] = useState('');
+  const [viId, setViId] = useState('');
+  const [scwAddress, setScwAddress] = useState('');
   const [sessionKey, setSessionKey] = useState(null);
   const [electionStatus, setElectionStatus] = useState({
     owner: '',
@@ -392,52 +401,72 @@ const KetQuaBauCu = () => {
     console.error(msg);
   }, []);
 
-  // Lấy thông tin người dùng từ API
+  // Cập nhật tài khoản từ userInfo khi component được tải
   useEffect(() => {
-    const fetchUserInfo = async () => {
-      try {
-        const response = await apiClient.get('/api/user/info');
-        if (response.data) {
-          setUserInfo(response.data);
-        }
-      } catch (error) {
-        console.error('Lỗi khi lấy thông tin người dùng:', error);
-        setError('Không thể kết nối với hệ thống để lấy thông tin người dùng');
-      }
-    };
+    if (userInfo && userInfo.id) {
+      setTaiKhoanId(userInfo.id.toString());
 
-    fetchUserInfo();
-  }, []);
+      if (userInfo.diaChiVi) {
+        dispatch(getViByAddress({ taiKhoanId: userInfo.id, diaChiVi: userInfo.diaChiVi }));
+      }
+    }
+  }, [userInfo, dispatch]);
+
+  // Set viId and scwAddress from walletInfo when available
+  useEffect(() => {
+    if (walletInfo) {
+      setViId(walletInfo.viId.toString());
+      setScwAddress(walletInfo.diaChiVi);
+    }
+  }, [walletInfo]);
 
   // Lấy thông tin contract addresses
   useEffect(() => {
     const fetchContractAddresses = async () => {
       try {
-        const response = await apiClient.get('/api/Blockchain/contract-addresses');
-        if (response.data) {
-          setContractAddresses(response.data);
+        // Sử dụng fetch thay vì axios để tránh lỗi 404
+        const response = await fetch('/api/Blockchain/contract-addresses');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        if (data) {
+          setContractAddresses(data);
+          showMessage('Đã lấy thông tin địa chỉ contract');
         }
       } catch (error) {
         console.error('Lỗi khi lấy địa chỉ contract:', error);
-        setError('Không thể kết nối với hệ thống để lấy thông tin contracts');
+        // Sử dụng giá trị mặc định nếu không lấy được
+        setContractAddresses({
+          entryPointAddress: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789',
+          factoryAddress: '0x9406Cc6185a346906296840746125a0E44976454',
+          paymasterAddress: '0x0576a174D229E3cFA37253523E645A78A0C91B57',
+          hluTokenAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+        });
       }
     };
 
     fetchContractAddresses();
-  }, []);
+  }, [showMessage]);
 
   // Lấy thông tin cuộc bầu cử và serverId
   useEffect(() => {
     const fetchElectionInfo = async () => {
       try {
-        // Lấy thông tin cuộc bầu cử từ API
-        const response = await apiClient.get(`/api/CuocBauCu/${cuocBauCuId}`);
-        if (response.data) {
+        // Sử dụng fetch thay vì axios để tránh lỗi 404
+        const response = await fetch(`/api/CuocBauCu/${cuocBauCuId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        if (data) {
           // Lấy địa chỉ blockchain từ cuộc bầu cử
           setContractAddress(
-            response.data.blockchainAddress || '0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10',
+            data.blockchainAddress || '0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10',
           );
-          setServerId(response.data.blockchainServerId || 4);
+          setServerId(data.blockchainServerId || 4);
         }
       } catch (error) {
         console.error('Lỗi khi lấy thông tin cuộc bầu cử:', error);
@@ -454,7 +483,7 @@ const KetQuaBauCu = () => {
   // Lấy session key
   const getSessionKey = useCallback(async () => {
     if (!userInfo?.id) {
-      setError('Vui lòng đảm bảo đã đăng nhập và có thông tin tài khoản');
+      setErrorMessage('Vui lòng đảm bảo đã đăng nhập và có thông tin tài khoản');
       return null;
     }
 
@@ -468,16 +497,28 @@ const KetQuaBauCu = () => {
       setIsLoading(true);
 
       // Gọi API để lấy session key
-      const response = await apiClient.post('/api/Blockchain/get-session-key', {
-        TaiKhoanID: userInfo.id,
+      const response = await fetch('/api/Blockchain/get-session-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          TaiKhoanID: userInfo.id,
+        }),
       });
 
-      if (response.data && response.data.success && response.data.sessionKey) {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data && data.success && data.sessionKey) {
         // Lưu session key và thông tin liên quan
         const sessionKeyInfo = {
-          sessionKey: response.data.sessionKey,
-          expiresAt: response.data.expiresAt,
-          scwAddress: response.data.scwAddress,
+          sessionKey: data.sessionKey,
+          expiresAt: data.expiresAt,
+          scwAddress: data.scwAddress,
         };
 
         setSessionKey(sessionKeyInfo);
@@ -486,20 +527,20 @@ const KetQuaBauCu = () => {
         );
         return sessionKeyInfo;
       } else {
-        throw new Error(response.data?.message || 'Không thể lấy session key');
+        throw new Error(data?.message || 'Không thể lấy session key');
       }
     } catch (error) {
-      setError('Lỗi khi lấy session key: ' + error.message);
+      setErrorMessage('Lỗi khi lấy session key: ' + error.message);
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [userInfo, sessionKey, showMessage]);
+  }, [userInfo, sessionKey, showMessage, setErrorMessage]);
 
   // Kiểm tra trạng thái cuộc bầu cử
   const checkElectionStatus = useCallback(async () => {
     if (!contractAddress || !sessionKey?.scwAddress) {
-      setError('Thiếu thông tin cần thiết để kiểm tra trạng thái cuộc bầu cử');
+      setErrorMessage('Thiếu thông tin cần thiết để kiểm tra trạng thái cuộc bầu cử');
       return false;
     }
 
@@ -538,12 +579,12 @@ const KetQuaBauCu = () => {
 
       return true;
     } catch (error) {
-      setError('Lỗi khi kiểm tra trạng thái cuộc bầu cử: ' + error.message);
+      setErrorMessage('Lỗi khi kiểm tra trạng thái cuộc bầu cử: ' + error.message);
       return false;
     } finally {
       setIsLoading(false);
     }
-  }, [contractAddress, sessionKey, sessionInfo, showMessage]);
+  }, [contractAddress, sessionKey, sessionInfo, showMessage, setErrorMessage]);
 
   // Lấy danh sách phiên bầu cử khi có contractAddress
   useEffect(() => {
@@ -612,7 +653,7 @@ const KetQuaBauCu = () => {
     };
 
     fetchPhienBauCu();
-  }, [contractAddress, selectedPhien]);
+  }, [contractAddress, selectedPhien, cuocBauCuId]);
 
   // Kiểm tra quyền kết thúc phiên
   useEffect(() => {
@@ -955,18 +996,30 @@ const KetQuaBauCu = () => {
       setStatus(DeploymentStatus.SENDING_USEROP);
       showMessage('Đang gửi giao dịch dừng phiên bầu cử...');
 
-      const response = await apiClient.post('/api/bundler/submit', {
-        ...userOp,
-        userOpHash: userOpHash,
+      const response = await fetch('/api/bundler/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...userOp,
+          userOpHash: userOpHash,
+        }),
       });
 
-      if (!response.data) {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data) {
         throw new Error('Không nhận được phản hồi từ bundler');
       }
 
-      const frontendHash = response.data.userOpHash || userOpHash;
-      const backendHash = response.data.backendHash || frontendHash;
-      const txHash = response.data.txHash || frontendHash;
+      const frontendHash = data.userOpHash || userOpHash;
+      const backendHash = data.backendHash || frontendHash;
+      const txHash = data.txHash || frontendHash;
 
       setFrontendHash(frontendHash);
       setBackendHash(backendHash);
@@ -981,11 +1034,17 @@ const KetQuaBauCu = () => {
       const checkInterval = setInterval(async () => {
         checkCount++;
         try {
-          const statusResponse = await apiClient.get(
+          const statusResponse = await fetch(
             `/api/bundler/check-status?userOpHash=${frontendHash}`,
           );
 
-          if (statusResponse.data && statusResponse.data.status === 'success') {
+          if (!statusResponse.ok) {
+            throw new Error(`HTTP error! status: ${statusResponse.status}`);
+          }
+
+          const statusData = await statusResponse.json();
+
+          if (statusData && statusData.status === 'success') {
             clearInterval(checkInterval);
 
             setStatus(DeploymentStatus.SUCCESS);
@@ -997,12 +1056,10 @@ const KetQuaBauCu = () => {
 
             // Cập nhật lại dữ liệu
             await fetchSessionResults();
-          } else if (statusResponse.data && statusResponse.data.status === 'failed') {
+          } else if (statusData && statusData.status === 'failed') {
             clearInterval(checkInterval);
             setStatus(DeploymentStatus.FAILED);
-            setError(
-              'Giao dịch thất bại: ' + (statusResponse.data.message || 'Lỗi không xác định'),
-            );
+            setError('Giao dịch thất bại: ' + (statusData.message || 'Lỗi không xác định'));
           }
 
           if (checkCount >= maxChecks) {
