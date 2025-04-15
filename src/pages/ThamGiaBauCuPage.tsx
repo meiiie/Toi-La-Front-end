@@ -321,6 +321,9 @@ const ThamGiaBauCu: React.FC = () => {
   const [showStepper, setShowStepper] = useState<boolean>(true);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
+  // Add this state to track whether the user has canceled the approval process
+  const [approvalCancelled, setApprovalCancelled] = useState<boolean>(false);
+
   useEffect(() => {
     const initializeData = async () => {
       if (dataInitialized) return;
@@ -1197,6 +1200,7 @@ const ThamGiaBauCu: React.FC = () => {
     }
   }, [phienId]);
 
+  // Modify the voteForCandidate function to handle approval requirements better
   const voteForCandidate = useCallback(async () => {
     if (!selectedCandidate || !selectedBallot || !walletInfo?.diaChiVi || !blockchainPhienBauCuId) {
       console.log('Thiếu thông tin cần thiết:');
@@ -1212,6 +1216,29 @@ const ThamGiaBauCu: React.FC = () => {
       });
       return;
     }
+
+    // Check if token approval is needed and not cancelled
+    if (!tokenApprovalStatus.isApproved && !approvalCancelled) {
+      setShowTokenApprovalModal(true);
+      return;
+    }
+
+    // If user cancelled approval, don't proceed with voting
+    if (approvalCancelled) {
+      toast({
+        variant: 'destructive',
+        title: 'Phê duyệt token chưa hoàn tất',
+        description: 'Bạn cần phê duyệt token HLU trước khi có thể bỏ phiếu.',
+      });
+      setApprovalCancelled(false); // Reset for next attempt
+      return;
+    }
+
+    // Ensure we have the correct serverId
+    const serverId =
+      typeof cuocBauCu?.blockchainServerId === 'number'
+        ? cuocBauCu.blockchainServerId
+        : localServerId || (cuocBauCuId ? Number(cuocBauCuId) : 1);
 
     const ungVienAddress = candidateAddress || '0x8dFcB44976E17E9d6378c4F126Dec611F96D219b';
     console.log('Địa chỉ ví ứng viên được sử dụng:', ungVienAddress);
@@ -1252,9 +1279,6 @@ const ThamGiaBauCu: React.FC = () => {
       console.log('Đã nhận session key');
 
       const provider = new JsonRpcProvider('https://geth.holihu.online/rpc');
-
-      const serverId =
-        cuocBauCu?.blockchainServerId || localServerId || (cuocBauCuId ? Number(cuocBauCuId) : 1);
 
       console.log('Thông số bỏ phiếu:', {
         tokenId: selectedBallot.tokenId,
@@ -1474,6 +1498,7 @@ const ThamGiaBauCu: React.FC = () => {
     contractAddresses,
     walletInfo,
     tokenApprovalStatus,
+    approvalCancelled,
     toast,
     checkVotingRights,
     user,
@@ -2690,7 +2715,10 @@ const ThamGiaBauCu: React.FC = () => {
 
                     <Button
                       className="w-full py-6 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                      onClick={() => setShowTokenApprovalModal(true)}
+                      onClick={() => {
+                        setApprovalCancelled(false); // Reset cancelled state when opening modal
+                        setShowTokenApprovalModal(true);
+                      }}
                       disabled={isSubmitting}
                     >
                       <div className="flex items-center justify-center">
@@ -3345,11 +3373,28 @@ const ThamGiaBauCu: React.FC = () => {
         {/* Token approval modal */}
         <TokenApprovalModal
           isOpen={showTokenApprovalModal}
-          onClose={() => setShowTokenApprovalModal(false)}
+          onClose={() => {
+            // Show a warning when user tries to close the modal without completing approval
+            if (!tokenApprovalStatus.isApproved) {
+              toast({
+                variant: 'warning',
+                title: 'Chú ý',
+                description:
+                  'Bạn chưa hoàn tất việc phê duyệt token HLU cần thiết cho việc bỏ phiếu.',
+              });
+              setApprovalCancelled(true);
+            }
+            setShowTokenApprovalModal(false);
+          }}
           onComplete={() => {
             setShowTokenApprovalModal(false);
             setTokenApprovalStatus((prev) => ({ ...prev, isApproved: true }));
-            voteForCandidate();
+            setApprovalCancelled(false);
+            // Don't automatically proceed to voting here, let the user confirm manually
+            toast({
+              title: 'Phê duyệt thành công',
+              description: 'Bạn đã phê duyệt token HLU thành công. Bạn có thể tiếp tục bỏ phiếu.',
+            });
           }}
           contractAddress={
             contractAddresses.quanLyPhieuBauAddress || '0x9c244B5E1F168510B9b812573b1B667bd1E654c8'
