@@ -1,14 +1,16 @@
 'use client';
 
 import type React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import SessionKeyAndTokenApproval from './SessionKeyAndTokenApproval';
 import { Button } from '../ui/Button';
+import apiClient from '../../api/apiClient';
 
 interface TokenApprovalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onComplete: () => void;
+  onComplete: (approvalSuccessful: boolean) => void;
   contractAddress?: string;
   onSessionKeyGenerated?: (sessionKey: any) => void;
 }
@@ -20,12 +22,67 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
   contractAddress,
   onSessionKeyGenerated,
 }) => {
+  const [isCheckingApproval, setIsCheckingApproval] = useState(false);
+  const [scwAddress, setScwAddress] = useState<string>('');
+
   if (!isOpen) return null;
 
-  // Xử lý khi quá trình phê duyệt hoàn tất
-  const handleApprovalComplete = () => {
+  // Verify approval meets all requirements
+  const verifyApprovalRequirements = async (address: string) => {
+    if (!address || !contractAddress) {
+      return false;
+    }
+
+    try {
+      setIsCheckingApproval(true);
+
+      // Check QuanLyPhieuBau allowance
+      const quanLyPhieuResponse = await apiClient.get(
+        `/api/Blockchain/check-contract-allowance?scwAddress=${address}&contractAddress=${contractAddress}`,
+      );
+
+      // Check paymaster allowance
+      const paymasterResponse = await apiClient.get(
+        `/api/Blockchain/check-allowance?scwAddress=${address}&spenderType=paymaster`,
+      );
+
+      const quanLyPhieuAllowance = Number(quanLyPhieuResponse.data?.allowance || '0');
+      const paymasterAllowance = Number(paymasterResponse.data?.allowance || '0');
+
+      console.log(
+        `Verifying approval requirements - QuanLyPhieu: ${quanLyPhieuAllowance}, Paymaster: ${paymasterAllowance}`,
+      );
+
+      // Check if all requirements are met
+      const quanLyPhieuRequirementMet = quanLyPhieuAllowance >= 3; // Requires 3 HLU
+      const paymasterRequirementMet = paymasterAllowance >= 1; // Requires 1 HLU
+
+      return quanLyPhieuRequirementMet && paymasterRequirementMet;
+    } catch (error) {
+      console.error('Error verifying approval requirements:', error);
+      return false;
+    } finally {
+      setIsCheckingApproval(false);
+    }
+  };
+
+  // Save the scwAddress when session key is generated
+  const handleSessionKeyGenerated = (sessionKey: any) => {
+    if (sessionKey && sessionKey.scwAddress) {
+      setScwAddress(sessionKey.scwAddress);
+    }
+    if (onSessionKeyGenerated) {
+      onSessionKeyGenerated(sessionKey);
+    }
+  };
+
+  // Xử lý khi quá trình phê duyệt hoàn tất - fixed to not require parameter
+  const handleApprovalComplete = async () => {
+    // Use the scwAddress from state instead of parameter
+    const isApprovalComplete = scwAddress ? await verifyApprovalRequirements(scwAddress) : false;
+
     setTimeout(() => {
-      onComplete();
+      onComplete(isApprovalComplete);
     }, 1000); // Đợi 1 giây để người dùng thấy thông báo thành công
   };
 
@@ -56,12 +113,19 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
                   trình này mà không hoàn tất việc phê duyệt, bạn không thể tiếp tục quá trình bỏ
                   phiếu.
                 </p>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mt-2">
+                  Yêu cầu phê duyệt:
+                </p>
+                <ul className="list-disc ml-5 text-sm text-amber-700 dark:text-amber-500">
+                  <li>Ít nhất 1 HLU cho Paymaster</li>
+                  <li>Ít nhất 3 HLU cho Quản lý phiếu bầu</li>
+                </ul>
               </div>
             </div>
           </div>
 
           <SessionKeyAndTokenApproval
-            onSessionKeyGenerated={onSessionKeyGenerated}
+            onSessionKeyGenerated={handleSessionKeyGenerated}
             onApprovalComplete={handleApprovalComplete}
             contractAddress={contractAddress}
             targetType="quanlyphieubau"

@@ -258,7 +258,14 @@ const ApproveHLU: React.FC<ApproveHLUProps> = ({
 
       // Gọi callback để cập nhật balances ở component cha nếu có
       if (onBalancesUpdated) {
-        onBalancesUpdated(balanceInfo);
+        // Make sure to include allowanceForQuanLyPhieu explicitly rather than using other values
+        const callbackBalances = {
+          ...balanceInfo,
+          // Ensure that allowanceForQuanLyPhieu is properly passed to parent
+          allowanceForQuanLyPhieu: balanceInfo.allowanceForQuanLyPhieuBau || '0',
+        };
+        console.log('Passing balances to parent component:', callbackBalances);
+        onBalancesUpdated(callbackBalances);
       }
 
       const hasBalance = Number.parseFloat(balanceInfo.hluBalance) >= 5.0;

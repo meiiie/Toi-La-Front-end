@@ -223,7 +223,7 @@ const SessionKeyAndTokenApproval: React.FC<SessionKeyAndTokenApprovalProps> = ({
     });
 
     if (onApprovalComplete) {
-      onApprovalComplete();
+      onApprovalComplete(); // No parameter needed here
     }
   }, [toast, onApprovalComplete]);
 
@@ -427,7 +427,7 @@ const SessionKeyAndTokenApproval: React.FC<SessionKeyAndTokenApprovalProps> = ({
                   sessionKey={sessionKey}
                   contractAddress={quanLyPhieuBauAddress}
                   targetType={targetType || 'quanlyphieubau'} // Truyền xuống ApproveHLU
-                  onSuccess={handleApproveSuccess}
+                  onSuccess={handleApproveSuccess} // This function is called with no parameters
                   onBalancesUpdated={handleBalancesUpdated}
                   setIsLoading={handleSetIsLoading}
                   showMessage={showMessage}

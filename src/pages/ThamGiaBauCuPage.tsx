@@ -531,10 +531,15 @@ const ThamGiaBauCu: React.FC = () => {
   }, [walletInfo, contractAddresses, sessionKey, currentStep, getSessionKey]);
 
   const handleBalancesUpdated = useCallback((balances: any) => {
+    console.log('Updated token approval status:', balances);
     const requiredAmount = 1;
+    const quanLyPhieuRequiredAmount = 3; // Required amount for QuanLyPhieuBau
+
+    // Check if all required allowances are sufficient
     const isApproved =
       Number(balances.allowanceForQuanLyPhieu || balances.allowanceForPaymaster || '0') >=
-      requiredAmount;
+        requiredAmount &&
+      Number(balances.allowanceForQuanLyPhieu || '0') >= quanLyPhieuRequiredAmount;
 
     setTokenApprovalStatus({
       hluBalance: balances.hluBalance || '0',
@@ -542,6 +547,11 @@ const ThamGiaBauCu: React.FC = () => {
         balances.allowanceForQuanLyPhieu || balances.allowanceForPaymaster || '0',
       isApproved,
     });
+
+    // Log for debugging
+    console.log(
+      `Token approval status updated: paymaster=${Number(balances.allowanceForPaymaster || '0')}, quanLyPhieu=${Number(balances.allowanceForQuanLyPhieu || '0')}, isApproved=${isApproved}`,
+    );
   }, []);
 
   const handleApproveSuccess = useCallback(() => {
@@ -3120,6 +3130,56 @@ const ThamGiaBauCu: React.FC = () => {
     }
   };
 
+  // Add a new function to check approval status from the blockchain
+  const checkApprovalStatus = useCallback(async () => {
+    if (!walletInfo?.diaChiVi || !contractAddresses.quanLyPhieuBauAddress) {
+      return;
+    }
+
+    try {
+      // Check allowance for QuanLyPhieuBau
+      const quanLyPhieuResponse = await apiClient.get(
+        `/api/Blockchain/check-contract-allowance?scwAddress=${walletInfo.diaChiVi}&contractAddress=${contractAddresses.quanLyPhieuBauAddress}`,
+      );
+
+      // Check allowance for Paymaster
+      const paymasterResponse = await apiClient.get(
+        `/api/Blockchain/check-allowance?scwAddress=${walletInfo.diaChiVi}&spenderType=paymaster`,
+      );
+
+      // Get HLU balance
+      const balanceResponse = await apiClient.get(
+        `/api/Blockchain/token-balance?scwAddress=${walletInfo.diaChiVi}`,
+      );
+
+      const updatedBalances = {
+        hluBalance: balanceResponse.data?.balance?.toString() || '0',
+        allowanceForPaymaster: paymasterResponse.data?.allowance?.toString() || '0',
+        allowanceForQuanLyPhieu: quanLyPhieuResponse.data?.allowance?.toString() || '0',
+      };
+
+      handleBalancesUpdated(updatedBalances);
+    } catch (error) {
+      console.error('Error checking approval status:', error);
+    }
+  }, [walletInfo?.diaChiVi, contractAddresses.quanLyPhieuBauAddress, handleBalancesUpdated]);
+
+  // Call checkApprovalStatus when needed (like when the modal closes)
+  useEffect(() => {
+    if (
+      walletInfo?.diaChiVi &&
+      contractAddresses.quanLyPhieuBauAddress &&
+      currentStep === 'voting'
+    ) {
+      checkApprovalStatus();
+    }
+  }, [
+    walletInfo?.diaChiVi,
+    contractAddresses.quanLyPhieuBauAddress,
+    currentStep,
+    checkApprovalStatus,
+  ]);
+
   return (
     <ErrorBoundary
       FallbackComponent={({ error, resetErrorBoundary }) => (
@@ -3386,15 +3446,23 @@ const ThamGiaBauCu: React.FC = () => {
             }
             setShowTokenApprovalModal(false);
           }}
-          onComplete={() => {
-            setShowTokenApprovalModal(false);
-            setTokenApprovalStatus((prev) => ({ ...prev, isApproved: true }));
-            setApprovalCancelled(false);
-            // Don't automatically proceed to voting here, let the user confirm manually
-            toast({
-              title: 'Phê duyệt thành công',
-              description: 'Bạn đã phê duyệt token HLU thành công. Bạn có thể tiếp tục bỏ phiếu.',
-            });
+          onComplete={(approvalSuccessful) => {
+            // Only proceed if approval was successful
+            if (approvalSuccessful) {
+              setShowTokenApprovalModal(false);
+              toast({
+                title: 'Phê duyệt thành công',
+                description: 'Bạn đã phê duyệt token HLU thành công. Bạn có thể tiếp tục bỏ phiếu.',
+              });
+              // Update local state with the latest approval status
+              checkApprovalStatus();
+            } else {
+              toast({
+                variant: 'warning',
+                title: 'Phê duyệt không hoàn tất',
+                description: 'Vui lòng hoàn tất quá trình phê duyệt token trước khi tiếp tục.',
+              });
+            }
           }}
           contractAddress={
             contractAddresses.quanLyPhieuBauAddress || '0x9c244B5E1F168510B9b812573b1B667bd1E654c8'
