@@ -513,9 +513,10 @@ const KetQuaBauCu = () => {
     try {
       setIsLoading(true);
 
-      // Gọi API để lấy session key - sửa cách viết hoa tên API endpoint
+      // Gọi API để lấy session key - thêm ViID parameter
       const { data } = await apiClient.post('/api/Blockchain/get-session-key', {
-        TaiKhoanID: userInfo.id,
+        TaiKhoanID: Number.parseInt(userInfo.id.toString(), 10),
+        ViID: walletInfo?.viId ? Number.parseInt(walletInfo.viId.toString(), 10) : undefined,
       });
 
       if (data && data.success && data.sessionKey) {
@@ -542,7 +543,7 @@ const KetQuaBauCu = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [userInfo, sessionKey, showMessage, setErrorMessage]);
+  }, [userInfo, walletInfo, sessionKey, showMessage, setErrorMessage]);
 
   // Kiểm tra trạng thái cuộc bầu cử
   const checkElectionStatus = useCallback(async () => {
