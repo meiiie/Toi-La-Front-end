@@ -3138,19 +3138,22 @@ const ThamGiaBauCu: React.FC = () => {
     );
 
     try {
+      // Thêm timestamp để tránh cache
+      const timestamp = Date.now();
+
       // Check QuanLyPhieuBau allowance
       const quanLyPhieuResponse = await apiClient.get(
-        `/api/Blockchain/check-contract-allowance?scwAddress=${walletInfo.diaChiVi}&contractAddress=${contractAddresses.quanLyPhieuBauAddress}`,
+        `/api/Blockchain/check-contract-allowance?scwAddress=${walletInfo.diaChiVi}&contractAddress=${contractAddresses.quanLyPhieuBauAddress}&_t=${timestamp}`,
       );
 
       // Check paymaster allowance
       const paymasterResponse = await apiClient.get(
-        `/api/Blockchain/check-allowance?scwAddress=${walletInfo.diaChiVi}&spenderType=paymaster`,
+        `/api/Blockchain/check-allowance?scwAddress=${walletInfo.diaChiVi}&spenderType=paymaster&_t=${timestamp}`,
       );
 
       // Get HLU balance
       const balanceResponse = await apiClient.get(
-        `/api/Blockchain/token-balance?scwAddress=${walletInfo.diaChiVi}`,
+        `/api/Blockchain/token-balance?scwAddress=${walletInfo.diaChiVi}&_t=${timestamp}`,
       );
 
       const quanLyPhieuAllowance = Number(quanLyPhieuResponse.data?.allowance || '0');
@@ -3179,7 +3182,7 @@ const ThamGiaBauCu: React.FC = () => {
       console.error('Error checking approval status:', error);
       return false;
     }
-  }, [walletInfo?.diaChiVi, contractAddresses.quanLyPhieuBauAddress, handleBalancesUpdated]);
+  }, [walletInfo?.diaChiVi, contractAddresses.quanLyPhieuBauAddress]);
 
   // Call checkApprovalStatus when needed (like when the modal closes)
   useEffect(() => {
@@ -3463,15 +3466,37 @@ const ThamGiaBauCu: React.FC = () => {
             }
             setShowTokenApprovalModal(false);
           }}
-          onComplete={async (approvalSuccessful) => {
+          onComplete={async (approvalSuccessful, approvalData) => {
             console.log('TokenApprovalModal complete, success:', approvalSuccessful);
-            if (approvalSuccessful) {
-              setShowTokenApprovalModal(false);
+            console.log('Approval data received from modal:', approvalData);
 
-              // Add more retries and longer delays for the blockchain to update
+            if (approvalSuccessful) {
+              // Sử dụng trực tiếp dữ liệu từ modal nếu có
+              if (approvalData) {
+                // Cập nhật trạng thái ngay lập tức từ dữ liệu modal cung cấp
+                setTokenApprovalStatus({
+                  hluBalance: approvalData.hluBalance,
+                  allowanceForQuanLyPhieu: approvalData.allowanceForQuanLyPhieu,
+                  isApproved: approvalData.isApproved,
+                });
+
+                // Hiển thị thông báo thành công
+                toast({
+                  title: 'Phê duyệt thành công',
+                  description: `Bạn đã phê duyệt token HLU thành công: Số dư ${approvalData.hluBalance} HLU, đã phê duyệt ${approvalData.allowanceForQuanLyPhieu} HLU cho Quản lý phiếu bầu`,
+                  variant: 'success',
+                });
+
+                setApprovalCancelled(false);
+                setShowTokenApprovalModal(false);
+                return;
+              }
+
+              // Nếu không có dữ liệu từ modal, kiểm tra lại từ API (giữ lại logic cũ như backup)
+              setShowTokenApprovalModal(false);
               let approvalConfirmed = false;
               let attempts = 0;
-              const maxAttempts = 4;
+              const maxAttempts = 6; // Tăng số lần thử
 
               toast({
                 title: 'Đang kiểm tra phê duyệt',
@@ -3483,10 +3508,10 @@ const ThamGiaBauCu: React.FC = () => {
                 attempts++;
                 console.log(`Checking token approval - attempt ${attempts}/${maxAttempts}`);
 
-                // Longer delay for blockchain state to propagate
-                await new Promise((resolve) => setTimeout(resolve, 2000 + attempts * 1000));
+                // Tăng thời gian chờ
+                await new Promise((resolve) => setTimeout(resolve, 2500 + attempts * 1500));
 
-                // Force a direct check from the API
+                // Force a direct check from the API with cache busting
                 approvalConfirmed = await checkApprovalStatus();
 
                 if (approvalConfirmed) {
@@ -3502,15 +3527,27 @@ const ThamGiaBauCu: React.FC = () => {
               }
 
               if (!approvalConfirmed) {
+                // Nếu vẫn không xác nhận được sau nhiều lần thử
                 toast({
                   variant: 'warning',
                   title: 'Đang chờ xác nhận',
                   description:
-                    'Việc phê duyệt token đang được xử lý trên blockchain. Vui lòng thử lại sau một lát.',
+                    'Việc phê duyệt token đang được xử lý trên blockchain. Có thể đã phê duyệt thành công nhưng chưa được cập nhật. Vui lòng thử tiếp tục bỏ phiếu.',
                 });
+
+                // Cập nhật trạng thái để cho phép tiếp tục bỏ phiếu dù chưa xác nhận được
+                setTokenApprovalStatus((prev) => ({
+                  ...prev,
+                  isApproved: true, // Giả định đã phê duyệt để người dùng có thể tiếp tục
+                }));
               }
             } else {
-              // ...existing code for failure...
+              // Approval was not successful
+              toast({
+                variant: 'destructive',
+                title: 'Phê duyệt không thành công',
+                description: 'Việc phê duyệt token HLU không thành công. Vui lòng thử lại.',
+              });
             }
           }}
           contractAddress={

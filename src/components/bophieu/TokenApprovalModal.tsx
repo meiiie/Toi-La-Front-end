@@ -2,15 +2,23 @@
 
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { X, AlertTriangle, Loader } from 'lucide-react';
+import { X, AlertTriangle, Loader, CheckCircle, Info } from 'lucide-react';
 import SessionKeyAndTokenApproval from './SessionKeyAndTokenApproval';
 import { Button } from '../ui/Button';
 import apiClient from '../../api/apiClient';
+import { Alert, AlertDescription, AlertTitle } from '../ui/Alter';
 
 interface TokenApprovalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onComplete: (approvalSuccessful: boolean) => void;
+  onComplete: (
+    approvalSuccessful: boolean,
+    approvalData?: {
+      hluBalance: string;
+      allowanceForQuanLyPhieu: string;
+      isApproved: boolean;
+    },
+  ) => void;
   contractAddress?: string;
   onSessionKeyGenerated?: (sessionKey: any) => void;
 }
@@ -26,10 +34,16 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
   const [scwAddress, setScwAddress] = useState<string>('');
   const [verificationInProgress, setVerificationInProgress] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState('');
+  const [verificationSuccess, setVerificationSuccess] = useState<boolean | null>(null);
+  const [detailedStatus, setDetailedStatus] = useState<{
+    hluBalance: string;
+    paymasterAllowance: string;
+    quanLyPhieuAllowance: string;
+  } | null>(null);
 
   if (!isOpen) return null;
 
-  // Verify approval meets all requirements with improved logging
+  // Verify approval meets all requirements with improved logging and data collection
   const verifyApprovalRequirements = async (address: string) => {
     if (!address || !contractAddress) {
       console.error('Cannot verify approval: Missing address or contract');
@@ -40,24 +54,34 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
       setIsCheckingApproval(true);
       setVerificationMessage('Đang kiểm tra phê duyệt token...');
 
+      // Add timestamp to prevent caching
+      const timestamp = Date.now();
+
       // Check QuanLyPhieuBau allowance
       const quanLyPhieuResponse = await apiClient.get(
-        `/api/Blockchain/check-contract-allowance?scwAddress=${address}&contractAddress=${contractAddress}`,
+        `/api/Blockchain/check-contract-allowance?scwAddress=${address}&contractAddress=${contractAddress}&_t=${timestamp}`,
       );
 
       // Check paymaster allowance
       const paymasterResponse = await apiClient.get(
-        `/api/Blockchain/check-allowance?scwAddress=${address}&spenderType=paymaster`,
+        `/api/Blockchain/check-allowance?scwAddress=${address}&spenderType=paymaster&_t=${timestamp}`,
       );
 
       // Also check balance
       const balanceResponse = await apiClient.get(
-        `/api/Blockchain/token-balance?scwAddress=${address}`,
+        `/api/Blockchain/token-balance?scwAddress=${address}&_t=${timestamp}`,
       );
 
       const quanLyPhieuAllowance = Number(quanLyPhieuResponse.data?.allowance || '0');
       const paymasterAllowance = Number(paymasterResponse.data?.allowance || '0');
       const hluBalance = Number(balanceResponse.data?.balance || '0');
+
+      // Store detailed status
+      setDetailedStatus({
+        hluBalance: balanceResponse.data?.balance?.toString() || '0',
+        paymasterAllowance: paymasterAllowance.toString(),
+        quanLyPhieuAllowance: quanLyPhieuAllowance.toString(),
+      });
 
       console.log(
         `Modal verification - QuanLyPhieu: ${quanLyPhieuAllowance}, Paymaster: ${paymasterAllowance}, Balance: ${hluBalance}`,
@@ -77,10 +101,13 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
       const isApproved = quanLyPhieuRequirementMet && paymasterRequirementMet && hasEnoughBalance;
       console.log(`Modal approval check result: ${isApproved ? 'APPROVED' : 'NOT APPROVED'}`);
 
+      setVerificationSuccess(isApproved);
+
       return isApproved;
     } catch (error) {
       console.error('Error verifying approval requirements:', error);
       setVerificationMessage('Lỗi khi kiểm tra phê duyệt: ' + (error as Error).message);
+      setVerificationSuccess(false);
       return false;
     } finally {
       setIsCheckingApproval(false);
@@ -91,6 +118,7 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
   const handleSessionKeyGenerated = (sessionKey: any) => {
     if (sessionKey && sessionKey.scwAddress) {
       setScwAddress(sessionKey.scwAddress);
+      console.log('Session key generated with SCW address:', sessionKey.scwAddress);
     }
     if (onSessionKeyGenerated) {
       onSessionKeyGenerated(sessionKey);
@@ -107,13 +135,51 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
 
     setVerificationInProgress(true);
     setVerificationMessage('Đang xác minh phê duyệt token...');
+    setVerificationSuccess(null);
 
     try {
       // First small delay to allow blockchain state to update
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
+      // Gather detailed approval data
+      let approvalData = {
+        hluBalance: '0',
+        allowanceForQuanLyPhieu: '0',
+        isApproved: false,
+      };
+
       // First check
       let isApproved = await verifyApprovalRequirements(scwAddress);
+
+      // If we have detailed status, update approvalData
+      if (detailedStatus) {
+        approvalData = {
+          hluBalance: detailedStatus.hluBalance,
+          allowanceForQuanLyPhieu: detailedStatus.quanLyPhieuAllowance,
+          isApproved: isApproved,
+        };
+      } else {
+        // Fallback to explicit API calls if detailed status is missing
+        try {
+          const timestamp = Date.now();
+          const quanLyPhieuResponse = await apiClient.get(
+            `/api/Blockchain/check-contract-allowance?scwAddress=${scwAddress}&contractAddress=${contractAddress}&_t=${timestamp}`,
+          );
+          const balanceResponse = await apiClient.get(
+            `/api/Blockchain/token-balance?scwAddress=${scwAddress}&_t=${timestamp}`,
+          );
+
+          approvalData = {
+            hluBalance: balanceResponse.data?.balance?.toString() || '0',
+            allowanceForQuanLyPhieu: quanLyPhieuResponse.data?.allowance?.toString() || '0',
+            isApproved: isApproved,
+          };
+        } catch (error) {
+          console.error('Error getting detailed approval data:', error);
+        }
+      }
+
+      console.log('Initial approval data:', approvalData);
 
       // If not approved on first check, try again with increasing delays
       if (!isApproved) {
@@ -122,24 +188,39 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
           await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
 
           isApproved = await verifyApprovalRequirements(scwAddress);
+
+          // Update approval data with detailed status if available
+          if (detailedStatus) {
+            approvalData = {
+              hluBalance: detailedStatus.hluBalance,
+              allowanceForQuanLyPhieu: detailedStatus.quanLyPhieuAllowance,
+              isApproved: isApproved,
+            };
+          }
+
           if (isApproved) break;
         }
       }
 
       if (isApproved) {
         setVerificationMessage('Phê duyệt thành công! Đang tiếp tục...');
+        setVerificationSuccess(true);
       } else {
         setVerificationMessage('Chưa phê duyệt đủ token cần thiết. Vui lòng phê duyệt lại.');
+        setVerificationSuccess(false);
       }
+
+      console.log('Final approval data to pass back:', approvalData);
 
       // Wait a moment to show the message
       setTimeout(() => {
         setVerificationInProgress(false);
-        onComplete(isApproved);
+        onComplete(isApproved, approvalData);
       }, 1500);
     } catch (error) {
       console.error('Error during approval verification:', error);
       setVerificationMessage('Lỗi khi xác minh: ' + (error as Error).message);
+      setVerificationSuccess(false);
       setVerificationInProgress(false);
       onComplete(false);
     }
@@ -187,19 +268,76 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
           {verificationInProgress ? (
             <div className="p-6 bg-blue-50/70 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-lg mb-6">
               <div className="flex flex-col items-center justify-center">
-                <Loader className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-spin mb-3" />
-                <p className="text-blue-700 dark:text-blue-300 text-center">
+                {verificationSuccess === null && (
+                  <Loader className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-spin mb-3" />
+                )}
+                {verificationSuccess === true && (
+                  <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400 mb-3" />
+                )}
+                {verificationSuccess === false && (
+                  <AlertTriangle className="h-8 w-8 text-amber-600 dark:text-amber-400 mb-3" />
+                )}
+                <p className="text-blue-700 dark:text-blue-300 text-center mb-2">
                   {verificationMessage}
                 </p>
+
+                {/* Show detailed status if available */}
+                {detailedStatus && (
+                  <div className="w-full max-w-md mt-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div className="text-center">
+                        <p className="text-gray-500 dark:text-gray-400">Số dư HLU</p>
+                        <p
+                          className={`font-medium ${Number(detailedStatus.hluBalance) >= 1 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                        >
+                          {detailedStatus.hluBalance}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-gray-500 dark:text-gray-400">Paymaster</p>
+                        <p
+                          className={`font-medium ${Number(detailedStatus.paymasterAllowance) >= 1 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}
+                        >
+                          {detailedStatus.paymasterAllowance}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-gray-500 dark:text-gray-400">QuanLyPhieu</p>
+                        <p
+                          className={`font-medium ${Number(detailedStatus.quanLyPhieuAllowance) >= 3 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}
+                        >
+                          {detailedStatus.quanLyPhieuAllowance}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
-            <SessionKeyAndTokenApproval
-              onSessionKeyGenerated={handleSessionKeyGenerated}
-              onApprovalComplete={handleApprovalComplete}
-              contractAddress={contractAddress}
-              targetType="quanlyphieubau"
-            />
+            <>
+              {/* Explanation */}
+              <Alert className="mb-4 bg-blue-50/70 dark:bg-blue-900/20 border border-blue-100/50 dark:border-blue-800/30">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertTitle className="text-blue-800 dark:text-blue-300">
+                  Về quy trình phê duyệt token
+                </AlertTitle>
+                <AlertDescription className="text-blue-700 dark:text-blue-400 text-sm">
+                  <p>
+                    Khi bạn phê duyệt token HLU, bạn đang cho phép hệ thống bầu cử sử dụng một phần
+                    token của bạn để thực hiện giao dịch bỏ phiếu. Đây là quy trình bảo mật chuẩn
+                    của blockchain và các token đã phê duyệt vẫn nằm trong ví của bạn.
+                  </p>
+                </AlertDescription>
+              </Alert>
+
+              <SessionKeyAndTokenApproval
+                onSessionKeyGenerated={handleSessionKeyGenerated}
+                onApprovalComplete={handleApprovalComplete}
+                contractAddress={contractAddress}
+                targetType="quanlyphieubau"
+              />
+            </>
           )}
 
           <div className="mt-6 flex justify-between">
@@ -211,6 +349,21 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
             >
               Quay lại trang bỏ phiếu
             </Button>
+
+            {/* Abort verification button */}
+            {verificationInProgress && (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setVerificationInProgress(false);
+                  setVerificationMessage('Đã hủy quá trình xác minh');
+                  setVerificationSuccess(false);
+                }}
+                className="px-5 py-2"
+              >
+                Hủy xác minh
+              </Button>
+            )}
           </div>
         </div>
       </div>
