@@ -34,7 +34,7 @@ const COLORS = [
 const cuocBauCuAbi = [
   'function layKetQuaPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (address[] memory ungVien, uint256[] memory soPhieu)',
   'function layThongTinPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (bool dangHoatDongNe, uint256 thoiGianBatDau, uint256 thoiGianKetThuc, uint256 soCuTriToiDa, uint256 soUngVienHienTai, uint256 soCuTriHienTai, address[] memory ungVienDacCu, bool taiBauCu, uint256 soLuongXacNhan, uint256 thoiGianHetHanXacNhan)',
-  'function layThongTinCoBan(uint256 idCuocBauCu) external view returns (address nguoiSoHuu, bool dangHoatDongDay, uint256 thoiGianBatDau, uint256 thoiGianKetThuc, string memory tenCuocBauCu, uint256 phiHLU)',
+  'function layThongTinCoBan(uint256 idCuocBauCu) external view returns (address nguoiSoHuu, bool dangHoatDongDay, uint256 thoiGianBatDau, uint256 ThoiGianKetThuc, string memory tenCuocBauCu, uint256 phiHLU)',
   'function laySoPhieuUngVien(uint256 idCuocBauCu, uint256 idPhienBauCu, address ungVien) external view returns (uint256)',
   'function layDanhSachUngVien(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (address[] memory)',
   'function layDanhSachPhienBauCu(uint256 idCuocBauCu, uint256 chiSoBatDau, uint256 gioiHan) external view returns (uint256[] memory)',
@@ -424,85 +424,111 @@ const KetQuaBauCu = () => {
   useEffect(() => {
     const fetchContractAddresses = async () => {
       try {
-        // Use fetch with better error handling
-        const response = await fetch('/api/Blockchain/contract-addresses', {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        // Kiểm tra nếu đã có địa chỉ contract thì không cần fetch lại
+        if (contractAddresses.entryPointAddress) {
+          return;
         }
 
-        // Check if response is actually JSON before parsing
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Response is not JSON');
-        }
+        setIsLoading(true);
 
-        const data = await response.json();
-        if (data) {
-          setContractAddresses(data);
-          showMessage('Đã lấy thông tin địa chỉ contract');
+        try {
+          // Use fetch with better error handling
+          const response = await fetch('/api/Blockchain/contract-addresses', {
+            method: 'GET',
+            headers: {
+              Accept: 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          // Check if response is actually JSON before parsing
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Response is not JSON');
+          }
+
+          const data = await response.json();
+          if (data) {
+            setContractAddresses(data);
+            showMessage('Đã lấy thông tin địa chỉ contract');
+          }
+        } catch (error) {
+          console.error('Lỗi khi lấy địa chỉ contract:', error);
+          // Use default values as fallback
+          setContractAddresses({
+            entryPointAddress: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789',
+            factoryAddress: '0x9406Cc6185a346906296840746125a0E44976454',
+            paymasterAddress: '0x0576a174D229E3cFA37253523E645A78A0C91B57',
+            hluTokenAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+          });
+        } finally {
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Lỗi khi lấy địa chỉ contract:', error);
-        // Use default values as fallback
-        setContractAddresses({
-          entryPointAddress: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789',
-          factoryAddress: '0x9406Cc6185a346906296840746125a0E44976454',
-          paymasterAddress: '0x0576a174D229E3cFA37253523E645A78A0C91B57',
-          hluTokenAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
-        });
       }
     };
 
     fetchContractAddresses();
-  }, [showMessage]);
+  }, []); // Chỉ chạy một lần khi component mount
 
   // Lấy thông tin cuộc bầu cử và serverId
   useEffect(() => {
     const fetchElectionInfo = async () => {
       try {
-        // Use fetch with better error handling
-        const response = await fetch(`/api/CuocBauCu/${cuocBauCuId}`, {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        // Kiểm tra nếu đã có địa chỉ contract thì không cần fetch lại
+        if (contractAddress) {
+          return;
         }
 
-        // Check if response is actually JSON before parsing
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Response is not JSON');
-        }
+        setIsLoading(true);
 
-        const data = await response.json();
-        if (data) {
-          // Get blockchain address from election
-          setContractAddress(
-            data.blockchainAddress || '0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10',
-          );
-          setServerId(data.blockchainServerId || 4);
+        try {
+          // Use fetch with better error handling
+          const response = await fetch(`/api/CuocBauCu/${cuocBauCuId}`, {
+            method: 'GET',
+            headers: {
+              Accept: 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          // Check if response is actually JSON before parsing
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Response is not JSON');
+          }
+
+          const data = await response.json();
+          if (data) {
+            // Get blockchain address from election
+            setContractAddress(
+              data.blockchainAddress || '0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10',
+            );
+            setServerId(data.blockchainServerId || 4);
+          }
+        } catch (error) {
+          console.error('Lỗi khi lấy thông tin cuộc bầu cử:', error);
+
+          // Fallback: If API doesn't work, use default values
+          setContractAddress('0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10');
+          setServerId(8);
+        } finally {
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Lỗi khi lấy thông tin cuộc bầu cử:', error);
-
-        // Fallback: If API doesn't work, use default values
-        setContractAddress('0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10');
-        setServerId(8);
       }
     };
 
     fetchElectionInfo();
-  }, []);
+  }, []); // Chỉ chạy một lần khi component mount
 
   // Lấy session key
   const getSessionKey = useCallback(async () => {
@@ -640,7 +666,14 @@ const KetQuaBauCu = () => {
   useEffect(() => {
     if (!contractAddress) return;
 
+    // Thêm biến để kiểm soát việc fetch chỉ chạy một lần
+    let isMounted = true;
+    let hasLoaded = false;
+
     const fetchPhienBauCu = async () => {
+      // Nếu đã load rồi và đã có phiên được chọn, không cần fetch lại
+      if (hasLoaded && selectedPhien) return;
+
       try {
         setIsLoading(true);
 
@@ -651,97 +684,73 @@ const KetQuaBauCu = () => {
         // Lấy thông tin cuộc bầu cử
         const electionData = await contract.layThongTinCoBan(cuocBauCuId);
 
-        setElectionInfo({
-          name: electionData[4], // tenCuocBauCu
-          owner: electionData[0], // nguoiSoHuu
-          isActive: electionData[1], // dangHoatDongDay
-          startTime: new Date(Number(electionData[2]) * 1000).toLocaleString(), // thoiGianBatDau
-          endTime: new Date(Number(electionData[3]) * 1000).toLocaleString(), // thoiGianKetThuc
-        });
+        if (isMounted) {
+          setElectionInfo({
+            name: electionData[4], // tenCuocBauCu
+            owner: electionData[0], // nguoiSoHuu
+            isActive: electionData[1], // dangHoatDongDay
+            startTime: new Date(Number(electionData[2]) * 1000).toLocaleString(), // thoiGianBatDau
+            endTime: new Date(Number(electionData[3]) * 1000).toLocaleString(), // thoiGianKetThuc
+          });
 
-        // Lấy danh sách phiên bầu cử
-        const phienIds = await contract.layDanhSachPhienBauCu(cuocBauCuId, 0, 10);
+          // Lấy danh sách phiên bầu cử
+          const phienIds = await contract.layDanhSachPhienBauCu(cuocBauCuId, 0, 10);
 
-        if (phienIds && phienIds.length > 0) {
-          // Lấy thông tin chi tiết cho từng phiên
-          const phienDetails = await Promise.all(
-            phienIds.map(async (id) => {
-              try {
-                const phienData = await contract.layThongTinPhienBauCu(cuocBauCuId, id);
-                return {
-                  id: Number(id),
-                  isActive: phienData[0],
-                  startTime: new Date(Number(phienData[1]) * 1000),
-                  endTime: new Date(Number(phienData[2]) * 1000),
-                  candidateCount: Number(phienData[4]),
-                  voterCount: Number(phienData[5]),
-                };
-              } catch (error) {
-                console.warn(`Không thể lấy thông tin chi tiết cho phiên ${id}:`, error);
-                return { id: Number(id), error: true };
-              }
-            }),
-          );
+          if (phienIds && phienIds.length > 0) {
+            // Lấy thông tin chi tiết cho từng phiên
+            const phienDetails = await Promise.all(
+              phienIds.map(async (id) => {
+                try {
+                  const phienData = await contract.layThongTinPhienBauCu(cuocBauCuId, id);
+                  return {
+                    id: Number(id),
+                    isActive: phienData[0],
+                    startTime: new Date(Number(phienData[1]) * 1000),
+                    endTime: new Date(Number(phienData[2]) * 1000),
+                    candidateCount: Number(phienData[4]),
+                    voterCount: Number(phienData[5]),
+                  };
+                } catch (error) {
+                  console.warn(`Không thể lấy thông tin chi tiết cho phiên ${id}:`, error);
+                  return { id: Number(id), error: true };
+                }
+              }),
+            );
 
-          setDanhSachPhien(phienDetails.filter((p) => !p.error));
+            const validPhiens = phienDetails.filter((p) => !p.error);
+            setDanhSachPhien(validPhiens);
 
-          // Chọn phiên đầu tiên
-          if (phienDetails.length > 0 && !selectedPhien) {
-            const validPhien = phienDetails.find((p) => !p.error);
-            if (validPhien) {
-              setSelectedPhien(validPhien.id);
+            // Chọn phiên đầu tiên nếu chưa có phiên nào được chọn
+            if (validPhiens.length > 0 && !selectedPhien) {
+              setSelectedPhien(validPhiens[0].id);
             }
           }
-        }
 
-        setIsLoading(false);
+          hasLoaded = true;
+        }
       } catch (error) {
         console.error('Lỗi khi lấy danh sách phiên bầu cử:', error);
-        setError(`Không thể lấy danh sách phiên bầu cử: ${error.message}`);
-        setIsLoading(false);
+        if (isMounted) {
+          setError(`Không thể lấy danh sách phiên bầu cử: ${error.message}`);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchPhienBauCu();
-  }, [contractAddress, selectedPhien, cuocBauCuId]);
 
-  // Kiểm tra quyền kết thúc phiên
-  useEffect(() => {
-    if (sessionKey && contractAddress && selectedPhien && sessionInfo) {
-      checkElectionStatus();
-    }
-  }, [sessionKey, contractAddress, selectedPhien, sessionInfo, checkElectionStatus]);
-
-  // Kiểm tra có thể kết thúc sớm phiên không
-  useEffect(() => {
-    const checkEarlyEndCondition = async () => {
-      if (!contractAddress || !selectedPhien || !sessionInfo || !sessionInfo.isActive) {
-        setCanEarlyEndSession(false);
-        return;
-      }
-
-      try {
-        const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
-        const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
-
-        const canEarlyEnd = await contract.canKetThucSomPhienBauCu(cuocBauCuId, selectedPhien);
-        setCanEarlyEndSession(canEarlyEnd);
-      } catch (error) {
-        console.error('Lỗi khi kiểm tra điều kiện kết thúc sớm:', error);
-        setCanEarlyEndSession(false);
-      }
+    return () => {
+      isMounted = false;
     };
+  }, [contractAddress, cuocBauCuId, selectedPhien]); // Chỉ chạy khi contractAddress hoặc cuocBauCuId thay đổi
 
-    checkEarlyEndCondition();
-  }, [contractAddress, selectedPhien, sessionInfo, progress, cuocBauCuId]);
-
-  // Lấy kết quả cho phiên bầu cử được chọn
   const fetchSessionResults = useCallback(async () => {
     if (!contractAddress || !selectedPhien) return;
 
     try {
-      setIsChangingSession(true);
-
       // Kết nối với blockchain
       const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
       const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
@@ -749,7 +758,8 @@ const KetQuaBauCu = () => {
       // Lấy thông tin phiên bầu cử
       const sessionData = await contract.layThongTinPhienBauCu(cuocBauCuId, selectedPhien);
 
-      setSessionInfo({
+      // Lưu thông tin phiên bầu cử
+      const newSessionInfo = {
         isActive: sessionData[0], // dangHoatDongNe
         startTime: new Date(Number(sessionData[1]) * 1000).toLocaleString(), // thoiGianBatDau
         endTime: new Date(Number(sessionData[2]) * 1000).toLocaleString(), // thoiGianKetThuc
@@ -758,7 +768,12 @@ const KetQuaBauCu = () => {
         voterCount: Number(sessionData[5]), // soCuTriHienTai
         electedCandidates: sessionData[6], // ungVienDacCu
         reElection: sessionData[7], // taiBauCu
-      });
+      };
+
+      // Chỉ cập nhật state nếu có thay đổi để tránh render lại không cần thiết
+      if (JSON.stringify(newSessionInfo) !== JSON.stringify(sessionInfo)) {
+        setSessionInfo(newSessionInfo);
+      }
 
       // Check if the user can end the session - do this regardless of session state
       if (sessionKey && sessionKey.scwAddress) {
@@ -801,21 +816,29 @@ const KetQuaBauCu = () => {
         tempResults.sort((a, b) => b.votes - a.votes);
 
         // Cập nhật kết quả
-        setVotingResults(
-          tempResults.map((r) => ({
-            ...r,
-            displayAddress: `${r.address.substring(0, 6)}...${r.address.substring(r.address.length - 4)}`,
-          })),
-        );
+        const formattedResults = tempResults.map((r) => ({
+          ...r,
+          displayAddress: `${r.address.substring(0, 6)}...${r.address.substring(r.address.length - 4)}`,
+        }));
+
+        // Chỉ cập nhật state nếu có thay đổi để tránh render lại không cần thiết
+        if (JSON.stringify(formattedResults) !== JSON.stringify(votingResults)) {
+          setVotingResults(formattedResults);
+        }
 
         // Cập nhật tiến trình
         if (Number(sessionData[5]) > 0) {
           const percentage = ((totalVotes / Number(sessionData[5])) * 100).toFixed(2);
-          setProgress({
+          const newProgress = {
             total: Number(sessionData[5]),
             voted: totalVotes,
             percentage: Number(percentage),
-          });
+          };
+
+          // Chỉ cập nhật state nếu có thay đổi
+          if (JSON.stringify(newProgress) !== JSON.stringify(progress)) {
+            setProgress(newProgress);
+          }
         }
       } else {
         // Phiên đã kết thúc - lấy kết quả chính thức
@@ -843,16 +866,25 @@ const KetQuaBauCu = () => {
 
           // Sắp xếp theo số phiếu giảm dần
           formattedResults.sort((a, b) => b.votes - a.votes);
-          setVotingResults(formattedResults);
+
+          // Chỉ cập nhật state nếu có thay đổi
+          if (JSON.stringify(formattedResults) !== JSON.stringify(votingResults)) {
+            setVotingResults(formattedResults);
+          }
 
           // Cập nhật tiến trình
           if (Number(sessionData[5]) > 0) {
             const percentage = ((totalVotes / Number(sessionData[5])) * 100).toFixed(2);
-            setProgress({
+            const newProgress = {
               total: Number(sessionData[5]),
               voted: totalVotes,
               percentage: Number(percentage),
-            });
+            };
+
+            // Chỉ cập nhật state nếu có thay đổi
+            if (JSON.stringify(newProgress) !== JSON.stringify(progress)) {
+              setProgress(newProgress);
+            }
           }
         } catch (error) {
           console.error('Lỗi khi lấy kết quả:', error);
@@ -867,32 +899,123 @@ const KetQuaBauCu = () => {
       if (sessionInfo?.isActive) {
         try {
           const canEarlyEnd = await contract.canKetThucSomPhienBauCu(cuocBauCuId, selectedPhien);
-          setCanEarlyEndSession(canEarlyEnd);
+          if (canEarlyEnd !== canEarlyEndSession) {
+            setCanEarlyEndSession(canEarlyEnd);
+          }
         } catch (err) {
           console.error('Lỗi khi kiểm tra điều kiện kết thúc sớm:', err);
         }
       }
-
-      setIsChangingSession(false);
     } catch (error) {
       console.error('Lỗi khi lấy kết quả phiên bầu cử:', error);
       setError(`Lỗi khi lấy kết quả: ${error instanceof Error ? error.message : String(error)}`);
-      setIsChangingSession(false);
     }
-  }, [contractAddress, selectedPhien, cuocBauCuId, sessionKey, sessionInfo, checkElectionStatus]);
+  }, [
+    contractAddress,
+    selectedPhien,
+    cuocBauCuId,
+    sessionKey,
+    sessionInfo,
+    checkElectionStatus,
+    votingResults,
+    progress,
+    canEarlyEndSession,
+  ]);
 
+  // Sửa useEffect cho việc lấy kết quả phiên bầu cử
   useEffect(() => {
-    if (selectedPhien) {
-      fetchSessionResults();
-    }
-  }, [selectedPhien, fetchSessionResults]);
+    if (!selectedPhien || !contractAddress) return;
 
-  // Theo dõi real-time
+    let isMounted = true;
+
+    const fetchResults = async () => {
+      try {
+        setIsChangingSession(true);
+        await fetchSessionResults();
+      } catch (error) {
+        console.error('Lỗi khi lấy kết quả phiên bầu cử:', error);
+        if (isMounted) {
+          setError(
+            `Lỗi khi lấy kết quả: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsChangingSession(false);
+        }
+      }
+    };
+
+    fetchResults();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedPhien, contractAddress, fetchSessionResults]);
+
+  // Sửa useEffect cho việc kiểm tra quyền kết thúc phiên
+  useEffect(() => {
+    if (!sessionKey || !contractAddress || !selectedPhien || !sessionInfo) return;
+
+    let isMounted = true;
+
+    const checkPermissions = async () => {
+      try {
+        if (isMounted) {
+          await checkElectionStatus();
+        }
+      } catch (error) {
+        console.error('Lỗi khi kiểm tra quyền:', error);
+      }
+    };
+
+    checkPermissions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionKey, contractAddress, selectedPhien, sessionInfo, checkElectionStatus]);
+
+  // Sửa useEffect cho việc kiểm tra có thể kết thúc sớm phiên không
+  useEffect(() => {
+    if (!contractAddress || !selectedPhien || !sessionInfo || !sessionInfo.isActive) {
+      setCanEarlyEndSession(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const checkEarlyEndCondition = async () => {
+      try {
+        const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
+        const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
+
+        const canEarlyEnd = await contract.canKetThucSomPhienBauCu(cuocBauCuId, selectedPhien);
+        if (isMounted) {
+          setCanEarlyEndSession(canEarlyEnd);
+        }
+      } catch (error) {
+        console.error('Lỗi khi kiểm tra điều kiện kết thúc sớm:', error);
+        if (isMounted) {
+          setCanEarlyEndSession(false);
+        }
+      }
+    };
+
+    checkEarlyEndCondition();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [contractAddress, selectedPhien, sessionInfo, cuocBauCuId]);
+
+  // Sửa useEffect cho việc theo dõi real-time
   useEffect(() => {
     if (!isMonitoring || !contractAddress || !selectedPhien) return;
 
     let provider;
     let interval;
+    let isMounted = true;
 
     const setupMonitoring = async () => {
       try {
@@ -904,30 +1027,43 @@ const KetQuaBauCu = () => {
           // Fallback to HTTP polling
           console.warn('Không thể kết nối WebSocket, sử dụng HTTP polling:', wsError);
           provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
-          interval = setInterval(fetchSessionResults, 30000); // Cập nhật mỗi 30 giây
+          if (isMounted) {
+            interval = setInterval(() => {
+              fetchSessionResults().catch(console.error);
+            }, 30000); // Cập nhật mỗi 30 giây
+          }
           return;
         }
 
         // Chỉ dùng polling thay vì WebSocket listener (để tránh lỗi event)
         console.log('Thiết lập polling cho cập nhật dữ liệu');
-        interval = setInterval(fetchSessionResults, 15000); // Cập nhật mỗi 15 giây
+        if (isMounted) {
+          interval = setInterval(() => {
+            fetchSessionResults().catch(console.error);
+          }, 15000); // Cập nhật mỗi 15 giây
+        }
       } catch (error) {
         console.error('Lỗi khi thiết lập theo dõi:', error);
         // Fallback nếu có lỗi
-        interval = setInterval(fetchSessionResults, 30000);
+        if (isMounted) {
+          interval = setInterval(() => {
+            fetchSessionResults().catch(console.error);
+          }, 30000);
+        }
       }
     };
 
     setupMonitoring();
 
     return () => {
+      isMounted = false;
       if (interval) clearInterval(interval);
       if (provider) {
         if (provider.destroy) provider.destroy();
         provider.removeAllListeners();
       }
     };
-  }, [isMonitoring, contractAddress, selectedPhien, fetchSessionResults, sessionInfo]);
+  }, [isMonitoring, contractAddress, selectedPhien, fetchSessionResults]);
 
   // Tính thời gian còn lại
   const calculateTimeRemaining = () => {
