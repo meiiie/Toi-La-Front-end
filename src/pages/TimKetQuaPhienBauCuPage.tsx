@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import {
   BarChart,
@@ -34,6 +36,10 @@ const cuocBauCuAbi = [
   'function laySoPhieuUngVien(uint256 idCuocBauCu, uint256 idPhienBauCu, address ungVien) external view returns (uint256)',
   'function layDanhSachUngVien(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (address[] memory)',
   'function layDanhSachPhienBauCu(uint256 idCuocBauCu, uint256 chiSoBatDau, uint256 gioiHan) external view returns (uint256[] memory)',
+  'function canKetThucSomPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (bool)',
+  'function ketThucSomPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) external',
+  'function ketThucPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) external',
+  'function hasRole(bytes32 role, address account) view returns (bool)',
 ];
 
 // Component Theme Toggle
@@ -128,6 +134,122 @@ const EmptyStatePrompt = ({ message, icon, actionButton = null }) => (
   </div>
 );
 
+// Confirmation Modal Component
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div className="fixed inset-0 transition-opacity">
+          <div className="absolute inset-0 bg-gray-900 opacity-75"></div>
+        </div>
+        <span className="hidden sm:inline-block sm:align-middle sm:h-screen"></span>
+        <div
+          className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg px-4 pt-5 pb-4 text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-headline"
+        >
+          <div>
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900">
+              <svg
+                className="h-6 w-6 text-red-600 dark:text-red-300"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <div className="mt-3 text-center sm:mt-5">
+              <h3
+                className="text-lg leading-6 font-medium text-gray-900 dark:text-white"
+                id="modal-headline"
+              >
+                {title}
+              </h3>
+              <div className="mt-2">
+                <p className="text-sm text-gray-500 dark:text-gray-300">{message}</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+            <button
+              type="button"
+              className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm"
+              onClick={onConfirm}
+            >
+              {confirmText || 'Xác nhận'}
+            </button>
+            <button
+              type="button"
+              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+              onClick={onClose}
+            >
+              Hủy
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Success Alert Component
+const SuccessAlert = ({ message, onClose }) => (
+  <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-50 dark:bg-green-900/80 backdrop-blur-md border-l-4 border-green-500 text-green-800 dark:text-green-100 p-4 rounded-lg shadow-xl max-w-md animate-fadeIn">
+    <div className="flex">
+      <div className="flex-shrink-0">
+        <svg
+          className="h-5 w-5 text-green-500 dark:text-green-300"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </div>
+      <div className="ml-3">
+        <p className="text-sm font-medium">{message}</p>
+      </div>
+      <div className="ml-auto pl-3">
+        <div className="-mx-1.5 -my-1.5">
+          <button
+            onClick={onClose}
+            className="inline-flex rounded-md p-1.5 text-green-600 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800/50 focus:outline-none"
+          >
+            <span className="sr-only">Đóng</span>
+            <svg
+              className="h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 // Custom tooltip cho biểu đồ
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
@@ -162,11 +284,27 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
+// Enum cho trạng thái triển khai
+enum DeploymentStatus {
+  NOT_STARTED = 0,
+  PREPARING_CALLDATA = 1,
+  CREATING_USEROP = 2,
+  SENDING_USEROP = 3,
+  WAITING_CONFIRMATION = 4,
+  SUCCESS = 5,
+  FAILED = 6,
+}
+
 // Main component
 const KetQuaBauCu = () => {
   // Thông tin cố định
   const cuocBauCuId = 1; // Fix cứng ID cuộc bầu cử
-  const [contractAddresses, setContractAddresses] = useState({});
+  const [contractAddresses, setContractAddresses] = useState({
+    entryPointAddress: '',
+    factoryAddress: '',
+    paymasterAddress: '',
+    hluTokenAddress: '',
+  });
   const [contractAddress, setContractAddress] = useState('');
   const [serverId, setServerId] = useState(null);
 
@@ -201,6 +339,29 @@ const KetQuaBauCu = () => {
   // State cho theo dõi real-time
   const [isMonitoring, setIsMonitoring] = useState(false);
 
+  // State cho quyền dừng phiên
+  const [canEndSession, setCanEndSession] = useState(false);
+  const [canEarlyEndSession, setCanEarlyEndSession] = useState(false);
+
+  // State cho thông tin người dùng và SCW
+  const [userInfo, setUserInfo] = useState(null);
+  const [sessionKey, setSessionKey] = useState(null);
+  const [electionStatus, setElectionStatus] = useState({
+    owner: '',
+    isOwner: false,
+    isActive: false,
+    hasBanToChucRole: false,
+  });
+
+  // State cho modal xác nhận
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [successAlert, setSuccessAlert] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [status, setStatus] = useState(DeploymentStatus.NOT_STARTED);
+  const [frontendHash, setFrontendHash] = useState('');
+  const [backendHash, setBackendHash] = useState('');
+  const [txHash, setTxHash] = useState('');
+
   // Toggle Dark Mode
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -219,6 +380,34 @@ const KetQuaBauCu = () => {
       }
     }
   }, [darkMode]);
+
+  // Hiển thị thông báo
+  const showMessage = useCallback((msg) => {
+    console.log(msg);
+  }, []);
+
+  // Hiển thị lỗi
+  const setErrorMessage = useCallback((msg) => {
+    setError(msg);
+    console.error(msg);
+  }, []);
+
+  // Lấy thông tin người dùng từ API
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await apiClient.get('/api/user/info');
+        if (response.data) {
+          setUserInfo(response.data);
+        }
+      } catch (error) {
+        console.error('Lỗi khi lấy thông tin người dùng:', error);
+        setError('Không thể kết nối với hệ thống để lấy thông tin người dùng');
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
 
   // Lấy thông tin contract addresses
   useEffect(() => {
@@ -261,6 +450,100 @@ const KetQuaBauCu = () => {
 
     fetchElectionInfo();
   }, []);
+
+  // Lấy session key
+  const getSessionKey = useCallback(async () => {
+    if (!userInfo?.id) {
+      setError('Vui lòng đảm bảo đã đăng nhập và có thông tin tài khoản');
+      return null;
+    }
+
+    // Kiểm tra nếu session key đã tồn tại và còn hạn sử dụng
+    if (sessionKey && sessionKey.expiresAt * 1000 > Date.now()) {
+      showMessage('Đã có khóa phiên và còn hạn sử dụng');
+      return sessionKey;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // Gọi API để lấy session key
+      const response = await apiClient.post('/api/Blockchain/get-session-key', {
+        TaiKhoanID: userInfo.id,
+      });
+
+      if (response.data && response.data.success && response.data.sessionKey) {
+        // Lưu session key và thông tin liên quan
+        const sessionKeyInfo = {
+          sessionKey: response.data.sessionKey,
+          expiresAt: response.data.expiresAt,
+          scwAddress: response.data.scwAddress,
+        };
+
+        setSessionKey(sessionKeyInfo);
+        showMessage(
+          `Đã lấy session key thành công, hết hạn: ${new Date(sessionKeyInfo.expiresAt * 1000).toLocaleString()}`,
+        );
+        return sessionKeyInfo;
+      } else {
+        throw new Error(response.data?.message || 'Không thể lấy session key');
+      }
+    } catch (error) {
+      setError('Lỗi khi lấy session key: ' + error.message);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userInfo, sessionKey, showMessage]);
+
+  // Kiểm tra trạng thái cuộc bầu cử
+  const checkElectionStatus = useCallback(async () => {
+    if (!contractAddress || !sessionKey?.scwAddress) {
+      setError('Thiếu thông tin cần thiết để kiểm tra trạng thái cuộc bầu cử');
+      return false;
+    }
+
+    try {
+      setIsLoading(true);
+      showMessage('Đang kiểm tra trạng thái cuộc bầu cử...');
+
+      const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
+      const quanLyCuocBauCuAbi = [
+        'function layThongTinCoBan(uint256 idCuocBauCu) view returns (address, bool, uint256, uint256, string, uint256)',
+        'function hasRole(bytes32 role, address account) view returns (bool)',
+      ];
+
+      const contract = new ethers.Contract(contractAddress, quanLyCuocBauCuAbi, provider);
+
+      // Always use ID = 1 for contract
+      const baseInfo = await contract.layThongTinCoBan(1);
+      const owner = baseInfo[0];
+      const isActive = baseInfo[1];
+
+      // Kiểm tra quyền BANTOCHUC
+      const BANTOCHUC = ethers.keccak256(ethers.toUtf8Bytes('BANTOCHUC'));
+      const hasBanToChucRole = await contract.hasRole(BANTOCHUC, sessionKey.scwAddress);
+
+      setElectionStatus({
+        owner,
+        isOwner: owner.toLowerCase() === sessionKey.scwAddress.toLowerCase(),
+        isActive,
+        hasBanToChucRole,
+      });
+
+      // Kiểm tra quyền dừng phiên
+      const canEndSessionValue =
+        owner.toLowerCase() === sessionKey.scwAddress.toLowerCase() || hasBanToChucRole;
+      setCanEndSession(canEndSessionValue && sessionInfo?.isActive);
+
+      return true;
+    } catch (error) {
+      setError('Lỗi khi kiểm tra trạng thái cuộc bầu cử: ' + error.message);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [contractAddress, sessionKey, sessionInfo, showMessage]);
 
   // Lấy danh sách phiên bầu cử khi có contractAddress
   useEffect(() => {
@@ -330,6 +613,36 @@ const KetQuaBauCu = () => {
 
     fetchPhienBauCu();
   }, [contractAddress, selectedPhien]);
+
+  // Kiểm tra quyền kết thúc phiên
+  useEffect(() => {
+    if (sessionKey && contractAddress && selectedPhien && sessionInfo) {
+      checkElectionStatus();
+    }
+  }, [sessionKey, contractAddress, selectedPhien, sessionInfo, checkElectionStatus]);
+
+  // Kiểm tra có thể kết thúc sớm phiên không
+  useEffect(() => {
+    const checkEarlyEndCondition = async () => {
+      if (!contractAddress || !selectedPhien || !sessionInfo || !sessionInfo.isActive) {
+        setCanEarlyEndSession(false);
+        return;
+      }
+
+      try {
+        const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
+        const contract = new ethers.Contract(contractAddress, cuocBauCuAbi, provider);
+
+        const canEarlyEnd = await contract.canKetThucSomPhienBauCu(cuocBauCuId, selectedPhien);
+        setCanEarlyEndSession(canEarlyEnd);
+      } catch (error) {
+        console.error('Lỗi khi kiểm tra điều kiện kết thúc sớm:', error);
+        setCanEarlyEndSession(false);
+      }
+    };
+
+    checkEarlyEndCondition();
+  }, [contractAddress, selectedPhien, sessionInfo, progress]);
 
   // Lấy kết quả cho phiên bầu cử được chọn
   const fetchSessionResults = useCallback(async () => {
@@ -539,6 +852,175 @@ const KetQuaBauCu = () => {
     fetchSessionResults();
   };
 
+  // Tạo và gửi UserOperation để dừng phiên
+  const endSession = async () => {
+    if (!contractAddress || !sessionKey || !selectedPhien) {
+      setError('Thiếu thông tin cần thiết để dừng phiên bầu cử');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      setStatus(DeploymentStatus.PREPARING_CALLDATA);
+      showMessage('Đang chuẩn bị dữ liệu để dừng phiên bầu cử...');
+
+      const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
+
+      // Kết nối tới contract
+      const quanLyCuocBauCuAbi = [
+        'function ketThucPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) external',
+        'function ketThucSomPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) external',
+        'function canKetThucSomPhienBauCu(uint256 idCuocBauCu, uint256 idPhienBauCu) external view returns (bool)',
+      ];
+
+      const simpleAccountAbi = [
+        'function execute(address to, uint256 value, bytes calldata data) external returns (bytes memory)',
+      ];
+
+      const entryPointAbi = [
+        'function getNonce(address sender) external view returns (uint256)',
+        'function layHashThaoTac(tuple(address sender, uint256 nonce, bytes initCode, bytes callData, uint256 callGasLimit, uint256 verificationGasLimit, uint256 preVerificationGas, uint256 maxFeePerGas, uint256 maxPriorityFeePerGas, bytes paymasterAndData, bytes signature)) view returns (bytes32)',
+      ];
+
+      const quanLyCuocBauCu = new ethers.Contract(contractAddress, quanLyCuocBauCuAbi, provider);
+      const simpleAccount = new ethers.Contract(sessionKey.scwAddress, simpleAccountAbi, provider);
+      const entryPoint = new ethers.Contract(
+        contractAddresses.entryPointAddress,
+        entryPointAbi,
+        provider,
+      );
+
+      // Kiểm tra có thể kết thúc sớm không
+      const canEarlyEnd = await quanLyCuocBauCu.canKetThucSomPhienBauCu(cuocBauCuId, selectedPhien);
+
+      // Chuẩn bị callData
+      const methodName = canEarlyEnd ? 'ketThucSomPhienBauCu' : 'ketThucPhienBauCu';
+      const endSessionCallData = quanLyCuocBauCu.interface.encodeFunctionData(methodName, [
+        cuocBauCuId, // ID cuộc bầu cử (luôn là 1 trong contract)
+        selectedPhien,
+      ]);
+
+      const executeCallData = simpleAccount.interface.encodeFunctionData('execute', [
+        contractAddress,
+        0,
+        endSessionCallData,
+      ]);
+
+      // Lấy nonce hiện tại
+      const currentNonce = await entryPoint.getNonce(sessionKey.scwAddress);
+
+      // Chuẩn bị paymasterAndData
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      const deadlineTime = currentTimestamp + 3600; // 1 giờ sau
+      const validationTime = currentTimestamp;
+
+      const paymasterAndData = ethers.concat([
+        contractAddresses.paymasterAddress,
+        ethers.AbiCoder.defaultAbiCoder().encode(['uint48'], [deadlineTime]),
+        ethers.AbiCoder.defaultAbiCoder().encode(['uint48'], [validationTime]),
+      ]);
+
+      // Chuẩn bị UserOperation
+      const userOp = {
+        sender: sessionKey.scwAddress,
+        nonce: currentNonce.toString(),
+        initCode: '0x',
+        callData: executeCallData,
+        callGasLimit: '1000000',
+        verificationGasLimit: '1000000',
+        preVerificationGas: '300000',
+        maxFeePerGas: ethers.parseUnits('5', 'gwei').toString(),
+        maxPriorityFeePerGas: ethers.parseUnits('2', 'gwei').toString(),
+        paymasterAndData: paymasterAndData,
+        signature: '0x',
+      };
+
+      setStatus(DeploymentStatus.CREATING_USEROP);
+      showMessage('Đang tạo và ký UserOperation...');
+
+      // Ký UserOperation
+      const userOpHash = await entryPoint.layHashThaoTac(userOp);
+      const signingKey = new ethers.SigningKey(sessionKey.sessionKey);
+      const signatureObj = signingKey.sign(ethers.getBytes(userOpHash));
+
+      const signature = ethers.Signature.from({
+        r: signatureObj.r,
+        s: signatureObj.s,
+        v: signatureObj.v,
+      }).serialized;
+
+      userOp.signature = signature;
+
+      // Gửi UserOperation
+      setStatus(DeploymentStatus.SENDING_USEROP);
+      showMessage('Đang gửi giao dịch dừng phiên bầu cử...');
+
+      const response = await apiClient.post('/api/bundler/submit', {
+        ...userOp,
+        userOpHash: userOpHash,
+      });
+
+      if (!response.data) {
+        throw new Error('Không nhận được phản hồi từ bundler');
+      }
+
+      const frontendHash = response.data.userOpHash || userOpHash;
+      const backendHash = response.data.backendHash || frontendHash;
+      const txHash = response.data.txHash || frontendHash;
+
+      setFrontendHash(frontendHash);
+      setBackendHash(backendHash);
+      setTxHash(txHash);
+
+      setStatus(DeploymentStatus.WAITING_CONFIRMATION);
+      showMessage('Đã gửi giao dịch thành công, đang chờ xác nhận...');
+
+      // Kiểm tra trạng thái giao dịch
+      let checkCount = 0;
+      const maxChecks = 30;
+      const checkInterval = setInterval(async () => {
+        checkCount++;
+        try {
+          const statusResponse = await apiClient.get(
+            `/api/bundler/check-status?userOpHash=${frontendHash}`,
+          );
+
+          if (statusResponse.data && statusResponse.data.status === 'success') {
+            clearInterval(checkInterval);
+
+            setStatus(DeploymentStatus.SUCCESS);
+            setSuccessAlert(
+              canEarlyEnd
+                ? 'Phiên bầu cử đã được kết thúc sớm thành công!'
+                : 'Phiên bầu cử đã được dừng thành công!',
+            );
+
+            // Cập nhật lại dữ liệu
+            await fetchSessionResults();
+          } else if (statusResponse.data && statusResponse.data.status === 'failed') {
+            clearInterval(checkInterval);
+            setStatus(DeploymentStatus.FAILED);
+            setError(
+              'Giao dịch thất bại: ' + (statusResponse.data.message || 'Lỗi không xác định'),
+            );
+          }
+
+          if (checkCount >= maxChecks) {
+            clearInterval(checkInterval);
+            showMessage('Đã hết thời gian chờ. Vui lòng làm mới trang để kiểm tra trạng thái.');
+          }
+        } catch (error) {
+          console.error('Lỗi khi kiểm tra trạng thái:', error);
+        }
+      }, 5000); // Kiểm tra mỗi 5 giây
+    } catch (error) {
+      setStatus(DeploymentStatus.FAILED);
+      setError('Lỗi khi dừng phiên bầu cử: ' + error.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   // RENDER LOGIC
   if (isLoading) {
     return (
@@ -714,6 +1196,58 @@ const KetQuaBauCu = () => {
                   </>
                 )}
               </button>
+
+              {/* Nút dừng phiên bầu cử - Chỉ hiển thị khi có quyền dừng phiên và phiên đang hoạt động */}
+              {canEndSession && sessionInfo && sessionInfo.isActive && (
+                <button
+                  onClick={() => setConfirmModalOpen(true)}
+                  className="flex-1 sm:flex-auto px-3 sm:px-5 py-2 sm:py-3 bg-red-600 dark:bg-red-700 text-white text-sm sm:text-base rounded-lg hover:bg-red-500 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 shadow-lg shadow-red-600/20 dark:shadow-red-900/50"
+                  disabled={isProcessing}
+                >
+                  <span className="flex items-center justify-center">
+                    {isProcessing ? (
+                      <svg
+                        className="animate-spin -ml-1 mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                        />
+                      </svg>
+                    )}
+                    <span className="whitespace-nowrap">
+                      {canEarlyEndSession ? 'Kết thúc sớm' : 'Dừng phiên'}
+                    </span>
+                  </span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1351,13 +1885,13 @@ const KetQuaBauCu = () => {
                 </div>
               )}
           </>
-        ) : selectedPhien ? (
+        ) : (
           <EmptyStatePrompt
-            message="Không thể tải thông tin phiên bầu cử"
+            message="Chọn một phiên bầu cử để xem kết quả"
             icon={
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-20 w-20 mx-auto text-gray-400 dark:text-gray-600 mb-6 opacity-50"
+                className="h-16 w-16 mx-auto mb-4 text-indigo-500 dark:text-indigo-400 opacity-50"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1366,146 +1900,42 @@ const KetQuaBauCu = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                 />
               </svg>
             }
             actionButton={{
-              description: 'Có lỗi xảy ra khi tải dữ liệu từ blockchain. Vui lòng thử lại sau.',
+              description: 'Sử dụng menu dropdown ở trên để chọn phiên bầu cử',
               button: (
                 <button
-                  onClick={refreshData}
-                  className="px-6 py-3 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-600/20 dark:shadow-indigo-900/50"
+                  onClick={() => getSessionKey()}
+                  className="px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors duration-200"
                 >
-                  <span className="flex items-center justify-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-2"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                      />
-                    </svg>
-                    Thử lại
-                  </span>
+                  Lấy khóa phiên
                 </button>
               ),
             }}
           />
-        ) : (
-          <EmptyStatePrompt
-            message="Vui lòng chọn phiên bầu cử"
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-20 w-20 mx-auto text-gray-400 dark:text-gray-600 mb-6 opacity-50"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-              </svg>
-            }
-            actionButton={{
-              description: 'Hãy chọn một phiên bầu cử từ danh sách trên để xem kết quả.',
-            }}
-          />
         )}
-
-        {/* Thông tin kết nối blockchain */}
-        <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-4 sm:p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
-          <h3 className="font-medium mb-4 text-base sm:text-lg text-indigo-700 dark:text-indigo-300 flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 sm:h-5 sm:w-5 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 10V3L4 14h7v7l9-11h-7z"
-              />
-            </svg>
-            Thông tin kết nối blockchain
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
-            <div className="space-y-1 sm:space-y-2">
-              <p className="flex flex-wrap items-center text-sm sm:text-base">
-                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-32 mb-1 sm:mb-0">
-                  RPC:
-                </span>
-                <span className="text-indigo-700 dark:text-indigo-300 font-mono text-xs sm:text-sm break-all">
-                  https://geth.holihu.online/rpc
-                </span>
-              </p>
-              <p className="flex flex-wrap items-center text-sm sm:text-base">
-                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-32 mb-1 sm:mb-0">
-                  Contract:
-                </span>
-                <span className="text-indigo-700 dark:text-indigo-300 font-mono text-xs sm:text-sm break-all">
-                  {contractAddress}
-                </span>
-              </p>
-              <p className="flex flex-wrap items-center text-sm sm:text-base">
-                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-32">Server ID:</span>
-                <span className="text-indigo-700 dark:text-indigo-300">{serverId}</span>
-              </p>
-            </div>
-            <div className="space-y-1 sm:space-y-2">
-              <p className="flex flex-wrap items-center text-sm sm:text-base">
-                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-32 mb-1 sm:mb-0">
-                  Cuộc BC ID:
-                </span>
-                <span className="text-indigo-700 dark:text-indigo-300">{cuocBauCuId}</span>
-              </p>
-              <p className="flex flex-wrap items-center text-sm sm:text-base">
-                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-32 mb-1 sm:mb-0">
-                  Phiên BC ID:
-                </span>
-                <span className="text-indigo-700 dark:text-indigo-300">
-                  {selectedPhien || 'Chưa chọn'}
-                </span>
-              </p>
-              <p className="flex flex-wrap items-center text-sm sm:text-base">
-                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-32">Trạng thái:</span>
-                <span
-                  className={`${isMonitoring ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'} flex items-center`}
-                >
-                  <span
-                    className={`inline-block w-2 h-2 rounded-full mr-2 ${isMonitoring ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-gray-400'}`}
-                  ></span>
-                  {isMonitoring ? 'Đang theo dõi' : 'Không theo dõi'}
-                </span>
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Thông báo real-time */}
-      {isMonitoring && (
-        <div className="fixed bottom-2 right-2 sm:bottom-6 sm:right-6 backdrop-blur-md bg-emerald-100/90 dark:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-500/50 text-emerald-800 dark:text-emerald-300 px-3 py-2 sm:px-5 sm:py-3 rounded-lg shadow-2xl flex items-center transition-all duration-300 animate-pulse max-w-[90vw] sm:max-w-xs">
-          <div className="relative mr-2 sm:mr-3">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-emerald-500 rounded-full"></div>
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-emerald-400 rounded-full absolute top-0 animate-ping"></div>
-          </div>
-          <div>
-            <p className="font-medium text-sm sm:text-base">Đang theo dõi phiên #{selectedPhien}</p>
-            <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80 mt-0.5 sm:mt-1">
-              Cập nhật tự động mỗi 15 giây
-            </p>
-          </div>
-        </div>
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        onConfirm={endSession}
+        title="Xác nhận dừng phiên bầu cử"
+        message={`Bạn có chắc chắn muốn ${canEarlyEndSession ? 'kết thúc sớm' : 'dừng'} phiên bầu cử #${selectedPhien} không? Hành động này không thể hoàn tác.`}
+        confirmText={canEarlyEndSession ? 'Kết thúc sớm' : 'Dừng phiên'}
+      />
+
+      {/* Success Alert */}
+      {successAlert && (
+        <SuccessAlert message={successAlert} onClose={() => setSuccessAlert(null)} />
       )}
+
+      {/* Theme Toggle */}
+      <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
     </div>
   );
 };
