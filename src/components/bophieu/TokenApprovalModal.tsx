@@ -2,7 +2,7 @@
 
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, Loader } from 'lucide-react';
 import SessionKeyAndTokenApproval from './SessionKeyAndTokenApproval';
 import { Button } from '../ui/Button';
 import apiClient from '../../api/apiClient';
@@ -24,6 +24,8 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
 }) => {
   const [isCheckingApproval, setIsCheckingApproval] = useState(false);
   const [scwAddress, setScwAddress] = useState<string>('');
+  const [verificationInProgress, setVerificationInProgress] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState('');
 
   if (!isOpen) return null;
 
@@ -35,6 +37,7 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
 
     try {
       setIsCheckingApproval(true);
+      setVerificationMessage('Đang kiểm tra phê duyệt token...');
 
       // Check QuanLyPhieuBau allowance
       const quanLyPhieuResponse = await apiClient.get(
@@ -57,9 +60,14 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
       const quanLyPhieuRequirementMet = quanLyPhieuAllowance >= 3; // Requires 3 HLU
       const paymasterRequirementMet = paymasterAllowance >= 1; // Requires 1 HLU
 
+      setVerificationMessage(
+        `Kết quả kiểm tra - Paymaster: ${paymasterAllowance}/1 HLU, Quản lý phiếu bầu: ${quanLyPhieuAllowance}/3 HLU`,
+      );
+
       return quanLyPhieuRequirementMet && paymasterRequirementMet;
     } catch (error) {
       console.error('Error verifying approval requirements:', error);
+      setVerificationMessage('Lỗi khi kiểm tra phê duyệt: ' + (error as Error).message);
       return false;
     } finally {
       setIsCheckingApproval(false);
@@ -76,14 +84,50 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
     }
   };
 
-  // Xử lý khi quá trình phê duyệt hoàn tất - fixed to not require parameter
+  // Handle approval complete with verification
   const handleApprovalComplete = async () => {
-    // Use the scwAddress from state instead of parameter
-    const isApprovalComplete = scwAddress ? await verifyApprovalRequirements(scwAddress) : false;
+    if (!scwAddress) {
+      console.error('Cannot verify approval: No SCW address available');
+      onComplete(false);
+      return;
+    }
 
-    setTimeout(() => {
-      onComplete(isApprovalComplete);
-    }, 1000); // Đợi 1 giây để người dùng thấy thông báo thành công
+    setVerificationInProgress(true);
+    setVerificationMessage('Đang xác minh phê duyệt token...');
+
+    try {
+      // Small delay to allow blockchain state to update
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // First check
+      let isApproved = await verifyApprovalRequirements(scwAddress);
+
+      // If not approved on first check, try again after a delay
+      if (!isApproved) {
+        setVerificationMessage('Chờ xác nhận từ blockchain...');
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        // Second check
+        isApproved = await verifyApprovalRequirements(scwAddress);
+      }
+
+      if (isApproved) {
+        setVerificationMessage('Phê duyệt thành công! Đang tiếp tục...');
+      } else {
+        setVerificationMessage('Chưa phê duyệt đủ token cần thiết. Vui lòng phê duyệt lại.');
+      }
+
+      // Wait a moment to show the success message
+      setTimeout(() => {
+        setVerificationInProgress(false);
+        onComplete(isApproved);
+      }, 1000);
+    } catch (error) {
+      console.error('Error during approval verification:', error);
+      setVerificationMessage('Lỗi khi xác minh: ' + (error as Error).message);
+      setVerificationInProgress(false);
+      onComplete(false);
+    }
   };
 
   return (
@@ -98,6 +142,7 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
             <button
               onClick={onClose}
               className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
+              disabled={verificationInProgress}
             >
               <X className="h-5 w-5" />
             </button>
@@ -124,15 +169,31 @@ const TokenApprovalModal: React.FC<TokenApprovalModalProps> = ({
             </div>
           </div>
 
-          <SessionKeyAndTokenApproval
-            onSessionKeyGenerated={handleSessionKeyGenerated}
-            onApprovalComplete={handleApprovalComplete}
-            contractAddress={contractAddress}
-            targetType="quanlyphieubau"
-          />
+          {verificationInProgress ? (
+            <div className="p-6 bg-blue-50/70 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-lg mb-6">
+              <div className="flex flex-col items-center justify-center">
+                <Loader className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-spin mb-3" />
+                <p className="text-blue-700 dark:text-blue-300 text-center">
+                  {verificationMessage}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <SessionKeyAndTokenApproval
+              onSessionKeyGenerated={handleSessionKeyGenerated}
+              onApprovalComplete={handleApprovalComplete}
+              contractAddress={contractAddress}
+              targetType="quanlyphieubau"
+            />
+          )}
 
           <div className="mt-6 flex justify-between">
-            <Button variant="outline" onClick={onClose} className="px-5 py-2">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={verificationInProgress}
+              className="px-5 py-2"
+            >
               Quay lại trang bỏ phiếu
             </Button>
           </div>

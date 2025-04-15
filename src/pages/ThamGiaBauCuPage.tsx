@@ -1227,14 +1227,18 @@ const ThamGiaBauCu: React.FC = () => {
       return;
     }
 
-    // Check if token approval is needed and not cancelled
-    if (!tokenApprovalStatus.isApproved && !approvalCancelled) {
+    // First, recheck approval status to ensure it's current
+    const currentlyApproved = await checkApprovalStatus();
+
+    // Check if token approval is needed
+    if (!currentlyApproved && !approvalCancelled) {
+      console.log('Token approval needed but not yet approved');
       setShowTokenApprovalModal(true);
       return;
     }
 
     // If user cancelled approval, don't proceed with voting
-    if (approvalCancelled) {
+    if (!currentlyApproved && approvalCancelled) {
       toast({
         variant: 'destructive',
         title: 'Phê duyệt token chưa hoàn tất',
@@ -3446,16 +3450,51 @@ const ThamGiaBauCu: React.FC = () => {
             }
             setShowTokenApprovalModal(false);
           }}
-          onComplete={(approvalSuccessful) => {
+          onComplete={async (approvalSuccessful) => {
             // Only proceed if approval was successful
             if (approvalSuccessful) {
               setShowTokenApprovalModal(false);
               toast({
-                title: 'Phê duyệt thành công',
-                description: 'Bạn đã phê duyệt token HLU thành công. Bạn có thể tiếp tục bỏ phiếu.',
+                title: 'Đang kiểm tra phê duyệt',
+                description: 'Đang xác nhận trạng thái phê duyệt token HLU...',
               });
-              // Update local state with the latest approval status
-              checkApprovalStatus();
+
+              // Poll for approval status multiple times, as blockchain state might take time to update
+              let approvalConfirmed = false;
+              let attempts = 0;
+              const maxAttempts = 3;
+
+              while (!approvalConfirmed && attempts < maxAttempts) {
+                attempts++;
+                console.log(`Checking token approval - attempt ${attempts}/${maxAttempts}`);
+
+                // Wait a bit before checking to allow blockchain state to update
+                if (attempts > 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 2000));
+                }
+
+                approvalConfirmed = await checkApprovalStatus();
+
+                if (approvalConfirmed) {
+                  setApprovalCancelled(false);
+                  toast({
+                    variant: 'success',
+                    title: 'Phê duyệt thành công',
+                    description:
+                      'Bạn đã phê duyệt token HLU thành công. Bạn có thể tiếp tục bỏ phiếu.',
+                  });
+                  return;
+                }
+              }
+
+              if (!approvalConfirmed) {
+                toast({
+                  variant: 'warning',
+                  title: 'Chưa phát hiện phê duyệt',
+                  description:
+                    'Hệ thống không phát hiện được phê duyệt token đầy đủ. Vui lòng thử kiểm tra lại sau.',
+                });
+              }
             } else {
               toast({
                 variant: 'warning',
