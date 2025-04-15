@@ -93,6 +93,7 @@ const ThemeToggle = ({ darkMode, toggleDarkMode }) => {
 
 // Loading Spinner Component
 const LoadingSpinner = ({ message = 'Đang tải dữ liệu từ blockchain...' }) => (
+  <div className="flex h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-all duration-500">
     <div className="text-center p-8 backdrop-blur-lg bg-white/90 dark:bg-black/20 rounded-xl shadow-2xl">
       <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-3 border-b-3 border-indigo-500"></div>
       <p className="mt-6 text-gray-800 dark:text-white text-lg font-medium">{message}</p>
@@ -219,11 +220,7 @@ const SuccessAlert = ({ message, onClose }) => (
           viewBox="0 0 20 20"
           fill="currentColor"
         >
-          <path
-            fillRule="evenodd"
-            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-            clipRule="evenodd"
-          />
+          <path fillRule="evenodd" clipRule="evenodd" />
         </svg>
       </div>
       <div className="ml-3">
@@ -1384,53 +1381,53 @@ const KetQuaBauCu = () => {
 
       // Create a new PDF document in A4 format
       const pdf = new jsPDF('portrait', 'mm', 'a4');
-      
+
       // Don't explicitly add fonts - use default font
-      pdf.setFont("helvetica");
-      
+      pdf.setFont('helvetica');
+
       // Helper function to safely print Vietnamese text
       const safeText = (text, x, y, options = {}) => {
         try {
           // Convert Vietnamese diacritics to basic Latin characters for safety
           const simplifiedText = text
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/đ/g, "d")
-            .replace(/Đ/g, "D");
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D');
           pdf.text(simplifiedText, x, y, options);
         } catch (e) {
-          console.warn("Error printing text:", e);
+          console.warn('Error printing text:', e);
           // Fallback to basic text
           try {
-            pdf.text(text.replace(/[^\x00-\x7F]/g, "?"), x, y, options);
+            pdf.text(text.replace(/[^\x00-\x7F]/g, '?'), x, y, options);
           } catch (err) {
-            console.error("Fallback text failed:", err);
+            console.error('Fallback text failed:', err);
           }
         }
       };
 
       // Add header
       pdf.setFontSize(16);
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont('helvetica', 'bold');
       safeText('KET QUA BAU CU BLOCKCHAIN', 105, 15, { align: 'center' });
 
       if (electionInfo) {
         pdf.setFontSize(14);
-        safeText(electionInfo.name.replace(/[^\x00-\x7F]/g, " "), 105, 22, { align: 'center' });
+        safeText(electionInfo.name.replace(/[^\x00-\x7F]/g, ' '), 105, 22, { align: 'center' });
       }
 
       // Add generation info and timestamp
       const now = new Date().toLocaleString();
       pdf.setFontSize(10);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont('helvetica', 'normal');
       safeText(`Thoi gian xuat bao cao: ${now}`, 105, 30, { align: 'center' });
       safeText(`Phien bau cu: #${selectedPhien}`, 105, 35, { align: 'center' });
 
       // Add session info
       pdf.setFontSize(12);
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont('helvetica', 'bold');
       safeText('THONG TIN PHIEN BAU CU', 15, 45);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
 
       const sessionStatus = sessionInfo.isActive ? 'Dang dien ra' : 'Da ket thuc';
@@ -1440,7 +1437,11 @@ const KetQuaBauCu = () => {
       safeText(`So cu tri: ${sessionInfo.voterCount}`, 15, 67);
       safeText(`So ung vien: ${sessionInfo.candidateCount}`, 15, 72);
       safeText(`So ung vien trung cu: ${sessionInfo.electedCandidates?.length || 0}`, 15, 77);
-      safeText(`Ty le tham gia: ${progress.percentage}% (${progress.voted}/${progress.total})`, 15, 82);
+      safeText(
+        `Ty le tham gia: ${progress.percentage}% (${progress.voted}/${progress.total})`,
+        15,
+        82,
+      );
 
       // Add progress bar
       pdf.setDrawColor(200, 200, 200);
@@ -1463,7 +1464,7 @@ const KetQuaBauCu = () => {
 
       // Add Results title
       pdf.setFontSize(12);
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont('helvetica', 'bold');
       safeText('KET QUA PHIEN BAU CU', 15, yPosition);
       yPosition += 10;
 
@@ -1482,9 +1483,9 @@ const KetQuaBauCu = () => {
           pdf.addImage(chartImgData, 'PNG', 15, yPosition, 180, 85);
           yPosition += 90;
         } catch (err) {
-          console.error("Error capturing chart:", err);
+          console.error('Error capturing chart:', err);
           yPosition += 10;
-          safeText("Could not generate chart image", 15, yPosition);
+          safeText('Could not generate chart image', 15, yPosition);
           yPosition += 10;
         }
       }
@@ -1498,7 +1499,7 @@ const KetQuaBauCu = () => {
         }
 
         pdf.setFontSize(12);
-        pdf.setFont("helvetica", "bold");
+        pdf.setFont('helvetica', 'bold');
         safeText('BANG KET QUA CHI TIET', 15, yPosition);
         yPosition += 8;
 
@@ -1523,7 +1524,7 @@ const KetQuaBauCu = () => {
         // Table rows
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(8);
-        pdf.setFont("helvetica", "normal");
+        pdf.setFont('helvetica', 'normal');
 
         let rowColor = false;
         votingResults.forEach((result, index) => {
@@ -1536,7 +1537,7 @@ const KetQuaBauCu = () => {
             pdf.setFillColor(73, 85, 156);
             pdf.setTextColor(255, 255, 255);
             pdf.setFontSize(9);
-            pdf.setFont("helvetica", "bold");
+            pdf.setFont('helvetica', 'bold');
 
             pdf.rect(15, yPosition, 10, 8, 'F');
             pdf.rect(25, yPosition, 70, 8, 'F');
@@ -1553,7 +1554,7 @@ const KetQuaBauCu = () => {
             yPosition += 8;
             pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(8);
-            pdf.setFont("helvetica", "normal");
+            pdf.setFont('helvetica', 'normal');
             rowColor = false;
           }
 
@@ -1587,7 +1588,11 @@ const KetQuaBauCu = () => {
       }
 
       // Add elected candidates section if applicable
-      if (!sessionInfo.isActive && sessionInfo.electedCandidates && sessionInfo.electedCandidates.length > 0) {
+      if (
+        !sessionInfo.isActive &&
+        sessionInfo.electedCandidates &&
+        sessionInfo.electedCandidates.length > 0
+      ) {
         // Check if we need a new page
         if (yPosition > 240) {
           pdf.addPage();
@@ -1595,7 +1600,7 @@ const KetQuaBauCu = () => {
         }
 
         pdf.setFontSize(12);
-        pdf.setFont("helvetica", "bold");
+        pdf.setFont('helvetica', 'bold');
         safeText('DANH SACH TRUNG CU', 15, yPosition + 15);
         yPosition += 25;
 
@@ -1609,7 +1614,7 @@ const KetQuaBauCu = () => {
             yPosition = 15;
 
             pdf.setFontSize(12);
-            pdf.setFont("helvetica", "bold");
+            pdf.setFont('helvetica', 'bold');
             safeText('DANH SACH TRUNG CU (TIEP THEO)', 15, yPosition);
             yPosition += 10;
           }
@@ -1620,9 +1625,9 @@ const KetQuaBauCu = () => {
 
           pdf.setFontSize(10);
           pdf.setTextColor(0, 0, 0);
-          pdf.setFont("helvetica", "bold");
+          pdf.setFont('helvetica', 'bold');
           safeText(`Ung vien #${index + 1}:`, 25, yPosition + 7);
-          pdf.setFont("helvetica", "normal");
+          pdf.setFont('helvetica', 'normal');
 
           const shortAddress = `${address.substring(0, 18)}...${address.substring(address.length - 8)}`;
           safeText(shortAddress, 70, yPosition + 7);
@@ -1631,7 +1636,7 @@ const KetQuaBauCu = () => {
             safeText(
               `So phieu: ${candidateInfo.votes} (${candidateInfo.percentage}% tong so phieu)`,
               25,
-              yPosition + 15
+              yPosition + 15,
             );
           }
 
