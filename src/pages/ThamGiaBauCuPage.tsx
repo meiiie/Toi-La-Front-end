@@ -3137,20 +3137,8 @@ const ThamGiaBauCu: React.FC = () => {
 
   // Add a new function to check approval status from the blockchain
   const checkApprovalStatus = useCallback(async () => {
-    // Log what data we have for debugging
-    console.log('Check approval status called with:', {
-      walletAddress: walletInfo?.diaChiVi,
-      contractAddress: contractAddresses?.quanLyPhieuBauAddress,
-      contractAddressesLoaded: !!contractAddresses,
-    });
-
-    if (!walletInfo?.diaChiVi) {
-      console.error('Cannot check approval: Missing wallet address');
-      return false;
-    }
-
-    if (!contractAddresses?.quanLyPhieuBauAddress) {
-      console.error('Cannot check approval: Missing contract address');
+    if (!walletInfo?.diaChiVi || !contractAddresses.quanLyPhieuBauAddress) {
+      console.log('Cannot check approval: Missing wallet or contract address');
       return false;
     }
 
@@ -3177,27 +3165,19 @@ const ThamGiaBauCu: React.FC = () => {
         `/api/Blockchain/token-balance?scwAddress=${walletInfo.diaChiVi}`,
       );
 
-      // Extract and convert values to numbers with defaults
       const quanLyPhieuAllowance = Number(quanLyPhieuResponse.data?.allowance || '0');
       const paymasterAllowance = Number(paymasterResponse.data?.allowance || '0');
       const hluBalance = balanceResponse.data?.balance?.toString() || '0';
 
       console.log(
-        `Approval check results - QuanLyPhieu: ${quanLyPhieuAllowance}, Paymaster: ${paymasterAllowance}, Balance: ${hluBalance}`,
+        `Direct API responses - QuanLyPhieu: ${quanLyPhieuAllowance}, Paymaster: ${paymasterAllowance}, Balance: ${hluBalance}`,
       );
 
-      // Check if all requirements are met - match the criteria used in modal and SessionKeyAndTokenApproval
+      // Check if all requirements are met - use same logic as modal
       const quanLyPhieuRequirementMet = quanLyPhieuAllowance >= 3; // Requires 3 HLU
       const paymasterRequirementMet = paymasterAllowance >= 1; // Requires 1 HLU
 
-      // Both must be met to consider fully approved
       const isApproved = quanLyPhieuRequirementMet && paymasterRequirementMet;
-
-      console.log(
-        `Approval status check: Paymaster=${paymasterRequirementMet ? 'OK' : 'Needs approval'}, ` +
-          `QuanLyPhieu=${quanLyPhieuRequirementMet ? 'OK' : 'Needs approval'}, ` +
-          `Overall=${isApproved ? 'APPROVED' : 'NOT APPROVED'}`,
-      );
 
       // Update the token approval status
       setTokenApprovalStatus({
@@ -3211,295 +3191,348 @@ const ThamGiaBauCu: React.FC = () => {
       console.error('Error checking approval status:', error);
       return false;
     }
-  }, [walletInfo?.diaChiVi, contractAddresses?.quanLyPhieuBauAddress]);
+  }, [walletInfo?.diaChiVi, contractAddresses.quanLyPhieuBauAddress, handleBalancesUpdated]);
 
-  // Make sure we fetch contract addresses before voting
-  const voteForCandidate = useCallback(async () => {
-    if (!selectedCandidate || !selectedBallot || !walletInfo?.diaChiVi || !blockchainPhienBauCuId) {
-      console.log('Thiếu thông tin cần thiết:');
-      console.log('selectedCandidate', selectedCandidate);
-      console.log('selectedBallot', selectedBallot);
-      console.log('quanLyCuocBauCuAddress', quanLyCuocBauCuAddress);
-      console.log('blockchainPhienBauCuId', blockchainPhienBauCuId);
-      console.log('walletInfo?.diaChiVi', walletInfo?.diaChiVi);
-      toast({
-        variant: 'destructive',
-        title: 'Lỗi',
-        description: 'Vui lòng chọn ứng viên và phiếu bầu',
-      });
-      return;
-    }
-
-    // Ensure we have contract addresses
-    if (!contractAddresses?.quanLyPhieuBauAddress) {
-      console.log('Missing contract addresses, fetching them now');
-      await fetchContractAddresses();
-    }
-
-    // Now check approval status with all data available
-    const currentlyApproved = await checkApprovalStatus();
-
-    console.log('Current approval status before voting:', currentlyApproved);
-
-    // Check if token approval is needed
-    if (!currentlyApproved) {
-      console.log('Token approval needed, opening modal');
-      setShowTokenApprovalModal(true);
-      return;
-    }
-
-    // Rest of the voting logic stays the same...
-    // ...existing code...
-  }, [
-    selectedCandidate,
-    selectedBallot,
-    walletInfo?.diaChiVi,
-    blockchainPhienBauCuId,
-    checkApprovalStatus,
-    quanLyCuocBauCuAddress,
-    contractAddresses?.quanLyPhieuBauAddress,
-    fetchContractAddresses,
-    // ...existing dependencies...
-  ]);
-
-  // Ensure contract addresses are loaded when entering voting step
+  // Call checkApprovalStatus when needed (like when the modal closes)
   useEffect(() => {
-    if (currentStep === 'voting' && !contractAddresses?.quanLyPhieuBauAddress) {
-      console.log('Entering voting step, fetching contract addresses');
-      fetchContractAddresses().then(() => {
-        if (walletInfo?.diaChiVi) {
-          // Give time for contract addresses to be set in state
-          setTimeout(() => {
-            checkApprovalStatus();
-          }, 500);
-        }
-      });
-    } else if (
-      currentStep === 'voting' &&
+    if (
       walletInfo?.diaChiVi &&
-      contractAddresses?.quanLyPhieuBauAddress
+      contractAddresses.quanLyPhieuBauAddress &&
+      currentStep === 'voting'
     ) {
-      console.log(
-        'Entering voting step with wallet and contract addresses available, checking approval',
-      );
       checkApprovalStatus();
     }
   }, [
-    currentStep,
     walletInfo?.diaChiVi,
-    contractAddresses?.quanLyPhieuBauAddress,
-    fetchContractAddresses,
+    contractAddresses.quanLyPhieuBauAddress,
+    currentStep,
     checkApprovalStatus,
   ]);
 
-  // Add explicit check when component enters the voting stage
-  useEffect(() => {
-    if (currentStep === 'voting') {
-      console.log('In voting step, ensuring everything is ready');
-
-      // First ensure we have contract addresses
-      if (!contractAddresses || !contractAddresses.quanLyPhieuBauAddress) {
-        fetchContractAddresses();
-      }
-
-      // Set up periodic checking while on the voting page
-      const intervalId = setInterval(() => {
-        if (walletInfo?.diaChiVi && contractAddresses?.quanLyPhieuBauAddress) {
-          checkApprovalStatus();
-        }
-      }, 15000); // Check every 15 seconds
-
-      return () => clearInterval(intervalId);
-    }
-  }, [
-    currentStep,
-    walletInfo?.diaChiVi,
-    contractAddresses,
-    fetchContractAddresses,
-    checkApprovalStatus,
-  ]);
-
-  // Improve the token approval modal handler by adding a delay
-  // This ensures blockchain has time to update before we check approval status
-  const handleModalComplete = useCallback(
-    async (approvalSuccessful: boolean) => {
-      console.log('Token approval modal completed with success:', approvalSuccessful);
-
-      if (approvalSuccessful) {
-        setShowTokenApprovalModal(false);
-
-        toast({
-          title: 'Đang xác nhận phê duyệt',
-          description: 'Vui lòng đợi trong khi chúng tôi xác nhận phê duyệt token...',
-        });
-
-        // Wait for blockchain state to propagate
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        let approvalConfirmed = false;
-        let attempts = 0;
-        const maxAttempts = 4;
-
-        while (!approvalConfirmed && attempts < maxAttempts) {
-          attempts++;
-          console.log(`Re-checking token approval - attempt ${attempts}/${maxAttempts}`);
-
-          // Give blockchain more time to update with each attempt
-          await new Promise((resolve) => setTimeout(resolve, attempts * 1500));
-
-          // Ensure we have contract addresses before checking
-          if (!contractAddresses?.quanLyPhieuBauAddress) {
-            await fetchContractAddresses();
-          }
-
-          if (walletInfo?.diaChiVi && contractAddresses?.quanLyPhieuBauAddress) {
-            approvalConfirmed = await checkApprovalStatus();
-          }
-
-          if (approvalConfirmed) {
-            setApprovalCancelled(false);
-            toast({
-              variant: 'success',
-              title: 'Phê duyệt thành công',
-              description: 'Token HLU đã được phê duyệt thành công. Bạn có thể tiếp tục bỏ phiếu.',
-            });
-            return;
-          }
-        }
-
-        // If we get here, we couldn't confirm approval even after multiple attempts
-        toast({
-          variant: 'warning',
-          title: 'Chưa xác nhận được phê duyệt',
-          description: 'Hệ thống không thể xác nhận phê duyệt token. Vui lòng thử lại sau một lát.',
-        });
-      } else {
-        toast({
-          variant: 'warning',
-          title: 'Phê duyệt không hoàn tất',
-          description: 'Vui lòng hoàn tất quá trình phê duyệt token trước khi tiếp tục.',
-        });
-      }
-    },
-    [
-      walletInfo?.diaChiVi,
-      contractAddresses?.quanLyPhieuBauAddress,
-      checkApprovalStatus,
-      toast,
-      fetchContractAddresses,
-    ],
-  );
-
-  // ...existing code...
-
-  // Update the voting UI display to better handle approvals
-  {
-    selectedBallot && selectedCandidate && (
-      <motion.div
-        // ...existing animation props...
-        className="mt-6 p-5 bg-gradient-to-br from-green-50/90 to-emerald-50/90 dark:from-green-900/10 dark:to-emerald-900/10 border border-green-100/50 dark:border-green-800/30 rounded-xl shadow-lg"
-      >
-        {/* ...existing content... */}
-
-        {!tokenApprovalStatus.isApproved ? (
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30">
-              <div className="flex items-start">
-                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mr-3 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-medium text-amber-800 dark:text-amber-300">
-                    Cần phê duyệt token trước
-                  </h4>
-                  <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                    Phê duyệt token HLU là bước cần thiết để chi trả phí bỏ phiếu trên blockchain.
-                    Đây là bước bảo mật quan trọng để đảm bảo tính minh bạch của quá trình bầu cử.
-                  </p>
-
-                  <div className="mt-3 space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Số dư:</span>
-                      <span
-                        className={
-                          Number(tokenApprovalStatus.hluBalance) >= 1
-                            ? 'text-green-600 dark:text-green-400 font-medium'
-                            : 'text-red-600 dark:text-red-400 font-medium'
-                        }
-                      >
-                        {tokenApprovalStatus.hluBalance} HLU (Cần ít nhất 1 HLU)
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Đã phê duyệt cho QuanLyPhieu:</span>
-                      <span
-                        className={
-                          Number(tokenApprovalStatus.allowanceForQuanLyPhieu) >= 3
-                            ? 'text-green-600 dark:text-green-400 font-medium'
-                            : 'text-red-600 dark:text-red-400 font-medium'
-                        }
-                      >
-                        {tokenApprovalStatus.allowanceForQuanLyPhieu} HLU (Cần ít nhất 3 HLU)
-                      </span>
-                    </div>
-                  </div>
+  return (
+    <ErrorBoundary
+      FallbackComponent={({ error, resetErrorBoundary }) => (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg bg-white/95 dark:bg-gray-800/95 shadow-xl backdrop-blur-sm border border-red-200 dark:border-red-900/30 rounded-xl">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-orange-600"></div>
+            <CardContent className="p-6 space-y-6">
+              <div className="flex justify-center">
+                <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-full">
+                  <AlertTriangle className="h-10 w-10 text-red-600 dark:text-red-400" />
                 </div>
               </div>
+
+              <div className="text-center space-y-2">
+                <h2 className="text-xl font-semibold text-red-800 dark:text-red-300">
+                  Lỗi không mong đợi
+                </h2>
+                <p className="text-red-700 dark:text-red-400">
+                  Đã xảy ra lỗi khi tải dữ liệu bầu cử.
+                </p>
+                <div className="p-3 mt-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800/30 text-left">
+                  <p className="text-sm font-mono text-red-600 dark:text-red-400 overflow-auto max-h-32">
+                    {error.message}
+                  </p>
+                </div>
+
+                {error.message.includes('could not decode result data') && (
+                  <div className="p-3 mt-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800/30 text-left">
+                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                      <strong>Thông tin chi tiết:</strong> Hệ thống không thể đọc dữ liệu từ hợp
+                      đồng thông minh. Có thể hợp đồng thông minh không tồn tại hoặc không có phiên
+                      bầu cử nào.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <Button
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => {
+                    setBlockchainRetryCount(0);
+                    resetErrorBoundary();
+                  }}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Thử lại
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-red-200 dark:border-red-800 text-red-700 dark:text-red-400"
+                  onClick={() => navigate('/app')}
+                >
+                  <Home className="mr-2 h-4 w-4" />
+                  Về trang chủ
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      onReset={() => {
+        // Reset errors and counters
+        dispatchError({ type: 'CLEAR_ERROR' });
+        setFetchAttempts(0);
+        setBlockchainRetryCount(0);
+        invalidTokenCache.current.clear();
+        setBlockchainError(null);
+        setUserFriendlyError(null);
+        setIsUsingFallbackSession(false);
+        setIsInitialized(false);
+
+        // Navigate back or try fetching again
+        if (currentStep === 'voting') {
+          fetchBallotsFromBlockchain(true);
+        } else {
+          navigate(`/app/user-elections/elections/${cuocBauCuId}`);
+        }
+      }}
+    >
+      <div className={`min-h-screen ${isDarkMode ? 'dark bg-gray-900 text-white' : ''}`}>
+        <ParticleBackground isDarkMode={isDarkMode} />
+
+        {/* Mobile Stepper */}
+        <MobileStepper />
+
+        {/* Mobile toggle for stepper */}
+        <div className="fixed bottom-4 right-4 z-50 lg:hidden">
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 shadow-lg rounded-full w-10 h-10 p-0 flex items-center justify-center"
+            onClick={toggleStepper}
+            title="Hiển thị/Ẩn các bước"
+          >
+            {showStepper ? <X className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+          </Button>
+        </div>
+
+        {/* Mobile slide-in stepper */}
+        {isMobile && (
+          <div
+            className={`fixed inset-y-0 left-0 z-40 w-64 bg-white/95 dark:bg-gray-800/95 shadow-xl backdrop-blur-sm border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out ${showStepper ? 'translate-x-0' : '-translate-x-full'}`}
+          >
+            <div className="p-4 h-full overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-medium text-gray-900 dark:text-white">Các bước bầu cử</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setShowStepper(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="space-y-4">
+                {steps.map((step, index) => {
+                  const isActive = step.id === currentStep;
+                  const isCompleted = steps.findIndex((s) => s.id === currentStep) > index;
+
+                  return (
+                    <div
+                      key={step.id}
+                      className={`flex items-start ${isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}
+                    >
+                      <div className="flex-shrink-0 mt-1">
+                        {isCompleted ? (
+                          <CircleCheck className="h-5 w-5" />
+                        ) : isActive ? (
+                          <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 dark:border-blue-400 flex items-center justify-center">
+                            <span className="text-xs font-bold">{index + 1}</span>
+                          </div>
+                        ) : (
+                          <Circle className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div className="ml-3">
+                        <p
+                          className={`text-sm font-medium ${isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}
+                        >
+                          {step.title}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {step.description}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Backdrop for mobile stepper */}
+        {isMobile && showStepper && (
+          <div
+            className="fixed inset-0 bg-black/20 dark:bg-black/50 z-30 backdrop-blur-sm"
+            onClick={() => setShowStepper(false)}
+          />
+        )}
+
+        {/* Home button in top-right corner */}
+        <div className="fixed top-4 right-4 z-50">
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 shadow-lg rounded-full w-10 h-10 p-0 flex items-center justify-center"
+            onClick={goToHome}
+            title="Về trang chủ"
+          >
+            <Home className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* Floating error alert */}
+        {(blockchainError || userFriendlyError) && (
+          <div className="fixed bottom-16 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
+            <Alert
+              variant="destructive"
+              className="shadow-xl bg-red-50 border border-red-200 dark:bg-red-900/40 dark:border-red-800/30"
+            >
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <div className="flex-1">
+                <AlertTitle>{userFriendlyError?.title || 'Lỗi kết nối blockchain'}</AlertTitle>
+                <AlertDescription className="flex flex-col gap-2">
+                  <p>{userFriendlyError?.message || blockchainError}</p>
+                  {userFriendlyError?.suggestion && (
+                    <p className="text-sm opacity-90">{userFriendlyError.suggestion}</p>
+                  )}
+                  {isUsingFallbackSession && (
+                    <p className="text-sm bg-amber-100/50 dark:bg-amber-900/30 p-1.5 rounded">
+                      Đang sử dụng phiên bầu cử mặc định (ID: {FALLBACK_SESSION_ID})
+                    </p>
+                  )}
+                  <div className="flex gap-2 mt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setFetchAttempts(0);
+                        setBlockchainRetryCount(0);
+                        invalidTokenCache.current.clear();
+                        setBlockchainError(null);
+                        setUserFriendlyError(null);
+                        setIsUsingFallbackSession(false);
+                        fetchBallotsFromBlockchain(true);
+                      }}
+                      disabled={fetchAttempts >= MAX_FETCH_ATTEMPTS}
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Thử lại
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={goToHome}>
+                      <Home className="h-3 w-3 mr-1" />
+                      Trang chủ
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </div>
+              <X
+                className="h-4 w-4 cursor-pointer opacity-70 hover:opacity-100"
+                onClick={() => {
+                  setBlockchainError(null);
+                  setUserFriendlyError(null);
+                }}
+              />
+            </Alert>
+          </div>
+        )}
+
+        {/* Main content container with proper grid layout */}
+        <div className="container mx-auto px-3 sm:px-4 lg:pl-0 lg:pr-4 pt-6 sm:pt-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6">
+            {/* First column: Stepper (only on desktop) */}
+            <div className="hidden lg:block">
+              <VerticalStepper />
             </div>
 
-            <Button
-              className="w-full py-6 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
-              onClick={() => {
-                // Ensure we have contract addresses before opening the modal
-                if (!contractAddresses?.quanLyPhieuBauAddress) {
-                  fetchContractAddresses().then(() => {
-                    setApprovalCancelled(false);
-                    setShowTokenApprovalModal(true);
-                  });
-                } else {
-                  setApprovalCancelled(false);
-                  setShowTokenApprovalModal(true);
-                }
-              }}
-              disabled={isSubmitting || !walletInfo?.diaChiVi}
-            >
-              <div className="flex items-center justify-center">
-                {isSubmitting ? (
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                ) : (
-                  <Zap className="mr-2 h-5 w-5" />
-                )}
-                <span className="text-lg">Phê duyệt token HLU</span>
-              </div>
-            </Button>
+            {/* Second column: Main content */}
+            <div>
+              {/* Show warning banner for fallback mode */}
+              {isUsingFallbackSession && <BlockchainErrorBanner />}
+
+              {/* Main content */}
+              {renderStepContent()}
+            </div>
           </div>
-        ) : (
-          <Button
-            className="w-full py-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
-            onClick={voteForCandidate}
-            disabled={isSubmitting}
-          >
-            {/* ...existing code... */}
-          </Button>
-        )}
-      </motion.div>
-    );
-  }
+        </div>
 
-  // ...existing code...
+        {/* Token approval modal */}
+        <TokenApprovalModal
+          isOpen={showTokenApprovalModal}
+          onClose={() => {
+            // Show a warning when user tries to close the modal without completing approval
+            if (!tokenApprovalStatus.isApproved) {
+              toast({
+                variant: 'warning',
+                title: 'Chú ý',
+                description:
+                  'Bạn chưa hoàn tất việc phê duyệt token HLU cần thiết cho việc bỏ phiếu.',
+              });
+              setApprovalCancelled(true);
+            }
+            setShowTokenApprovalModal(false);
+          }}
+          onComplete={async (approvalSuccessful) => {
+            console.log('TokenApprovalModal complete, success:', approvalSuccessful);
+            if (approvalSuccessful) {
+              setShowTokenApprovalModal(false);
 
-  // Update the TokenApprovalModal to ensure contract address is passed correctly
-  <TokenApprovalModal
-    isOpen={showTokenApprovalModal}
-    onClose={() => {
-      // ...existing code...
-    }}
-    onComplete={handleModalComplete}
-    contractAddress={
-      contractAddresses?.quanLyPhieuBauAddress || '0x9c244B5E1F168510B9b812573b1B667bd1E654c8'
-    }
-    onSessionKeyGenerated={setSessionKey}
-  />;
+              // Add more retries and longer delays for the blockchain to update
+              let approvalConfirmed = false;
+              let attempts = 0;
+              const maxAttempts = 4;
 
-  // ...existing code...
+              toast({
+                title: 'Đang kiểm tra phê duyệt',
+                description:
+                  'Vui lòng đợi trong khi chúng tôi xác nhận trạng thái phê duyệt token...',
+              });
+
+              while (!approvalConfirmed && attempts < maxAttempts) {
+                attempts++;
+                console.log(`Checking token approval - attempt ${attempts}/${maxAttempts}`);
+
+                // Longer delay for blockchain state to propagate
+                await new Promise((resolve) => setTimeout(resolve, 2000 + attempts * 1000));
+
+                // Force a direct check from the API
+                approvalConfirmed = await checkApprovalStatus();
+
+                if (approvalConfirmed) {
+                  setApprovalCancelled(false);
+                  toast({
+                    title: 'Phê duyệt thành công',
+                    description:
+                      'Bạn đã phê duyệt token HLU thành công và có thể tiếp tục bỏ phiếu.',
+                    variant: 'success',
+                  });
+                  return;
+                }
+              }
+
+              if (!approvalConfirmed) {
+                toast({
+                  variant: 'warning',
+                  title: 'Đang chờ xác nhận',
+                  description:
+                    'Việc phê duyệt token đang được xử lý trên blockchain. Vui lòng thử lại sau một lát.',
+                });
+              }
+            } else {
+              // ...existing code for failure...
+            }
+          }}
+          contractAddress={
+            contractAddresses.quanLyPhieuBauAddress || '0x9c244B5E1F168510B9b812573b1B667bd1E654c8'
+          }
+          onSessionKeyGenerated={setSessionKey}
+        />
+      </div>
+    </ErrorBoundary>
+  );
 };
 
 export default ThamGiaBauCu;
