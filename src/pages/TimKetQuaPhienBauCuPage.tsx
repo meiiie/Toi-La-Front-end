@@ -513,8 +513,8 @@ const KetQuaBauCu = () => {
     try {
       setIsLoading(true);
 
-      // Gọi API để lấy session key
-      const { data } = await apiClient.post('/api/Blockchain/get-session-key', {
+      // Gọi API để lấy session key - sửa đường dẫn API
+      const { data } = await apiClient.post('/api/blockchain/get-session-key', {
         TaiKhoanID: userInfo.id,
       });
 
@@ -1430,6 +1430,7 @@ const KetQuaBauCu = () => {
                           r="10"
                           stroke="currentColor"
                           strokeWidth="4"
+                          fill="none"
                         ></circle>
                         <path
                           className="opacity-75"
