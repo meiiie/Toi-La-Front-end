@@ -298,6 +298,116 @@ enum DeploymentStatus {
   FAILED = 6,
 }
 
+// Status Message Component
+const StatusMessage = ({ status, message, isProcessing }) => {
+  if (!message) return null;
+
+  let bgClass = 'bg-blue-50 dark:bg-blue-900/40';
+  let borderClass = 'border-blue-200 dark:border-blue-700/50';
+  let textClass = 'text-blue-800 dark:text-blue-200';
+  let icon = (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-6 w-6 text-blue-600 dark:text-blue-400"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    </svg>
+  );
+
+  if (status === DeploymentStatus.SUCCESS) {
+    bgClass = 'bg-green-50 dark:bg-green-900/40';
+    borderClass = 'border-green-200 dark:border-green-700/50';
+    textClass = 'text-green-800 dark:text-green-200';
+    icon = (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-6 w-6 text-green-600 dark:text-green-400"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+    );
+  } else if (status === DeploymentStatus.FAILED) {
+    bgClass = 'bg-red-50 dark:bg-red-900/40';
+    borderClass = 'border-red-200 dark:border-red-700/50';
+    textClass = 'text-red-800 dark:text-red-200';
+    icon = (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-6 w-6 text-red-600 dark:text-red-400"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <div
+      className={`flex items-start p-4 rounded-lg ${bgClass} border ${borderClass} mb-4 transition-all duration-300`}
+    >
+      <div className="flex-shrink-0 mr-3">
+        {isProcessing ? (
+          <svg
+            className="animate-spin h-6 w-6 text-indigo-600 dark:text-indigo-400"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        ) : (
+          icon
+        )}
+      </div>
+      <div className={`flex-1 ${textClass}`}>
+        <p className="font-medium">{message}</p>
+        {status === DeploymentStatus.WAITING_CONFIRMATION && (
+          <div className="mt-2">
+            <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-600 dark:bg-indigo-400 rounded-full animate-progress"></div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Main component
 const KetQuaBauCu = () => {
   // Redux
@@ -372,6 +482,9 @@ const KetQuaBauCu = () => {
   const [backendHash, setBackendHash] = useState('');
   const [txHash, setTxHash] = useState('');
 
+  // State cho thông báo trạng thái
+  const [statusMessage, setStatusMessage] = useState('');
+
   // Toggle Dark Mode
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -391,9 +504,10 @@ const KetQuaBauCu = () => {
     }
   }, [darkMode]);
 
-  // Hiển thị thông báo
+  // Hiển thị thông báo với cải tiến
   const showMessage = useCallback((msg) => {
     console.log(msg);
+    setStatusMessage(msg);
   }, []);
 
   // Hiển thị lỗi
@@ -554,7 +668,10 @@ const KetQuaBauCu = () => {
 
     try {
       setIsLoading(true);
-      showMessage('Đang kiểm tra trạng thái cuộc bầu cử...');
+      // Only set status message once to avoid repetitive messages
+      if (!statusMessage.includes('Đang kiểm tra')) {
+        showMessage('Đang kiểm tra quyền quản lý phiên bầu cử...');
+      }
 
       const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
       const quanLyCuocBauCuAbi = [
@@ -609,6 +726,7 @@ const KetQuaBauCu = () => {
     electionStatus.isOwner,
     showMessage,
     setErrorMessage,
+    statusMessage,
   ]);
 
   // Lấy danh sách phiên bầu cử khi có contractAddress
@@ -1053,6 +1171,9 @@ const KetQuaBauCu = () => {
       return;
     }
 
+    // Reset status message
+    setStatusMessage('');
+
     // If no session key, try to get one
     if (!sessionKey) {
       const newSessionKey = await getSessionKey();
@@ -1065,7 +1186,7 @@ const KetQuaBauCu = () => {
     try {
       setIsProcessing(true);
       setStatus(DeploymentStatus.PREPARING_CALLDATA);
-      showMessage('Đang chuẩn bị dữ liệu để dừng phiên bầu cử...');
+      showMessage('Đang chuẩn bị dữ liệu để kết thúc phiên bầu cử...');
 
       const provider = new ethers.JsonRpcProvider('https://geth.holihu.online/rpc');
 
@@ -1140,7 +1261,11 @@ const KetQuaBauCu = () => {
       };
 
       setStatus(DeploymentStatus.CREATING_USEROP);
-      showMessage('Đang tạo và ký UserOperation...');
+      showMessage(
+        canEarlyEnd
+          ? 'Đang tạo giao dịch kết thúc sớm phiên bầu cử...'
+          : 'Đang tạo giao dịch kết thúc phiên bầu cử...',
+      );
 
       try {
         // Ký UserOperation
@@ -1158,7 +1283,7 @@ const KetQuaBauCu = () => {
 
         // Gửi UserOperation
         setStatus(DeploymentStatus.SENDING_USEROP);
-        showMessage('Đang gửi giao dịch dừng phiên bầu cử...');
+        showMessage('Đang gửi giao dịch đến blockchain...');
 
         const { data } = await apiClient.post('/api/bundler/submit', {
           ...userOp,
@@ -1178,7 +1303,11 @@ const KetQuaBauCu = () => {
         setTxHash(txHash);
 
         setStatus(DeploymentStatus.WAITING_CONFIRMATION);
-        showMessage('Đã gửi giao dịch thành công, đang chờ xác nhận...');
+        showMessage(
+          canEarlyEnd
+            ? 'Đang chờ blockchain xác nhận kết thúc sớm phiên bầu cử...'
+            : 'Đang chờ blockchain xác nhận kết thúc phiên bầu cử...',
+        );
 
         // Kiểm tra trạng thái giao dịch
         let checkCount = 0;
@@ -1197,7 +1326,12 @@ const KetQuaBauCu = () => {
               setSuccessAlert(
                 canEarlyEnd
                   ? 'Phiên bầu cử đã được kết thúc sớm thành công!'
-                  : 'Phiên bầu cử đã được dừng thành công!',
+                  : 'Phiên bầu cử đã được kết thúc thành công!',
+              );
+              showMessage(
+                canEarlyEnd
+                  ? 'Phiên bầu cử đã được kết thúc sớm thành công! Dữ liệu đã được lưu trên blockchain.'
+                  : 'Phiên bầu cử đã được kết thúc thành công! Dữ liệu đã được lưu trên blockchain.',
               );
 
               // Cập nhật lại dữ liệu
@@ -1210,7 +1344,9 @@ const KetQuaBauCu = () => {
 
             if (checkCount >= maxChecks) {
               clearInterval(checkInterval);
-              showMessage('Đã hết thời gian chờ. Vui lòng làm mới trang để kiểm tra trạng thái.');
+              showMessage(
+                'Đã hết thời gian chờ xác nhận. Vui lòng làm mới trang để kiểm tra trạng thái.',
+              );
             }
           } catch (error) {
             console.error('Lỗi khi kiểm tra trạng thái:', error);
@@ -1274,6 +1410,11 @@ const KetQuaBauCu = () => {
         </div>
 
         {error && <ErrorAlert message={error} />}
+
+        {/* Status Message */}
+        {statusMessage && (
+          <StatusMessage status={status} message={statusMessage} isProcessing={isProcessing} />
+        )}
 
         {/* Chọn phiên bầu cử */}
         <div className="backdrop-blur-lg bg-white/90 dark:bg-white/5 rounded-xl shadow-xl p-4 sm:p-6 mb-8 border border-gray-200 dark:border-white/10 transition-all duration-300 hover:bg-white/100 dark:hover:bg-white/10">
@@ -2137,9 +2278,17 @@ const KetQuaBauCu = () => {
         isOpen={confirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}
         onConfirm={endSession}
-        title="Xác nhận dừng phiên bầu cử"
-        message={`Bạn có chắc chắn muốn ${canEarlyEndSession ? 'kết thúc sớm' : 'dừng'} phiên bầu cử #${selectedPhien} không? Hành động này không thể hoàn tác.`}
-        confirmText={canEarlyEndSession ? 'Kết thúc sớm' : 'Dừng phiên'}
+        title={
+          canEarlyEndSession
+            ? 'Xác nhận kết thúc sớm phiên bầu cử'
+            : 'Xác nhận kết thúc phiên bầu cử'
+        }
+        message={`Bạn có chắc chắn muốn ${canEarlyEndSession ? 'kết thúc sớm' : 'kết thúc'} phiên bầu cử #${selectedPhien}? ${
+          canEarlyEndSession
+            ? 'Phiên bầu cử đã đủ điều kiện kết thúc sớm do đã đạt tỷ lệ tham gia cần thiết.'
+            : 'Hành động này sẽ đóng phiên bầu cử hiện tại.'
+        } Hành động này không thể hoàn tác.`}
+        confirmText={canEarlyEndSession ? 'Kết thúc sớm' : 'Kết thúc phiên'}
       />
 
       {/* Success Alert */}
@@ -2152,5 +2301,23 @@ const KetQuaBauCu = () => {
     </div>
   );
 };
+
+// Add animation for progress bar
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes progress {
+    0% { width: 5%; }
+    10% { width: 15%; }
+    25% { width: 35%; }
+    50% { width: 55%; }
+    75% { width: 75%; }
+    90% { width: 90%; }
+    100% { width: 95%; }
+  }
+  .animate-progress {
+    animation: progress 3s ease-in-out infinite;
+  }
+`;
+document.head.appendChild(style);
 
 export default KetQuaBauCu;
