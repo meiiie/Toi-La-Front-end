@@ -17,6 +17,7 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../store/store';
 import { getViByAddress } from '../store/sliceBlockchain/viBlockchainSlice';
+import apiClient from '../api/apiClient';
 
 // Các màu sắc cho biểu đồ
 const COLORS = [
@@ -432,25 +433,8 @@ const KetQuaBauCu = () => {
         setIsLoading(true);
 
         try {
-          // Use fetch with better error handling
-          const response = await fetch('/api/Blockchain/contract-addresses', {
-            method: 'GET',
-            headers: {
-              Accept: 'application/json',
-            },
-          });
+          const { data } = await apiClient.get('/api/Blockchain/contract-addresses');
 
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          // Check if response is actually JSON before parsing
-          const contentType = response.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Response is not JSON');
-          }
-
-          const data = await response.json();
           if (data) {
             setContractAddresses(data);
             showMessage('Đã lấy thông tin địa chỉ contract');
@@ -487,25 +471,8 @@ const KetQuaBauCu = () => {
         setIsLoading(true);
 
         try {
-          // Use fetch with better error handling
-          const response = await fetch(`/api/CuocBauCu/${cuocBauCuId}`, {
-            method: 'GET',
-            headers: {
-              Accept: 'application/json',
-            },
-          });
+          const { data } = await apiClient.get(`/api/CuocBauCu/${cuocBauCuId}`);
 
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          // Check if response is actually JSON before parsing
-          const contentType = response.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Response is not JSON');
-          }
-
-          const data = await response.json();
           if (data) {
             // Get blockchain address from election
             setContractAddress(
@@ -547,28 +514,9 @@ const KetQuaBauCu = () => {
       setIsLoading(true);
 
       // Gọi API để lấy session key
-      const response = await fetch('/api/Blockchain/get-session-key', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          TaiKhoanID: userInfo.id,
-        }),
+      const { data } = await apiClient.post('/api/Blockchain/get-session-key', {
+        TaiKhoanID: userInfo.id,
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Check if response is actually JSON before parsing
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Response is not JSON');
-      }
-
-      const data = await response.json();
 
       if (data && data.success && data.sessionKey) {
         // Lưu session key và thông tin liên quan
@@ -1211,22 +1159,10 @@ const KetQuaBauCu = () => {
         setStatus(DeploymentStatus.SENDING_USEROP);
         showMessage('Đang gửi giao dịch dừng phiên bầu cử...');
 
-        const response = await fetch('/api/bundler/submit', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...userOp,
-            userOpHash: userOpHash,
-          }),
+        const { data } = await apiClient.post('/api/bundler/submit', {
+          ...userOp,
+          userOpHash: userOpHash,
         });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
 
         if (!data) {
           throw new Error('Không nhận được phản hồi từ bundler');
@@ -1249,15 +1185,9 @@ const KetQuaBauCu = () => {
         const checkInterval = setInterval(async () => {
           checkCount++;
           try {
-            const statusResponse = await fetch(
+            const { data: statusData } = await apiClient.get(
               `/api/bundler/check-status?userOpHash=${frontendHash}`,
             );
-
-            if (!statusResponse.ok) {
-              throw new Error(`HTTP error! status: ${statusResponse.status}`);
-            }
-
-            const statusData = await statusResponse.json();
 
             if (statusData && statusData.status === 'success') {
               clearInterval(checkInterval);
