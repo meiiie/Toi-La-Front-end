@@ -424,20 +424,32 @@ const KetQuaBauCu = () => {
   useEffect(() => {
     const fetchContractAddresses = async () => {
       try {
-        // Sử dụng fetch thay vì axios để tránh lỗi 404
-        const response = await fetch('/api/Blockchain/contract-addresses');
+        // Use fetch with better error handling
+        const response = await fetch('/api/Blockchain/contract-addresses', {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+          },
+        });
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
 
+        // Check if response is actually JSON before parsing
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Response is not JSON');
+        }
+
+        const data = await response.json();
         if (data) {
           setContractAddresses(data);
           showMessage('Đã lấy thông tin địa chỉ contract');
         }
       } catch (error) {
         console.error('Lỗi khi lấy địa chỉ contract:', error);
-        // Sử dụng giá trị mặc định nếu không lấy được
+        // Use default values as fallback
         setContractAddresses({
           entryPointAddress: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789',
           factoryAddress: '0x9406Cc6185a346906296840746125a0E44976454',
@@ -454,15 +466,27 @@ const KetQuaBauCu = () => {
   useEffect(() => {
     const fetchElectionInfo = async () => {
       try {
-        // Sử dụng fetch thay vì axios để tránh lỗi 404
-        const response = await fetch(`/api/CuocBauCu/${cuocBauCuId}`);
+        // Use fetch with better error handling
+        const response = await fetch(`/api/CuocBauCu/${cuocBauCuId}`, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+          },
+        });
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
 
+        // Check if response is actually JSON before parsing
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Response is not JSON');
+        }
+
+        const data = await response.json();
         if (data) {
-          // Lấy địa chỉ blockchain từ cuộc bầu cử
+          // Get blockchain address from election
           setContractAddress(
             data.blockchainAddress || '0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10',
           );
@@ -471,7 +495,7 @@ const KetQuaBauCu = () => {
       } catch (error) {
         console.error('Lỗi khi lấy thông tin cuộc bầu cử:', error);
 
-        // Fallback: Nếu API không hoạt động, sử dụng giá trị mặc định
+        // Fallback: If API doesn't work, use default values
         setContractAddress('0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10');
         setServerId(8);
       }
@@ -501,6 +525,7 @@ const KetQuaBauCu = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify({
           TaiKhoanID: userInfo.id,
@@ -509,6 +534,12 @@ const KetQuaBauCu = () => {
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Check if response is actually JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON');
       }
 
       const data = await response.json();
@@ -530,7 +561,9 @@ const KetQuaBauCu = () => {
         throw new Error(data?.message || 'Không thể lấy session key');
       }
     } catch (error) {
-      setErrorMessage('Lỗi khi lấy session key: ' + error.message);
+      setErrorMessage(
+        'Lỗi khi lấy session key: ' + (error instanceof Error ? error.message : String(error)),
+      );
       return null;
     } finally {
       setIsLoading(false);
@@ -539,8 +572,8 @@ const KetQuaBauCu = () => {
 
   // Kiểm tra trạng thái cuộc bầu cử
   const checkElectionStatus = useCallback(async () => {
-    if (!contractAddress || !sessionKey?.scwAddress) {
-      setErrorMessage('Thiếu thông tin cần thiết để kiểm tra trạng thái cuộc bầu cử');
+    if (!contractAddress) {
+      setErrorMessage('Thiếu thông tin địa chỉ hợp đồng để kiểm tra trạng thái cuộc bầu cử');
       return false;
     }
 
@@ -561,30 +594,47 @@ const KetQuaBauCu = () => {
       const owner = baseInfo[0];
       const isActive = baseInfo[1];
 
-      // Kiểm tra quyền BANTOCHUC
-      const BANTOCHUC = ethers.keccak256(ethers.toUtf8Bytes('BANTOCHUC'));
-      const hasBanToChucRole = await contract.hasRole(BANTOCHUC, sessionKey.scwAddress);
+      let hasBanToChucRole = false;
+      // Only check role if we have session key with SCW address
+      if (sessionKey?.scwAddress) {
+        // Kiểm tra quyền BANTOCHUC
+        const BANTOCHUC = ethers.keccak256(ethers.toUtf8Bytes('BANTOCHUC'));
+        hasBanToChucRole = await contract.hasRole(BANTOCHUC, sessionKey.scwAddress);
+      }
 
+      // Set status regardless of session key availability
       setElectionStatus({
         owner,
-        isOwner: owner.toLowerCase() === sessionKey.scwAddress.toLowerCase(),
+        isOwner: sessionKey?.scwAddress
+          ? owner.toLowerCase() === sessionKey.scwAddress.toLowerCase()
+          : false,
         isActive,
         hasBanToChucRole,
       });
 
-      // Kiểm tra quyền dừng phiên
-      const canEndSessionValue =
-        owner.toLowerCase() === sessionKey.scwAddress.toLowerCase() || hasBanToChucRole;
+      // Can end session if owner or has BANTOCHUC role
+      const canEndSessionValue = electionStatus.isOwner || hasBanToChucRole;
       setCanEndSession(canEndSessionValue && sessionInfo?.isActive);
 
       return true;
     } catch (error) {
-      setErrorMessage('Lỗi khi kiểm tra trạng thái cuộc bầu cử: ' + error.message);
+      console.error('Lỗi khi kiểm tra trạng thái cuộc bầu cử:', error);
+      setErrorMessage(
+        'Lỗi khi kiểm tra trạng thái cuộc bầu cử: ' +
+          (error instanceof Error ? error.message : String(error)),
+      );
       return false;
     } finally {
       setIsLoading(false);
     }
-  }, [contractAddress, sessionKey, sessionInfo, showMessage, setErrorMessage]);
+  }, [
+    contractAddress,
+    sessionKey,
+    sessionInfo,
+    electionStatus.isOwner,
+    showMessage,
+    setErrorMessage,
+  ]);
 
   // Lấy danh sách phiên bầu cử khi có contractAddress
   useEffect(() => {
@@ -683,7 +733,7 @@ const KetQuaBauCu = () => {
     };
 
     checkEarlyEndCondition();
-  }, [contractAddress, selectedPhien, sessionInfo, progress]);
+  }, [contractAddress, selectedPhien, sessionInfo, progress, cuocBauCuId]);
 
   // Lấy kết quả cho phiên bầu cử được chọn
   const fetchSessionResults = useCallback(async () => {
@@ -709,6 +759,11 @@ const KetQuaBauCu = () => {
         electedCandidates: sessionData[6], // ungVienDacCu
         reElection: sessionData[7], // taiBauCu
       });
+
+      // Check if the user can end the session - do this regardless of session state
+      if (sessionKey && sessionKey.scwAddress) {
+        await checkElectionStatus();
+      }
 
       // Cách xử lý khác nhau tùy theo trạng thái phiên
       const isSessionActive = sessionData[0];
@@ -801,17 +856,30 @@ const KetQuaBauCu = () => {
           }
         } catch (error) {
           console.error('Lỗi khi lấy kết quả:', error);
-          setError('Không thể lấy kết quả bầu cử: ' + error.message);
+          setError(
+            'Không thể lấy kết quả bầu cử: ' +
+              (error instanceof Error ? error.message : String(error)),
+          );
+        }
+      }
+
+      // Check early end condition after getting results
+      if (sessionInfo?.isActive) {
+        try {
+          const canEarlyEnd = await contract.canKetThucSomPhienBauCu(cuocBauCuId, selectedPhien);
+          setCanEarlyEndSession(canEarlyEnd);
+        } catch (err) {
+          console.error('Lỗi khi kiểm tra điều kiện kết thúc sớm:', err);
         }
       }
 
       setIsChangingSession(false);
     } catch (error) {
       console.error('Lỗi khi lấy kết quả phiên bầu cử:', error);
-      setError(`Lỗi khi lấy kết quả: ${error.message}`);
+      setError(`Lỗi khi lấy kết quả: ${error instanceof Error ? error.message : String(error)}`);
       setIsChangingSession(false);
     }
-  }, [contractAddress, selectedPhien, cuocBauCuId]);
+  }, [contractAddress, selectedPhien, cuocBauCuId, sessionKey, sessionInfo, checkElectionStatus]);
 
   useEffect(() => {
     if (selectedPhien) {
@@ -895,9 +963,18 @@ const KetQuaBauCu = () => {
 
   // Tạo và gửi UserOperation để dừng phiên
   const endSession = async () => {
-    if (!contractAddress || !sessionKey || !selectedPhien) {
+    if (!contractAddress || !selectedPhien) {
       setError('Thiếu thông tin cần thiết để dừng phiên bầu cử');
       return;
+    }
+
+    // If no session key, try to get one
+    if (!sessionKey) {
+      const newSessionKey = await getSessionKey();
+      if (!newSessionKey) {
+        setError('Không thể lấy khóa phiên để thực hiện giao dịch');
+        return;
+      }
     }
 
     try {
@@ -933,6 +1010,7 @@ const KetQuaBauCu = () => {
 
       // Kiểm tra có thể kết thúc sớm không
       const canEarlyEnd = await quanLyCuocBauCu.canKetThucSomPhienBauCu(cuocBauCuId, selectedPhien);
+      setCanEarlyEndSession(canEarlyEnd);
 
       // Chuẩn bị callData
       const methodName = canEarlyEnd ? 'ketThucSomPhienBauCu' : 'ketThucPhienBauCu';
@@ -979,100 +1057,110 @@ const KetQuaBauCu = () => {
       setStatus(DeploymentStatus.CREATING_USEROP);
       showMessage('Đang tạo và ký UserOperation...');
 
-      // Ký UserOperation
-      const userOpHash = await entryPoint.layHashThaoTac(userOp);
-      const signingKey = new ethers.SigningKey(sessionKey.sessionKey);
-      const signatureObj = signingKey.sign(ethers.getBytes(userOpHash));
+      try {
+        // Ký UserOperation
+        const userOpHash = await entryPoint.layHashThaoTac(userOp);
+        const signingKey = new ethers.SigningKey(sessionKey.sessionKey);
+        const signatureObj = signingKey.sign(ethers.getBytes(userOpHash));
 
-      const signature = ethers.Signature.from({
-        r: signatureObj.r,
-        s: signatureObj.s,
-        v: signatureObj.v,
-      }).serialized;
+        const signature = ethers.Signature.from({
+          r: signatureObj.r,
+          s: signatureObj.s,
+          v: signatureObj.v,
+        }).serialized;
 
-      userOp.signature = signature;
+        userOp.signature = signature;
 
-      // Gửi UserOperation
-      setStatus(DeploymentStatus.SENDING_USEROP);
-      showMessage('Đang gửi giao dịch dừng phiên bầu cử...');
+        // Gửi UserOperation
+        setStatus(DeploymentStatus.SENDING_USEROP);
+        showMessage('Đang gửi giao dịch dừng phiên bầu cử...');
 
-      const response = await fetch('/api/bundler/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...userOp,
-          userOpHash: userOpHash,
-        }),
-      });
+        const response = await fetch('/api/bundler/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...userOp,
+            userOpHash: userOpHash,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!data) {
-        throw new Error('Không nhận được phản hồi từ bundler');
-      }
+        if (!data) {
+          throw new Error('Không nhận được phản hồi từ bundler');
+        }
 
-      const frontendHash = data.userOpHash || userOpHash;
-      const backendHash = data.backendHash || frontendHash;
-      const txHash = data.txHash || frontendHash;
+        const frontendHash = data.userOpHash || userOpHash;
+        const backendHash = data.backendHash || frontendHash;
+        const txHash = data.txHash || frontendHash;
 
-      setFrontendHash(frontendHash);
-      setBackendHash(backendHash);
-      setTxHash(txHash);
+        setFrontendHash(frontendHash);
+        setBackendHash(backendHash);
+        setTxHash(txHash);
 
-      setStatus(DeploymentStatus.WAITING_CONFIRMATION);
-      showMessage('Đã gửi giao dịch thành công, đang chờ xác nhận...');
+        setStatus(DeploymentStatus.WAITING_CONFIRMATION);
+        showMessage('Đã gửi giao dịch thành công, đang chờ xác nhận...');
 
-      // Kiểm tra trạng thái giao dịch
-      let checkCount = 0;
-      const maxChecks = 30;
-      const checkInterval = setInterval(async () => {
-        checkCount++;
-        try {
-          const statusResponse = await fetch(
-            `/api/bundler/check-status?userOpHash=${frontendHash}`,
-          );
-
-          if (!statusResponse.ok) {
-            throw new Error(`HTTP error! status: ${statusResponse.status}`);
-          }
-
-          const statusData = await statusResponse.json();
-
-          if (statusData && statusData.status === 'success') {
-            clearInterval(checkInterval);
-
-            setStatus(DeploymentStatus.SUCCESS);
-            setSuccessAlert(
-              canEarlyEnd
-                ? 'Phiên bầu cử đã được kết thúc sớm thành công!'
-                : 'Phiên bầu cử đã được dừng thành công!',
+        // Kiểm tra trạng thái giao dịch
+        let checkCount = 0;
+        const maxChecks = 30;
+        const checkInterval = setInterval(async () => {
+          checkCount++;
+          try {
+            const statusResponse = await fetch(
+              `/api/bundler/check-status?userOpHash=${frontendHash}`,
             );
 
-            // Cập nhật lại dữ liệu
-            await fetchSessionResults();
-          } else if (statusData && statusData.status === 'failed') {
-            clearInterval(checkInterval);
-            setStatus(DeploymentStatus.FAILED);
-            setError('Giao dịch thất bại: ' + (statusData.message || 'Lỗi không xác định'));
-          }
+            if (!statusResponse.ok) {
+              throw new Error(`HTTP error! status: ${statusResponse.status}`);
+            }
 
-          if (checkCount >= maxChecks) {
-            clearInterval(checkInterval);
-            showMessage('Đã hết thời gian chờ. Vui lòng làm mới trang để kiểm tra trạng thái.');
+            const statusData = await statusResponse.json();
+
+            if (statusData && statusData.status === 'success') {
+              clearInterval(checkInterval);
+
+              setStatus(DeploymentStatus.SUCCESS);
+              setSuccessAlert(
+                canEarlyEnd
+                  ? 'Phiên bầu cử đã được kết thúc sớm thành công!'
+                  : 'Phiên bầu cử đã được dừng thành công!',
+              );
+
+              // Cập nhật lại dữ liệu
+              await fetchSessionResults();
+            } else if (statusData && statusData.status === 'failed') {
+              clearInterval(checkInterval);
+              setStatus(DeploymentStatus.FAILED);
+              setError('Giao dịch thất bại: ' + (statusData.message || 'Lỗi không xác định'));
+            }
+
+            if (checkCount >= maxChecks) {
+              clearInterval(checkInterval);
+              showMessage('Đã hết thời gian chờ. Vui lòng làm mới trang để kiểm tra trạng thái.');
+            }
+          } catch (error) {
+            console.error('Lỗi khi kiểm tra trạng thái:', error);
           }
-        } catch (error) {
-          console.error('Lỗi khi kiểm tra trạng thái:', error);
-        }
-      }, 5000); // Kiểm tra mỗi 5 giây
+        }, 5000); // Kiểm tra mỗi 5 giây
+      } catch (error) {
+        setStatus(DeploymentStatus.FAILED);
+        setError(
+          'Lỗi khi ký hoặc gửi giao dịch: ' +
+            (error instanceof Error ? error.message : String(error)),
+        );
+      }
     } catch (error) {
       setStatus(DeploymentStatus.FAILED);
-      setError('Lỗi khi dừng phiên bầu cử: ' + error.message);
+      setError(
+        'Lỗi khi dừng phiên bầu cử: ' + (error instanceof Error ? error.message : String(error)),
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -1254,8 +1342,8 @@ const KetQuaBauCu = () => {
                 )}
               </button>
 
-              {/* Nút dừng phiên bầu cử - Chỉ hiển thị khi có quyền dừng phiên và phiên đang hoạt động */}
-              {canEndSession && sessionInfo && sessionInfo.isActive && (
+              {/* Always show stop/end session button when a session is selected and active */}
+              {sessionInfo && sessionInfo.isActive && (
                 <button
                   onClick={() => setConfirmModalOpen(true)}
                   className="flex-1 sm:flex-auto px-3 sm:px-5 py-2 sm:py-3 bg-red-600 dark:bg-red-700 text-white text-sm sm:text-base rounded-lg hover:bg-red-500 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 shadow-lg shadow-red-600/20 dark:shadow-red-900/50"
