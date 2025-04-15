@@ -20,6 +20,7 @@ import { getViByAddress } from '../store/sliceBlockchain/viBlockchainSlice';
 import apiClient from '../api/apiClient';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { setupVietnameseFonts, encodeVietnameseText } from '../utils/pdfFontUtils';
 
 // Các màu sắc cho biểu đồ
 const COLORS = [
@@ -92,7 +93,6 @@ const ThemeToggle = ({ darkMode, toggleDarkMode }) => {
 
 // Loading Spinner Component
 const LoadingSpinner = ({ message = 'Đang tải dữ liệu từ blockchain...' }) => (
-  <div className="flex h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-all duration-500">
     <div className="text-center p-8 backdrop-blur-lg bg-white/90 dark:bg-black/20 rounded-xl shadow-2xl">
       <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-3 border-b-3 border-indigo-500"></div>
       <p className="mt-6 text-gray-800 dark:text-white text-lg font-medium">{message}</p>
@@ -1382,58 +1382,65 @@ const KetQuaBauCu = () => {
       setIsLoading(true);
       showMessage('Đang chuẩn bị tài liệu PDF...');
 
-      // Create a new PDF document in A4 format with UTF-8 support
+      // Create a new PDF document in A4 format
       const pdf = new jsPDF('portrait', 'mm', 'a4');
-
-      // Import the standard font with encoding
-      pdf.addFont('helvetica', 'Helvetica', 'normal');
-      pdf.addFont('helvetica', 'Helvetica', 'bold');
-
-      // Force Unicode encoding
-      const textOptions = { isUnicode: true };
+      
+      // Don't explicitly add fonts - use default font
+      pdf.setFont("helvetica");
+      
+      // Helper function to safely print Vietnamese text
+      const safeText = (text, x, y, options = {}) => {
+        try {
+          // Convert Vietnamese diacritics to basic Latin characters for safety
+          const simplifiedText = text
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/đ/g, "d")
+            .replace(/Đ/g, "D");
+          pdf.text(simplifiedText, x, y, options);
+        } catch (e) {
+          console.warn("Error printing text:", e);
+          // Fallback to basic text
+          try {
+            pdf.text(text.replace(/[^\x00-\x7F]/g, "?"), x, y, options);
+          } catch (err) {
+            console.error("Fallback text failed:", err);
+          }
+        }
+      };
 
       // Add header
-      pdf.setFont('Helvetica', 'bold');
       pdf.setFontSize(16);
-      pdf.text('KẾT QUẢ BẦU CỬ BLOCKCHAIN', 105, 15, { align: 'center', ...textOptions });
+      pdf.setFont("helvetica", "bold");
+      safeText('KET QUA BAU CU BLOCKCHAIN', 105, 15, { align: 'center' });
 
       if (electionInfo) {
         pdf.setFontSize(14);
-        pdf.text(electionInfo.name, 105, 22, { align: 'center', ...textOptions });
+        safeText(electionInfo.name.replace(/[^\x00-\x7F]/g, " "), 105, 22, { align: 'center' });
       }
 
       // Add generation info and timestamp
       const now = new Date().toLocaleString();
       pdf.setFontSize(10);
-      pdf.setFont('Helvetica', 'normal');
-      pdf.text(`Thời gian xuất báo cáo: ${now}`, 105, 30, { align: 'center', ...textOptions });
-      pdf.text(`Phiên bầu cử: #${selectedPhien}`, 105, 35, { align: 'center', ...textOptions });
+      pdf.setFont("helvetica", "normal");
+      safeText(`Thoi gian xuat bao cao: ${now}`, 105, 30, { align: 'center' });
+      safeText(`Phien bau cu: #${selectedPhien}`, 105, 35, { align: 'center' });
 
       // Add session info
       pdf.setFontSize(12);
-      pdf.setFont('Helvetica', 'bold');
-      pdf.text('THÔNG TIN PHIÊN BẦU CỬ', 15, 45, textOptions);
-      pdf.setFont('Helvetica', 'normal');
+      pdf.setFont("helvetica", "bold");
+      safeText('THONG TIN PHIEN BAU CU', 15, 45);
+      pdf.setFont("helvetica", "normal");
       pdf.setFontSize(10);
 
-      const sessionStatus = sessionInfo.isActive ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc';
-      pdf.text(`Trạng thái: ${sessionStatus}`, 15, 52, textOptions);
-      pdf.text(`Thời gian bắt đầu: ${sessionInfo.startTime}`, 15, 57, textOptions);
-      pdf.text(`Thời gian kết thúc: ${sessionInfo.endTime}`, 15, 62, textOptions);
-      pdf.text(`Số cử tri: ${sessionInfo.voterCount}`, 15, 67, textOptions);
-      pdf.text(`Số ứng viên: ${sessionInfo.candidateCount}`, 15, 72, textOptions);
-      pdf.text(
-        `Số ứng viên trúng cử: ${sessionInfo.electedCandidates?.length || 0}`,
-        15,
-        77,
-        textOptions,
-      );
-      pdf.text(
-        `Tỷ lệ tham gia: ${progress.percentage}% (${progress.voted}/${progress.total})`,
-        15,
-        82,
-        textOptions,
-      );
+      const sessionStatus = sessionInfo.isActive ? 'Dang dien ra' : 'Da ket thuc';
+      safeText(`Trang thai: ${sessionStatus}`, 15, 52);
+      safeText(`Thoi gian bat dau: ${sessionInfo.startTime}`, 15, 57);
+      safeText(`Thoi gian ket thuc: ${sessionInfo.endTime}`, 15, 62);
+      safeText(`So cu tri: ${sessionInfo.voterCount}`, 15, 67);
+      safeText(`So ung vien: ${sessionInfo.candidateCount}`, 15, 72);
+      safeText(`So ung vien trung cu: ${sessionInfo.electedCandidates?.length || 0}`, 15, 77);
+      safeText(`Ty le tham gia: ${progress.percentage}% (${progress.voted}/${progress.total})`, 15, 82);
 
       // Add progress bar
       pdf.setDrawColor(200, 200, 200);
@@ -1456,23 +1463,30 @@ const KetQuaBauCu = () => {
 
       // Add Results title
       pdf.setFontSize(12);
-      pdf.setFont('Helvetica', 'bold');
-      pdf.text('KẾT QUẢ PHIÊN BẦU CỬ', 15, yPosition, textOptions);
+      pdf.setFont("helvetica", "bold");
+      safeText('KET QUA PHIEN BAU CU', 15, yPosition);
       yPosition += 10;
 
       // Get charts container element
       const chartContainer = document.getElementById('result-charts-container');
       if (chartContainer && votingResults.length > 0) {
-        const chartCanvas = await html2canvas(chartContainer, {
-          scale: 2, // Higher quality
-          useCORS: true,
-          logging: false,
-        });
+        try {
+          const chartCanvas = await html2canvas(chartContainer, {
+            scale: 2, // Higher quality
+            useCORS: true,
+            logging: false,
+          });
 
-        // Add chart image to PDF
-        const chartImgData = chartCanvas.toDataURL('image/png');
-        pdf.addImage(chartImgData, 'PNG', 15, yPosition, 180, 85);
-        yPosition += 90;
+          // Add chart image to PDF
+          const chartImgData = chartCanvas.toDataURL('image/png');
+          pdf.addImage(chartImgData, 'PNG', 15, yPosition, 180, 85);
+          yPosition += 90;
+        } catch (err) {
+          console.error("Error capturing chart:", err);
+          yPosition += 10;
+          safeText("Could not generate chart image", 15, yPosition);
+          yPosition += 10;
+        }
       }
 
       // Create table for results
@@ -1484,8 +1498,8 @@ const KetQuaBauCu = () => {
         }
 
         pdf.setFontSize(12);
-        pdf.setFont('Helvetica', 'bold');
-        pdf.text('BẢNG KẾT QUẢ CHI TIẾT', 15, yPosition, textOptions);
+        pdf.setFont("helvetica", "bold");
+        safeText('BANG KET QUA CHI TIET', 15, yPosition);
         yPosition += 8;
 
         // Table headers
@@ -1498,18 +1512,18 @@ const KetQuaBauCu = () => {
         pdf.rect(155, yPosition, 40, 8, 'F');
 
         pdf.setFontSize(9);
-        pdf.text('#', 20, yPosition + 5, { align: 'center', ...textOptions });
-        pdf.text('Địa chỉ', 60, yPosition + 5, { align: 'center', ...textOptions });
-        pdf.text('Số phiếu', 110, yPosition + 5, { align: 'center', ...textOptions });
-        pdf.text('Tỷ lệ', 140, yPosition + 5, { align: 'center', ...textOptions });
-        pdf.text('Trạng thái', 175, yPosition + 5, { align: 'center', ...textOptions });
+        safeText('#', 20, yPosition + 5, { align: 'center' });
+        safeText('Dia chi', 60, yPosition + 5, { align: 'center' });
+        safeText('So phieu', 110, yPosition + 5, { align: 'center' });
+        safeText('Ty le', 140, yPosition + 5, { align: 'center' });
+        safeText('Trang thai', 175, yPosition + 5, { align: 'center' });
 
         yPosition += 8;
 
         // Table rows
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(8);
-        pdf.setFont('Helvetica', 'normal');
+        pdf.setFont("helvetica", "normal");
 
         let rowColor = false;
         votingResults.forEach((result, index) => {
@@ -1522,7 +1536,7 @@ const KetQuaBauCu = () => {
             pdf.setFillColor(73, 85, 156);
             pdf.setTextColor(255, 255, 255);
             pdf.setFontSize(9);
-            pdf.setFont('Helvetica', 'bold');
+            pdf.setFont("helvetica", "bold");
 
             pdf.rect(15, yPosition, 10, 8, 'F');
             pdf.rect(25, yPosition, 70, 8, 'F');
@@ -1530,16 +1544,16 @@ const KetQuaBauCu = () => {
             pdf.rect(125, yPosition, 30, 8, 'F');
             pdf.rect(155, yPosition, 40, 8, 'F');
 
-            pdf.text('#', 20, yPosition + 5, { align: 'center', ...textOptions });
-            pdf.text('Địa chỉ', 60, yPosition + 5, { align: 'center', ...textOptions });
-            pdf.text('Số phiếu', 110, yPosition + 5, { align: 'center', ...textOptions });
-            pdf.text('Tỷ lệ', 140, yPosition + 5, { align: 'center', ...textOptions });
-            pdf.text('Trạng thái', 175, yPosition + 5, { align: 'center', ...textOptions });
+            safeText('#', 20, yPosition + 5, { align: 'center' });
+            safeText('Dia chi', 60, yPosition + 5, { align: 'center' });
+            safeText('So phieu', 110, yPosition + 5, { align: 'center' });
+            safeText('Ty le', 140, yPosition + 5, { align: 'center' });
+            safeText('Trang thai', 175, yPosition + 5, { align: 'center' });
 
             yPosition += 8;
             pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(8);
-            pdf.setFont('Helvetica', 'normal');
+            pdf.setFont("helvetica", "normal");
             rowColor = false;
           }
 
@@ -1554,36 +1568,26 @@ const KetQuaBauCu = () => {
           rowColor = !rowColor;
 
           // Row content
-          pdf.text((index + 1).toString(), 20, yPosition + 4, { align: 'center', ...textOptions });
-          pdf.text(result.displayAddress, 60, yPosition + 4, { align: 'center', ...textOptions });
-          pdf.text(result.votes.toString(), 110, yPosition + 4, {
-            align: 'center',
-            ...textOptions,
-          });
-          pdf.text(`${result.percentage}%`, 140, yPosition + 4, {
-            align: 'center',
-            ...textOptions,
-          });
+          safeText((index + 1).toString(), 20, yPosition + 4, { align: 'center' });
+          safeText(result.displayAddress, 60, yPosition + 4, { align: 'center' });
+          safeText(result.votes.toString(), 110, yPosition + 4, { align: 'center' });
+          safeText(`${result.percentage}%`, 140, yPosition + 4, { align: 'center' });
 
           const status = result.isElected
             ? sessionInfo.isActive
-              ? 'Đang kiểm'
-              : 'Trúng cử'
+              ? 'Dang kiem'
+              : 'Trung cu'
             : sessionInfo.isActive
-              ? 'Đang kiểm'
-              : 'Chưa trúng';
-          pdf.text(status, 175, yPosition + 4, { align: 'center', ...textOptions });
+              ? 'Dang kiem'
+              : 'Chua trung';
+          safeText(status, 175, yPosition + 4, { align: 'center' });
 
           yPosition += 7;
         });
       }
 
       // Add elected candidates section if applicable
-      if (
-        !sessionInfo.isActive &&
-        sessionInfo.electedCandidates &&
-        sessionInfo.electedCandidates.length > 0
-      ) {
+      if (!sessionInfo.isActive && sessionInfo.electedCandidates && sessionInfo.electedCandidates.length > 0) {
         // Check if we need a new page
         if (yPosition > 240) {
           pdf.addPage();
@@ -1591,8 +1595,8 @@ const KetQuaBauCu = () => {
         }
 
         pdf.setFontSize(12);
-        pdf.setFont('Helvetica', 'bold');
-        pdf.text('DANH SÁCH TRÚNG CỬ', 15, yPosition + 15, textOptions);
+        pdf.setFont("helvetica", "bold");
+        safeText('DANH SACH TRUNG CU', 15, yPosition + 15);
         yPosition += 25;
 
         // Add elected candidates in a nice format
@@ -1605,8 +1609,8 @@ const KetQuaBauCu = () => {
             yPosition = 15;
 
             pdf.setFontSize(12);
-            pdf.setFont('Helvetica', 'bold');
-            pdf.text('DANH SÁCH TRÚNG CỬ (TIẾP THEO)', 15, yPosition, textOptions);
+            pdf.setFont("helvetica", "bold");
+            safeText('DANH SACH TRUNG CU (TIEP THEO)', 15, yPosition);
             yPosition += 10;
           }
 
@@ -1616,19 +1620,18 @@ const KetQuaBauCu = () => {
 
           pdf.setFontSize(10);
           pdf.setTextColor(0, 0, 0);
-          pdf.setFont('Helvetica', 'bold');
-          pdf.text(`Ứng viên #${index + 1}:`, 25, yPosition + 7, textOptions);
-          pdf.setFont('Helvetica', 'normal');
+          pdf.setFont("helvetica", "bold");
+          safeText(`Ung vien #${index + 1}:`, 25, yPosition + 7);
+          pdf.setFont("helvetica", "normal");
 
           const shortAddress = `${address.substring(0, 18)}...${address.substring(address.length - 8)}`;
-          pdf.text(shortAddress, 70, yPosition + 7, textOptions);
+          safeText(shortAddress, 70, yPosition + 7);
 
           if (candidateInfo) {
-            pdf.text(
-              `Số phiếu: ${candidateInfo.votes} (${candidateInfo.percentage}% tổng số phiếu)`,
+            safeText(
+              `So phieu: ${candidateInfo.votes} (${candidateInfo.percentage}% tong so phieu)`,
               25,
-              yPosition + 15,
-              textOptions,
+              yPosition + 15
             );
           }
 
