@@ -275,6 +275,8 @@ const PhienBauCuBlockchainDeploymentPage: React.FC<{
         'function hasRole(bytes32 role, address account) view returns (bool)',
       ];
 
+      console.log('Địa chỉ hợp đồng cuộc bầu cử:', cuocBauCu.blockchainAddress);
+
       const contract = new Contract(cuocBauCu.blockchainAddress, quanLyCuocBauCuAbi, provider);
 
       // Always use ID = 1 for contract
