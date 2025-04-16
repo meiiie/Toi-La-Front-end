@@ -281,6 +281,7 @@ const PhienBauCuBlockchainDeploymentPage: React.FC<{
       const baseInfo = await contract.layThongTinCoBan(1);
       const owner = baseInfo[0];
       const isActive = baseInfo[1];
+      console.log('Thông tin cơ bản:', baseInfo);
 
       // Kiểm tra quyền BANTOCHUC
       const BANTOCHUC = ethers.keccak256(ethers.toUtf8Bytes('BANTOCHUC'));

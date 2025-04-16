@@ -502,7 +502,7 @@ const ElectionWorkflowManager: React.FC<ElectionWorkflowManagerProps> = ({
       const contract = new Contract(cuocBauCu.blockchainAddress, quanLyCuocBauCuAbi, provider);
 
       // Kiểm tra chủ sở hữu của cuộc bầu cử
-      const baseInfo = await contract.layThongTinCoBan(1n);
+      const baseInfo = await contract.layThongTinCoBan(1);
       const owner = baseInfo[0];
       const isOwner = owner.toLowerCase() === scwAddress.toLowerCase();
 
