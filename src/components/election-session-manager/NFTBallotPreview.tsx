@@ -14,6 +14,8 @@ import {
   Shield,
   Box,
   ExternalLink,
+  CheckCircle,
+  Sparkles,
 } from 'lucide-react';
 import { Separator } from '../../components/ui/Separator';
 import {
@@ -24,7 +26,6 @@ import {
 } from '../../components/ui/Tooltip';
 import { groupAttributes, shortenAddress } from '../../utils/ballotUtils';
 import { ipfsToGatewayUrl, isIpfsUrl } from '../../utils/ipfsUtils';
-import IPFSImage from '../../components/bophieu/IPFSImage';
 import Model3DViewer from './Model3DView';
 
 interface NFTBallotPreviewProps {
@@ -56,7 +57,7 @@ interface NFTBallotPreviewProps {
 }
 
 /**
- * NFTBallotPreview - Hiển thị xem trước phiếu bầu dạng NFT
+ * NFTBallotPreview - Hiển thị xem trước phiếu bầu dạng NFT với thiết kế nghệ thuật
  */
 const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({
   // Direct props
@@ -80,6 +81,7 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showFullAttributes, setShowFullAttributes] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Combine props or use metadata object
   const finalMetadata = useMemo(() => {
@@ -165,132 +167,185 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({
     }
   };
 
-  // Render image or 3D model
+  // Generate a unique decorative pattern based on name or metadata
+  const generatePatternId = () => {
+    const str = finalMetadata.name || 'ballot';
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return Math.abs(hash % 10) + 1; // Return a number between 1-10
+  };
+
+  const patternId = useMemo(() => generatePatternId(), [finalMetadata.name]);
+
+  // Render image or 3D model with artistic framing
   const renderMedia = () => {
     if (isLoading) {
       return (
-        <Skeleton className="w-full aspect-square rounded-lg bg-gray-200 dark:bg-gray-800/50" />
+        <div className="relative">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg opacity-75 blur-sm"></div>
+          <Skeleton className="relative w-full aspect-[4/3] rounded-lg bg-gray-200 dark:bg-gray-800/50" />
+        </div>
       );
     }
 
     if (!processedImageUrl || imageError) {
       return (
-        <div className="w-full aspect-square rounded-lg bg-gray-100 dark:bg-gray-800/50 flex flex-col items-center justify-center p-4">
-          {is3DModel ? (
-            <Box className="h-8 w-8 md:h-12 md:w-12 text-gray-400 dark:text-gray-600 mb-2" />
-          ) : (
-            <ImageIcon className="h-8 w-8 md:h-12 md:w-12 text-gray-400 dark:text-gray-600 mb-2" />
-          )}
-          <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm text-center">
-            {imageError
-              ? `Không thể tải ${is3DModel ? 'mô hình 3D' : 'hình ảnh'}`
-              : `Chưa có ${is3DModel ? 'mô hình 3D' : 'hình ảnh'}`}
-          </p>
-          {imageError && (
-            <button
-              onClick={handleTryNextGateway}
-              className="mt-2 flex items-center text-blue-600 dark:text-blue-400 text-xs"
-            >
-              <RotateCw className="h-3 w-3 mr-1" />
-              Thử lại {onGatewayChange ? 'với gateway khác' : ''}
-            </button>
-          )}
+        <div className="relative group">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-gray-400 to-gray-500 rounded-lg opacity-50 blur-sm group-hover:opacity-75 transition-opacity duration-300"></div>
+          <div className="relative w-full aspect-[4/3] rounded-lg bg-gray-100 dark:bg-gray-800/50 flex flex-col items-center justify-center p-4 overflow-hidden">
+            <div className="absolute inset-0 opacity-10 bg-pattern-${patternId}"></div>
+            {is3DModel ? (
+              <Box className="h-8 w-8 md:h-10 md:w-10 text-gray-400 dark:text-gray-600 mb-2" />
+            ) : (
+              <ImageIcon className="h-8 w-8 md:h-10 md:w-10 text-gray-400 dark:text-gray-600 mb-2" />
+            )}
+            <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm text-center">
+              {imageError
+                ? `Không thể tải ${is3DModel ? 'mô hình 3D' : 'hình ảnh'}`
+                : `Chưa có ${is3DModel ? 'mô hình 3D' : 'hình ảnh'}`}
+            </p>
+            {imageError && (
+              <button
+                onClick={handleTryNextGateway}
+                className="mt-2 flex items-center text-blue-600 dark:text-blue-400 text-xs group-hover:scale-105 transition-transform"
+              >
+                <RotateCw className="h-3 w-3 mr-1" />
+                Thử lại {onGatewayChange ? 'với gateway khác' : ''}
+              </button>
+            )}
+          </div>
         </div>
       );
     }
 
     if (is3DModel) {
       return (
-        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800/50">
-          {!imageLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Skeleton className="w-full h-full" />
-            </div>
-          )}
+        <div
+          className="relative group cursor-pointer"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <div
+            className={`absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-blue-500 rounded-lg opacity-50 blur-sm transition-all duration-300 ${isHovered ? 'opacity-75' : 'opacity-50'}`}
+          ></div>
+          <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-gradient-to-br from-gray-900 to-gray-800">
+            {!imageLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center z-10">
+                <Skeleton className="w-full h-full" />
+              </div>
+            )}
 
-          <Model3DViewer
-            modelUrl={processedImageUrl}
-            height="100%"
-            autoRotate={true}
-            onLoad={handleImageLoaded}
-            onError={handleImageError}
-            className="w-full h-full rounded-lg"
-          />
+            <Model3DViewer
+              modelUrl={processedImageUrl}
+              height="100%"
+              autoRotate={true}
+              onLoad={handleImageLoaded}
+              onError={handleImageError}
+              className="w-full h-full rounded-lg"
+            />
 
-          {/* 3D Model badge */}
-          {imageLoaded && !imageError && (
-            <div className="absolute bottom-2 right-2 bg-indigo-500/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center">
-              <Box className="h-3 w-3 mr-1" />
-              3D Model
-            </div>
-          )}
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 h-12 w-12 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-bl-lg"></div>
+            <div className="absolute bottom-0 left-0 h-12 w-12 bg-gradient-to-tr from-blue-500/20 to-indigo-500/20 rounded-tr-lg"></div>
+
+            {/* 3D Model badge */}
+            {imageLoaded && !imageError && (
+              <div className="absolute bottom-2 right-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-2 py-1 rounded-md text-xs font-medium flex items-center backdrop-blur-sm">
+                <Box className="h-3 w-3 mr-1" />
+                3D Model
+              </div>
+            )}
+
+            {/* Artistic overlay */}
+            <div
+              className={`absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+            ></div>
+          </div>
         </div>
       );
     }
 
     return (
-      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800/50">
-        {!imageLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Skeleton className="w-full h-full" />
-          </div>
-        )}
+      <div
+        className="relative group cursor-pointer"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Decorative frame with gradient */}
+        <div
+          className={`absolute -inset-0.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-lg opacity-50 blur-sm transition-all duration-300 ${isHovered ? 'opacity-75' : 'opacity-50'}`}
+        ></div>
 
-        {isIpfsUrl(finalMetadata.image || '') ? (
+        {/* Image container */}
+        <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden">
+          {!imageLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center z-10">
+              <Skeleton className="w-full h-full" />
+            </div>
+          )}
+
+          {/* Actual image */}
           <img
             src={processedImageUrl}
             alt={finalMetadata.name || 'NFT Ballot Preview'}
             onLoad={handleImageLoaded}
             onError={handleImageError}
-            className={`w-full h-full object-cover transition-opacity duration-300 rounded-lg ${
+            className={`w-full h-full object-cover transition-all duration-500 rounded-lg ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
+            } ${isHovered ? 'scale-[1.03]' : 'scale-100'}`}
           />
-        ) : (
-          <img
-            src={processedImageUrl}
-            alt={finalMetadata.name || 'NFT Ballot Preview'}
-            onLoad={handleImageLoaded}
-            onError={handleImageError}
-            className={`w-full h-full object-cover transition-opacity duration-300 rounded-lg ${
-              imageLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
-        )}
 
-        {/* Hiển thị badge IPFS nếu là ảnh từ IPFS */}
-        {imageLoaded && !imageError && isIpfsUrl(finalMetadata.image || '') && (
-          <div className="absolute bottom-2 right-2 bg-blue-500/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center">
-            <Database className="h-3 w-3 mr-1" />
-            IPFS
-          </div>
-        )}
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 h-10 w-10 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-bl-lg"></div>
+          <div className="absolute bottom-0 left-0 h-10 w-10 bg-gradient-to-tr from-purple-500/20 to-blue-500/20 rounded-tr-lg"></div>
+
+          {/* IPFS badge */}
+          {imageLoaded && !imageError && isIpfsUrl(finalMetadata.image || '') && (
+            <div className="absolute bottom-2 right-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-2 py-1 rounded-md text-xs font-medium flex items-center backdrop-blur-sm shadow-md">
+              <Database className="h-3 w-3 mr-1" />
+              IPFS
+            </div>
+          )}
+
+          {/* Artistic overlay */}
+          <div
+            className={`absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+          ></div>
+        </div>
       </div>
     );
   };
 
-  // Render attribute group
+  // Render attribute group with artistic styling
   const renderAttributeGroup = (title: string, icon: React.ReactNode, attributes: any[]) => {
     if (!attributes || attributes.length === 0) return null;
 
     const visibleAttributes = showFullAttributes
       ? attributes
-      : attributes.slice(0, title === 'Thông tin khác' ? 3 : 4);
+      : attributes.slice(0, title === 'Thông tin khác' ? 2 : 3);
 
     const hasMore = visibleAttributes.length < attributes.length;
 
     return (
       <div className="space-y-2">
-        <div className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
-          {icon}
-          <span className="ml-1.5">{title}</span>
-          {hasMore && <span className="ml-1 text-xs text-gray-500">({attributes.length})</span>}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+            {icon}
+            <span className="ml-1.5">{title}</span>
+          </div>
+          {hasMore && (
+            <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded-full">
+              {attributes.length}
+            </span>
+          )}
         </div>
         <div className="grid grid-cols-1 gap-1.5">
           {visibleAttributes.map((attr, index) => (
             <div
               key={index}
-              className="flex justify-between py-1 px-2 bg-gray-50 dark:bg-gray-800/30 rounded-md text-xs"
+              className="flex justify-between py-1.5 px-2.5 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/30 dark:to-gray-800/50 rounded-md text-xs hover:shadow-sm transition-shadow duration-200"
             >
               <span className="text-gray-500 dark:text-gray-400 truncate mr-2">
                 {attr.trait_type}:
@@ -316,132 +371,207 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({
     );
   };
 
-  // Apply background color from metadata if available
+  // Apply background color from metadata if available with artistic enhancement
+  const bgColor = finalMetadata.background_color || '6366f1';
+  const textColor = isLoading ? 'text-gray-700 dark:text-gray-300' : getContrastColor(bgColor);
+
+  // Generate style for card based on background color
   const cardStyle = finalMetadata.background_color
     ? {
-        background: `linear-gradient(to bottom right, #${finalMetadata.background_color}10, #${finalMetadata.background_color}20)`,
-        borderColor: `#${finalMetadata.background_color}40`,
+        background: `linear-gradient(135deg, #${bgColor}05, #${bgColor}15, #${bgColor}05)`,
+        borderColor: `#${bgColor}30`,
       }
     : {};
 
   return (
-    <Card className="overflow-hidden border-gray-200 dark:border-gray-700" style={cardStyle}>
-      <CardHeader className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-b border-gray-200 dark:border-gray-700 p-3">
-        <div className="flex items-center justify-between">
+    <Card
+      className={`overflow-hidden border-gray-200 dark:border-gray-700 relative backdrop-blur-sm transition-all duration-300 hover:shadow-lg ${
+        isHovered ? 'shadow-md shadow-indigo-500/10' : ''
+      }`}
+      style={cardStyle}
+    >
+      {/* Decorative corner accents */}
+      <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-500/30 dark:border-indigo-500/30 rounded-tl-md"></div>
+      <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-500/30 dark:border-indigo-500/30 rounded-tr-md"></div>
+      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-500/30 dark:border-indigo-500/30 rounded-bl-md"></div>
+      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-500/30 dark:border-indigo-500/30 rounded-br-md"></div>
+
+      {/* Header section with elegant gradient */}
+      <CardHeader className="bg-gradient-to-r from-indigo-50/90 via-purple-50/90 to-indigo-50/90 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-indigo-900/20 border-b border-gray-200 dark:border-gray-700 p-3 relative overflow-hidden">
+        {/* Optional subtle pattern overlay */}
+        <div className="absolute inset-0 opacity-5 bg-[url('/patterns/topography.svg')]"></div>
+
+        <div className="flex items-center justify-between relative z-10">
           <CardTitle className="flex items-center text-sm text-gray-800 dark:text-gray-100">
-            <Ticket className="h-3.5 w-3.5 mr-1.5 text-indigo-600 dark:text-indigo-400" />
+            <div className="mr-2 p-1 rounded-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10">
+              <Ticket className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+            </div>
             {isLoading ? (
               <Skeleton className="h-4 w-40 bg-gray-200 dark:bg-gray-700" />
             ) : (
-              finalMetadata?.name || 'Phiếu bầu cử'
+              <span className="font-medium">{finalMetadata?.name || 'Phiếu bầu cử'}</span>
             )}
           </CardTitle>
           <Badge
             variant="outline"
-            className="bg-white/50 dark:bg-gray-800/50 text-xs border-gray-300 dark:border-gray-600 font-normal flex items-center gap-1"
+            className="bg-white/70 dark:bg-gray-800/70 text-xs border-gray-300 dark:border-gray-600 font-normal flex items-center gap-1 backdrop-blur-sm"
           >
-            {is3DModel ? <Box className="h-3 w-3" /> : <Ticket className="h-3 w-3" />}
-            {is3DModel ? 'NFT 3D' : 'Phiếu bầu NFT'}
+            {is3DModel ? (
+              <>
+                <Box className="h-3 w-3 text-indigo-500" />
+                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-semibold">
+                  NFT 3D
+                </span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-3 w-3 text-indigo-500" />
+                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-semibold">
+                  Phiếu NFT
+                </span>
+              </>
+            )}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="p-3">
-        <div className="space-y-3">
-          {/* NFT Image/Model */}
-          {renderMedia()}
 
-          {/* Description */}
-          {(finalMetadata?.description || isLoading) && (
-            <div className="mt-2">
-              {isLoading ? (
-                <>
-                  <Skeleton className="h-3 w-full mb-1 bg-gray-200 dark:bg-gray-800/50" />
-                  <Skeleton className="h-3 w-2/3 bg-gray-200 dark:bg-gray-800/50" />
-                </>
-              ) : (
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {finalMetadata.description}
-                </p>
-              )}
+      {/* Content section with refined layout */}
+      <CardContent className="p-3 space-y-4">
+        {/* NFT Image/Model section */}
+        <div className="mb-4">{renderMedia()}</div>
+
+        {/* Description section with artistic separator */}
+        {(finalMetadata?.description || isLoading) && (
+          <div className="relative">
+            <div className="absolute left-0 top-0 w-10 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent"></div>
+            {isLoading ? (
+              <>
+                <Skeleton className="h-3 w-full mb-1 mt-2 bg-gray-200 dark:bg-gray-800/50" />
+                <Skeleton className="h-3 w-2/3 bg-gray-200 dark:bg-gray-800/50" />
+              </>
+            ) : (
+              <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-400 mt-2 italic">
+                {finalMetadata.description}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* External URL if available */}
+        {finalMetadata.external_url && (
+          <div className="flex items-center text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+            <ExternalLink className="h-3 w-3 mr-1" />
+            <a
+              href={finalMetadata.external_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline truncate"
+            >
+              {finalMetadata.external_url}
+            </a>
+          </div>
+        )}
+
+        {/* Attributes section with artistic grouping */}
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24 bg-gray-200 dark:bg-gray-800/50" />
+            <div className="grid grid-cols-1 gap-2">
+              {[1, 2].map((i) => (
+                <Skeleton key={i} className="h-8 rounded-md bg-gray-200 dark:bg-gray-800/50" />
+              ))}
             </div>
-          )}
+          </div>
+        ) : finalMetadata?.attributes && finalMetadata.attributes.length > 0 ? (
+          <div className="relative">
+            {/* Artistic attribute container with subtle gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-50/50 to-indigo-50/30 dark:from-gray-900/30 dark:to-indigo-900/10 rounded-lg -z-10"></div>
 
-          {/* External URL if available */}
-          {finalMetadata.external_url && (
-            <div className="mt-1 flex items-center text-xs text-blue-600 dark:text-blue-400">
-              <ExternalLink className="h-3 w-3 mr-1" />
-              <a
-                href={finalMetadata.external_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline truncate"
-              >
-                {finalMetadata.external_url}
-              </a>
-            </div>
-          )}
+            <div className="space-y-3 p-3 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
+              {/* Attribute groups */}
+              <div className="space-y-4">
+                {/* Primary attributes */}
+                {renderAttributeGroup(
+                  'Thông tin bầu cử',
+                  <FileText className="h-3.5 w-3.5 text-blue-500" />,
+                  groupedAttributes.election,
+                )}
 
-          {/* Attributes */}
-          {isLoading ? (
-            <div className="mt-2 space-y-2">
-              <Skeleton className="h-4 w-24 bg-gray-200 dark:bg-gray-800/50" />
-              <div className="grid grid-cols-1 gap-2">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-8 rounded-md bg-gray-200 dark:bg-gray-800/50" />
-                ))}
+                {/* Identity section */}
+                {renderAttributeGroup(
+                  'Thông tin cử tri',
+                  <User className="h-3.5 w-3.5 text-green-500" />,
+                  groupedAttributes.identity,
+                )}
+
+                {/* Verification section */}
+                {renderAttributeGroup(
+                  'Xác thực',
+                  <Shield className="h-3.5 w-3.5 text-purple-500" />,
+                  groupedAttributes.verification,
+                )}
+
+                {/* Other attributes with artistic separator */}
+                {groupedAttributes.other.length > 0 && (
+                  <>
+                    <div className="relative py-1">
+                      <Separator className="my-1 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="bg-white dark:bg-gray-900 px-2 text-xs text-gray-400">
+                          chi tiết
+                        </span>
+                      </div>
+                    </div>
+                    {renderAttributeGroup(
+                      'Thông tin khác',
+                      <Calendar className="h-3.5 w-3.5 text-gray-500" />,
+                      groupedAttributes.other,
+                    )}
+                  </>
+                )}
               </div>
-            </div>
-          ) : finalMetadata?.attributes && finalMetadata.attributes.length > 0 ? (
-            <div className="mt-3 space-y-4 bg-gray-50/70 dark:bg-gray-800/30 p-2 rounded-lg">
-              {/* Thông tin cuộc bầu cử */}
-              {renderAttributeGroup(
-                'Thông tin bầu cử',
-                <FileText className="h-3.5 w-3.5 text-blue-500" />,
-                groupedAttributes.election,
-              )}
 
-              {/* Thông tin cử tri */}
-              {renderAttributeGroup(
-                'Thông tin cử tri',
-                <User className="h-3.5 w-3.5 text-green-500" />,
-                groupedAttributes.identity,
-              )}
-
-              {/* Thông tin xác thực */}
-              {renderAttributeGroup(
-                'Xác thực',
-                <Shield className="h-3.5 w-3.5 text-purple-500" />,
-                groupedAttributes.verification,
-              )}
-
-              {/* Thông tin khác */}
-              {groupedAttributes.other.length > 0 && (
-                <>
-                  <Separator className="my-2" />
-                  {renderAttributeGroup(
-                    'Thông tin khác',
-                    <Calendar className="h-3.5 w-3.5 text-gray-500" />,
-                    groupedAttributes.other,
-                  )}
-                </>
-              )}
-
-              {/* Nút hiển thị đầy đủ thuộc tính */}
-              {finalMetadata.attributes.length > 6 && !showFullAttributes && (
+              {/* Show more button with hover effect */}
+              {finalMetadata.attributes.length > 5 && !showFullAttributes && (
                 <button
                   onClick={() => setShowFullAttributes(true)}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center mx-auto mt-1"
+                  className="text-xs flex items-center justify-center w-full mt-2 py-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-md"
                 >
                   Xem tất cả thuộc tính
                   <ChevronRight className="h-3 w-3 ml-1" />
                 </button>
               )}
             </div>
-          ) : null}
+          </div>
+        ) : null}
+
+        {/* Verification seal for extra professional touch */}
+        <div className="flex justify-end">
+          <div className="flex items-center text-xs text-indigo-600 dark:text-indigo-400">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            <span>Đã xác thực</span>
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 };
+
+// Helper function to determine contrasting text color based on background
+function getContrastColor(hexcolor: string): string {
+  // Remove # if present
+  hexcolor = hexcolor.replace('#', '');
+
+  // Convert to RGB
+  const r = parseInt(hexcolor.substr(0, 2), 16);
+  const g = parseInt(hexcolor.substr(2, 2), 16);
+  const b = parseInt(hexcolor.substr(4, 2), 16);
+
+  // Calculate brightness
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+  // Return black or white based on brightness
+  return brightness > 128 ? 'text-gray-900' : 'text-gray-50';
+}
 
 export default NFTBallotPreview;
