@@ -25,7 +25,8 @@ import { groupAttributes, processIpfsImageUrl, shortenAddress } from '../../util
 import IPFSImage from '../../components/bophieu/IPFSImage';
 
 interface NFTBallotPreviewProps {
-  metadata: {
+  ballot?: any; // Thay đổi từ metadata sang ballot
+  metadata?: {
     name: string;
     description?: string;
     image?: string;
@@ -40,10 +41,84 @@ interface NFTBallotPreviewProps {
 /**
  * NFTBallotPreview - Hiển thị xem trước phiếu bầu dạng NFT
  */
-const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading = false }) => {
+const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({
+  ballot,
+  metadata: propMetadata,
+  isLoading = false,
+}) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showFullAttributes, setShowFullAttributes] = useState(false);
+  const [metadata, setMetadata] = useState<any>(propMetadata || null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(isLoading);
+
+  // Parse metadata từ ballot giống như trong BallotDisplay
+  useEffect(() => {
+    if (propMetadata) {
+      // Nếu đã có metadata được truyền vào qua props, dùng luôn
+      setMetadata(propMetadata);
+      setLoading(false);
+      return;
+    }
+
+    const parseMetadata = () => {
+      if (!ballot) {
+        setError('Không có dữ liệu phiếu bầu');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Nếu là chỉ có processedURI đã được xử lý
+        if (
+          ballot.processedURI &&
+          ballot.processedURI.startsWith('data:application/json;base64,')
+        ) {
+          const base64Content = ballot.processedURI.split(',')[1];
+          const jsonString = atob(base64Content);
+          const parsedMetadata = JSON.parse(jsonString);
+          setMetadata(parsedMetadata);
+          setLoading(false);
+        }
+        // Nếu đã có metadata được parse sẵn
+        else if (ballot.metadata) {
+          setMetadata(ballot.metadata);
+          setLoading(false);
+        }
+        // Nếu chỉ có tokenURI (holihu format)
+        else if (
+          ballot.tokenURI &&
+          ballot.tokenURI.startsWith('https://holihu-metadata.com/data:')
+        ) {
+          const dataUri = ballot.tokenURI.substring('https://holihu-metadata.com/'.length);
+          const base64Content = dataUri.split(',')[1];
+          const jsonString = atob(base64Content);
+          const parsedMetadata = JSON.parse(jsonString);
+          setMetadata(parsedMetadata);
+          setLoading(false);
+        }
+        // Nếu là IPFS URI
+        else if (ballot.tokenURI && ballot.tokenURI.startsWith('ipfs://')) {
+          setMetadata({
+            name: `Phiếu bầu cử #${ballot.tokenId}`,
+            description: 'Phiếu bầu cử HoLiHu',
+            image: ballot.tokenURI,
+          });
+          setLoading(false);
+        } else {
+          setError('Không thể đọc dữ liệu từ phiếu bầu');
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Lỗi khi parse metadata:', err);
+        setError(`Lỗi khi phân tích dữ liệu: ${err.message}`);
+        setLoading(false);
+      }
+    };
+
+    parseMetadata();
+  }, [ballot, propMetadata]);
 
   // Xử lý URL hình ảnh IPFS
   const imageUrl = useMemo(() => {
@@ -76,9 +151,17 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
 
   // Hiển thị hình ảnh phiếu bầu
   const renderImage = () => {
-    if (isLoading) {
+    if (loading) {
       return (
         <Skeleton className="w-full aspect-square rounded-lg bg-gray-200 dark:bg-gray-800/50" />
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="w-full aspect-square rounded-lg bg-red-50 dark:bg-red-900/20 flex flex-col items-center justify-center p-4">
+          <p className="text-red-600 dark:text-red-400 text-xs md:text-sm text-center">{error}</p>
+        </div>
       );
     }
 
@@ -185,10 +268,10 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center text-sm text-gray-800 dark:text-gray-100">
             <Ticket className="h-3.5 w-3.5 mr-1.5 text-indigo-600 dark:text-indigo-400" />
-            {isLoading ? (
+            {loading ? (
               <Skeleton className="h-4 w-40 bg-gray-200 dark:bg-gray-700" />
             ) : (
-              metadata?.name || 'Phiếu bầu cử'
+              metadata?.name || (ballot ? `Phiếu bầu cử #${ballot.tokenId}` : 'Phiếu bầu cử')
             )}
           </CardTitle>
           <Badge
@@ -205,9 +288,9 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
           {renderImage()}
 
           {/* Description */}
-          {(metadata?.description || isLoading) && (
+          {(metadata?.description || loading) && (
             <div className="mt-2">
-              {isLoading ? (
+              {loading ? (
                 <>
                   <Skeleton className="h-3 w-full mb-1 bg-gray-200 dark:bg-gray-800/50" />
                   <Skeleton className="h-3 w-2/3 bg-gray-200 dark:bg-gray-800/50" />
@@ -219,7 +302,7 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
           )}
 
           {/* Attributes */}
-          {isLoading ? (
+          {loading ? (
             <div className="mt-2 space-y-2">
               <Skeleton className="h-4 w-24 bg-gray-200 dark:bg-gray-800/50" />
               <div className="grid grid-cols-1 gap-2">
@@ -275,6 +358,30 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({ metadata, isLoading
               )}
             </div>
           ) : null}
+
+          {/* Hiển thị trạng thái phiếu bầu */}
+          {ballot && ballot.isUsed !== undefined && (
+            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <div>
+                <span className="text-xs text-gray-500 dark:text-gray-400">ID Phiếu:</span>
+                <span className="ml-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  #{ballot.tokenId}
+                </span>
+              </div>
+
+              <div>
+                {ballot.isUsed ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                    Đã sử dụng
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                    Chưa sử dụng
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
