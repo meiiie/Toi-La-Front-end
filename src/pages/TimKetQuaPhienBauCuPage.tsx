@@ -589,7 +589,7 @@ const KetQuaBauCu = () => {
           if (data) {
             // Get blockchain address from election
             setContractAddress(
-              data.blockchainAddress || '0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10',
+              data.blockchainAddress || '0x7750bE597A76cCb1FE13495eD5C2a3AFca4eDe3D',
             );
             setServerId(data.blockchainServerId || 4);
           }
@@ -597,7 +597,7 @@ const KetQuaBauCu = () => {
           console.error('Lỗi khi lấy thông tin cuộc bầu cử:', error);
 
           // Fallback: If API doesn't work, use default values
-          setContractAddress('0xc00E42F5d43A9B0bBA8eAEbBb3Ab4e32d2Ec6D10');
+          setContractAddress('0x7750bE597A76cCb1FE13495eD5C2a3AFca4eDe3D');
           setServerId(8);
         } finally {
           setIsLoading(false);
