@@ -21,7 +21,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../../components/ui/Tooltip';
-import { groupAttributes, processIpfsImageUrl, shortenAddress } from '../../utils/ballotUtils';
+import { groupAttributes, shortenAddress } from '../../utils/ballotUtils';
+import { ipfsToGatewayUrl, isIpfsUrl } from '../../utils/ipfsUtils';
 import IPFSImage from '../../components/bophieu/IPFSImage';
 
 interface NFTBallotPreviewProps {
@@ -120,12 +121,15 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({
     parseMetadata();
   }, [ballot, propMetadata]);
 
-  // Xử lý URL hình ảnh IPFS
+  // Xử lý URL hình ảnh IPFS sử dụng cùng logic với EnhancedBallotCard
   const imageUrl = useMemo(() => {
     if (!metadata?.image) return null;
-    if (metadata.image.startsWith('ipfs://')) {
-      return processIpfsImageUrl(metadata.image);
+
+    // Sử dụng cùng logic với EnhancedBallotCard để xử lý URL IPFS
+    if (isIpfsUrl(metadata.image)) {
+      return ipfsToGatewayUrl(metadata.image);
     }
+
     return metadata.image;
   }, [metadata?.image]);
 
@@ -193,7 +197,7 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({
           </div>
         )}
 
-        {imageUrl.startsWith('ipfs://') ? (
+        {isIpfsUrl(imageUrl) ? (
           <IPFSImage
             src={imageUrl}
             alt={metadata.name || 'NFT Ballot Preview'}
@@ -212,7 +216,7 @@ const NFTBallotPreview: React.FC<NFTBallotPreviewProps> = ({
         )}
 
         {/* Hiển thị badge IPFS nếu là ảnh từ IPFS */}
-        {imageLoaded && !imageError && imageUrl.includes('ipfs') && (
+        {imageLoaded && !imageError && isIpfsUrl(metadata?.image) && (
           <div className="absolute bottom-2 right-2 bg-blue-500/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center">
             <Database className="h-3 w-3 mr-1" />
             IPFS
